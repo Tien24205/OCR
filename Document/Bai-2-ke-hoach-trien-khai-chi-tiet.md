@@ -28,8 +28,8 @@ Tài liệu này chốt các quyết định kỹ thuật còn để mở ở m�
 
 | Thành phần | Lựa chọn | Lý do |
 | --- | --- | --- |
-| Frontend | React 18 + TypeScript + Vite | Có `react-webcam` theo đúng repo tham chiếu trong đề |
-| Camera | `react-webcam` | `audio={false}`, `screenshotFormat="image/jpeg"`, `mirrored={false}` |
+| Frontend | Streamlit ≥ 1.57 (đang dùng 1.63) | Cả stack là Python, một ngôn ngữ, một venv. Không phải viết lớp UI bằng ngôn ngữ thứ hai trong 10 ngày |
+| Camera | `st.camera_input()` | Có sẵn trong Streamlit, không cần thư viện ngoài |
 | Backend | Python 3.11 + FastAPI + Uvicorn | Pydantic v2 làm lớp schema/validation, dùng chung cho API và cho ràng buộc đầu ra LLM |
 | Cơ sở dữ liệu | SQLite (file `data/app.db`) + SQLAlchemy 2.0 | Đủ cho demo một máy chủ; schema viết theo chuẩn SQL để chuyển Postgres sau được |
 | Kho ảnh | Thư mục `data/images/` trên đĩa, tên tệp = SHA-256 của nội dung | Chống lưu trùng ảnh; tự nhiên hỗ trợ phát hiện quét lại đúng ảnh cũ |
@@ -39,9 +39,32 @@ Tài liệu này chốt các quyết định kỹ thuật còn để mở ở m�
 | Tác vụ nền | `BackgroundTasks` của FastAPI + cột trạng thái trong DB | Một tiến trình, không cần Celery/Redis cho phạm vi này |
 | Kiểm thử | `pytest` + `pytest-asyncio` + script đo chất lượng riêng | |
 
+### Vì sao Streamlit thay cho React (ghi lại để giải thích khi trình bày)
+
+Đề gốc `De2.docx.pdf` không quy định công nghệ frontend. Hai repository webcam trong phần phân tích yêu cầu ban đầu (`react-webcam`, `blazor-webcam`) chỉ giải quyết **bước lấy ảnh**; `st.camera_input()` giải quyết đúng bước đó bằng một dòng, nên vai trò tham chiếu của chúng đã được thay thế chứ không bị bỏ qua. Đổi lại:
+
+- Toàn bộ dự án còn một ngôn ngữ, một môi trường ảo, một lệnh chạy test.
+- Thời gian tiết kiệm ở tầng UI được dồn cho phần thực sự tạo nên bài làm: trích xuất có kiểm chứng, chuẩn hóa, tra cứu có dẫn nguồn.
+
+Cái mất phải nói thẳng: Streamlit chạy lại toàn bộ script mỗi lần tương tác, nên trạng thái phải đi qua `st.session_state`, và không kiểm soát UI ở mức chi tiết như React. Với phạm vi ba màn hình của bài này thì đánh đổi đó có lợi.
+
+**Streamlit là frontend, không phải backend.** Nó gọi FastAPI qua HTTP đúng như SPA sẽ làm. Giữ ranh giới này để hợp đồng API ở mục 4 vẫn có giá trị, `/docs` vẫn demo được, và câu hỏi “vì sao API key nằm ở backend” vẫn trả lời được bằng kiến trúc thật.
+
+### Hệ quả kiến trúc của việc dùng Streamlit
+
+| Điểm | SPA (React) | Streamlit |
+| --- | --- | --- |
+| Ai gọi FastAPI | Trình duyệt (JavaScript) | Tiến trình Streamlit (Python, phía máy chủ) |
+| CORS | Phải cấu hình | **Không liên quan** — không có request chéo nguồn từ trình duyệt |
+| Biến cấu hình | `VITE_*` bị nhúng vào JS gửi xuống trình duyệt | Chỉ là biến môi trường phía máy chủ, không xuống trình duyệt |
+| Ảnh danh thiếp | `<img src="/api/images/...">` → phải phơi endpoint ảnh ra Internet | Streamlit tải bytes rồi vẽ lên trang — endpoint ảnh không cần công khai |
+| Chờ tác vụ nền | `setInterval` + `fetch` | `@st.fragment(run_every="1s")` |
+
+Ba dòng giữa đều là điểm cộng về bảo mật: bề mặt tấn công nhỏ hơn SPA.
+
 **Nguyên tắc bất biến xuyên suốt:**
 
-1. Khóa dịch vụ (Google credentials, Gemini API key) **chỉ** nằm ở backend, đọc từ biến môi trường. Frontend không bao giờ gọi thẳng Google.
+1. Khóa dịch vụ (Google credentials, Gemini API key) **chỉ** nằm ở backend, đọc từ biến môi trường. Frontend chỉ biết URL của backend, không biết khóa nào.
 2. Mọi giá trị hiển thị như "trích xuất từ danh thiếp" phải truy vết được về `rawText` của ảnh đó.
 3. Mọi thông tin bổ sung phải có `source_url` + `fetched_at` + `evidence_snippet`. Không có nguồn thì trạng thái là `not_found`, không phải giá trị suy đoán.
 4. Nội dung ảnh và nội dung trang web là **dữ liệu không đáng tin cậy**. LLM trong hệ thống không được cấp tool nào; đầu ra luôn đi qua validator trước khi chạm DB.
@@ -50,8 +73,12 @@ Tài liệu này chốt các quyết định kỹ thuật còn để mở ở m�
 
 ## 2. Cấu trúc thư mục dự án
 
+**Một môi trường ảo duy nhất ở gốc dự án** (`.venv/`), dùng chung cho backend và frontend vì cả hai đều là Python. Hai file `requirements.txt` riêng nhưng cài vào cùng một venv.
+
 ```text
 OCR/
+├── .venv/                        # venv DUY NHAT cho ca du an
+├── pytest.ini                    # chay test ca backend lan frontend bang 1 lenh
 ├── Document/                     # tài liệu (đã có)
 ├── backend/
 │   ├── app/
@@ -93,28 +120,20 @@ OCR/
 │   │   └── evaluate.py           # đo chất lượng ngày 9
 │   ├── data/                     # .gitignore — app.db, images/
 │   ├── .env.example
-│   ├── requirements.txt
-│   └── pytest.ini
+│   └── requirements.txt
 ├── frontend/
-│   ├── src/
-│   │   ├── main.tsx, App.tsx, router.tsx
-│   │   ├── api/client.ts         # fetch wrapper + kiểu TypeScript
-│   │   ├── pages/
-│   │   │   ├── CapturePage.tsx   # camera + upload
-│   │   │   ├── ReviewPage.tsx    # ảnh cạnh form sửa
-│   │   │   ├── ContactsPage.tsx  # danh sách + tìm kiếm
-│   │   │   └── ContactDetailPage.tsx
-│   │   ├── components/
-│   │   │   ├── CameraCapture.tsx # bọc react-webcam
-│   │   │   ├── FileDrop.tsx
-│   │   │   ├── FieldRow.tsx      # 1 trường + cờ cần kiểm tra
-│   │   │   ├── MultiValueField.tsx
-│   │   │   ├── EnrichmentPanel.tsx
-│   │   │   └── DuplicateBanner.tsx
-│   │   └── lib/status.ts
-│   ├── .env.example              # chỉ VITE_API_BASE_URL
-│   ├── package.json
-│   └── vite.config.ts
+│   ├── streamlit_app.py          # entry: st.navigation + trang thai dung chung
+│   ├── app_pages/                # KHONG dat ten "pages/" (dung API cu cua Streamlit)
+│   │   ├── capture.py            # camera + tai anh + xem truoc
+│   │   ├── review.py             # poll OCR, anh canh form sua
+│   │   └── contacts.py           # danh sach + tim kiem + chi tiet
+│   ├── lib/
+│   │   ├── api.py                # httpx client goi FastAPI
+│   │   ├── fields.py             # widget da gia tri, co "can kiem tra" (Ngay 5)
+│   │   └── enrichment.py         # khoi hien thi khang dinh + nguon (Ngay 6)
+│   ├── tests/test_app_renders.py # AppTest: chay app headless, khong can trinh duyet
+│   ├── .streamlit/config.toml    # maxUploadSize khop gioi han cua backend
+│   └── requirements.txt
 ├── datasets/
 │   ├── dev/{en,ja}/              # 10 + 10 ảnh dùng phát triển
 │   ├── eval/{en,ja}/             # 10 + 10 ảnh GIỮ RIÊNG, không nhìn khi debug
@@ -124,7 +143,9 @@ OCR/
 └── README.md
 ```
 
-`.gitignore` phải có ngay từ ngày 1: `backend/data/`, `.env`, `datasets/` (nếu ảnh không được phép chia sẻ), `node_modules/`, `__pycache__/`, `*.db`.
+`.gitignore` phải có ngay từ ngày 1: `.venv/`, `.env`, `backend/data/`, `datasets/` (ảnh chứa thông tin cá nhân), `__pycache__/`, `*.db`, `.streamlit/secrets.toml`.
+
+**Lưu ý về tên `app_pages/`:** Streamlit tự động coi mọi file trong thư mục tên `pages/` là một trang, theo API đa trang đời cũ. Trộn cơ chế đó với `st.navigation` gây điều hướng trùng lặp khó hiểu. Đặt tên khác là cách tránh dứt điểm.
 
 ---
 
@@ -467,14 +488,15 @@ Mỗi ngày có **Định nghĩa hoàn thành (DoD)** kiểm tra được. Khôn
 
 ### Ngày 1 — Khung dự án, schema, dữ liệu thử
 
-- [ ] `git init` đã có; tạo `.gitignore` (`data/`, `.env`, `node_modules/`, `__pycache__/`, `*.db`) và commit `Document/` + `tmp/` (hoặc bỏ `tmp/` khỏi git).
-- [ ] `backend/`: venv, `requirements.txt` (`fastapi uvicorn[standard] sqlalchemy pydantic pydantic-settings python-multipart pillow httpx google-cloud-vision google-genai beautifulsoup4 pytest pytest-asyncio`).
-- [ ] `GET /api/health` chạy được.
-- [ ] Toàn bộ `models.py` theo mục 3, `init_db()` tạo file `data/app.db`.
-- [ ] `frontend/`: `npm create vite@latest frontend -- --template react-ts`, cài `react-webcam react-router-dom`. Trang trắng gọi được `/api/health` qua proxy Vite.
+- [ ] `git init` đã có; tạo `.gitignore` (`.venv/`, `.env`, `backend/data/`, `__pycache__/`, `*.db`) **trước khi tạo file `.env` nào**, rồi commit `Document/`.
+- [ ] Tạo `.venv` ở gốc dự án; cài `backend/requirements.txt` và `frontend/requirements.txt` vào cùng venv đó.
+- [ ] `GET /api/health` chạy được, trả trạng thái cấu hình mà không lộ giá trị khóa.
+- [ ] Toàn bộ `models.py` theo mục 3, `init_db()` tạo file `backend/data/app.db`.
+- [ ] `frontend/streamlit_app.py` với `st.navigation` + 3 trang trong `app_pages/`; banner trạng thái backend ở sidebar.
+- [ ] `pytest.ini` ở gốc, chạy được cả test backend lẫn `AppTest` của frontend bằng một lệnh.
 - [ ] Bắt đầu thu thập ảnh mẫu; tạo `datasets/labels.jsonl` với ít nhất 5 nhãn đầu tiên.
 
-**DoD:** `uvicorn app.main:app --reload` và `npm run dev` chạy song song, frontend gọi được backend, DB tạo được bảng.
+**DoD:** `uvicorn` và `streamlit run` chạy song song, Streamlit hiển thị được trạng thái backend, DB tạo được bảng, `pytest` xanh.
 
 **Bẫy hay gặp:** đừng để đến ngày 7 mới thiết kế bảng. Schema sai ở ngày 7 kéo theo sửa cả trích xuất lẫn giao diện.
 
@@ -493,10 +515,9 @@ Mỗi ngày có **Định nghĩa hoàn thành (DoD)** kiểm tra được. Khôn
 
 ### Ngày 3 — Đầu vào ảnh trọn vẹn
 
-- [ ] `CameraCapture.tsx` bọc `react-webcam`: `audio={false}`, `screenshotFormat="image/jpeg"`, `mirrored={false}`, `videoConstraints={{ facingMode: "environment" }}`.
-- [ ] Xử lý `NotAllowedError` (từ chối quyền) và `NotFoundError` (không có thiết bị) → hiện thông báo + chuyển sang ô tải ảnh. Không để màn hình trắng.
-- [ ] `FileDrop.tsx`: chọn/kéo thả JPEG/PNG, xem trước, chụp lại, xác nhận.
+- [ ] `app_pages/capture.py`: `st.segmented_control` chọn giữa `st.camera_input()` và `st.file_uploader()`; xem trước ảnh; nút gửi. **Đã làm ở Ngày 1** vì Streamlit cho sẵn cả hai widget — Ngày 3 chỉ còn phần backend.
 - [ ] `POST /api/scans`: đọc magic bytes bằng Pillow (`Image.open` + `verify()`), từ chối tệp không phải ảnh dù đuôi là `.jpg`; giới hạn 8 MB; lưu vào `data/images/<sha256>` và ghi dòng `scans`.
+- [ ] Kiểm tra ảnh do `st.camera_input()` trả về **không bị lật gương**. Widget hiển thị preview dạng gương như mọi ứng dụng camera, nhưng bytes trả về không lật — phải xác nhận bằng cách chụp một thẻ có chữ và đọc lại `raw_text`, đừng tin vào preview.
 - [ ] Đọc EXIF orientation và xoay ảnh về đúng chiều trước khi gửi OCR — ảnh chụp từ điện thoại rất hay bị xoay 90°, và đây là nguyên nhân OCR ra rác mà rất khó phát hiện.
 
 **DoD:** cả hai đường (chụp và tải) đều tạo được `scans` với ảnh đúng trong `data/images/`; chặn được tệp `.txt` đổi tên thành `.jpg`.
@@ -508,15 +529,16 @@ Mỗi ngày có **Định nghĩa hoàn thành (DoD)** kiểm tra được. Khôn
 - [ ] `services/extract/grounding.py` — **viết unit test trước phần này**, nó là chốt chặn chính.
 - [ ] `pipeline.py`: `BackgroundTasks` chạy OCR → extract → ground → normalize → ghi `scans`, đo `ms_ocr`, `ms_extract`.
 - [ ] `GET /api/scans/{id}` trả `status` + `draft` + `grounding`.
-- [ ] Frontend poll và hiển thị các trường thật.
+- [ ] `app_pages/review.py` poll bằng `@st.fragment(run_every="1s")` và hiển thị các trường thật. Khung poll đã dựng ở Ngày 1; chỉ cần điền phần hiển thị dữ liệu.
 
 **DoD:** gửi 1 ảnh Anh và 1 ảnh Nhật qua giao diện, thấy đúng tên/công ty/email/điện thoại trong ứng dụng. Trường không có trên thẻ để trống, không tự sinh.
 
 ### Ngày 5 — Chuẩn hóa và màn hình duyệt
 
 - [ ] `normalize.py` đầy đủ theo bảng 5.4 + unit test cho từng quy tắc.
-- [ ] `ReviewPage.tsx`: bố cục hai cột — ảnh gốc (zoom được) bên trái, form bên phải.
-- [ ] `MultiValueField.tsx`: thêm/sửa/xóa phần tử trong danh sách email, điện thoại, chức danh, phòng ban, địa chỉ.
+- [ ] `app_pages/review.py`: hai cột `st.columns` — ảnh gốc bên trái, form bên phải.
+- [ ] `lib/fields.py`: widget đa giá trị cho email, điện thoại, chức danh, phòng ban, địa chỉ. Dùng `st.data_editor(num_rows="dynamic")` để thêm/sửa/xóa dòng — rẻ hơn nhiều so với tự dựng danh sách widget động.
+- [ ] Bọc form trong `st.form` để mọi thay đổi chỉ gửi đi khi bấm nút, thay vì chạy lại script sau từng ký tự gõ vào.
 - [ ] Cờ trạng thái mỗi trường: **xanh** (`exact`), **vàng** (`fuzzy`, cần kiểm tra), **xám** (không đọc được). Chú thích rõ: cờ vàng là tín hiệu hỗ trợ, không phải kết luận đúng/sai.
 - [ ] Mọi sửa đổi của người dùng đặt `source = "user"`; `scans.extraction_json` giữ nguyên.
 
@@ -526,7 +548,7 @@ Mỗi ngày có **Định nghĩa hoàn thành (DoD)** kiểm tra được. Khôn
 
 - [ ] `fetcher.py` + **unit test cho guard SSRF**: `http://127.0.0.1/`, `http://192.168.1.1/`, `http://169.254.169.254/`, `file:///etc/passwd`, và một URL công khai redirect về `127.0.0.1` — tất cả phải bị chặn.
 - [ ] `discover.py`, `summarize.py`, validator đoạn trích.
-- [ ] `POST /api/organizations/{id}/enrich` chạy nền; `EnrichmentPanel.tsx` hiển thị từng khẳng định kèm nguồn bấm được, thời điểm tra cứu, đoạn trích, và nút Duyệt/Bác bỏ.
+- [ ] `POST /api/organizations/{id}/enrich` chạy nền; `lib/enrichment.py` hiển thị từng khẳng định trong một `st.container(border=True)` kèm nguồn bấm được, thời điểm tra cứu, đoạn trích, và nút Duyệt/Bác bỏ.
 - [ ] Kiểm tra hai kịch bản: một công ty có website (ra kết quả có nguồn) và một danh thiếp không có website (ra `not_found` đúng cách, OCR vẫn còn nguyên).
 
 **DoD:** có ảnh chụp màn hình một hồ sơ với lĩnh vực + sản phẩm/dịch vụ kèm URL nguồn và đoạn trích kiểm chứng được. Chỉ hiện một link tìm kiếm cho người dùng tự tra là **chưa** hoàn thành bước này.
@@ -535,9 +557,9 @@ Mỗi ngày có **Định nghĩa hoàn thành (DoD)** kiểm tra được. Khôn
 
 - [ ] `POST /api/contacts` trong một transaction: tạo/liên kết `organizations`, tạo `contacts`, `contact_emails`, `contact_phones`, `addresses`, cập nhật `scans.status = 'committed'` và `scans.contact_id`.
 - [ ] Kiểm tra `Idempotency-Key`; nhấn Lưu hai lần trả về cùng một `contact_id`.
-- [ ] `dedupe.py` + `DuplicateBanner` với ba lựa chọn.
-- [ ] `ContactsPage` (tìm kiếm, phân trang) + `ContactDetailPage`.
-- [ ] `GET /api/export?format=json`, sau đó `csv` với BOM UTF-8.
+- [ ] `dedupe.py` + khối cảnh báo trùng với ba lựa chọn.
+- [ ] `app_pages/contacts.py`: ô tìm kiếm + `st.dataframe(on_select="rerun")` để bấm vào một dòng là mở chi tiết.
+- [ ] `GET /api/export?format=json`, sau đó `csv` với BOM UTF-8. Trên Streamlit dùng `st.download_button`.
 - [ ] **Tắt hẳn backend, khởi động lại, kiểm tra hồ sơ còn nguyên.**
 
 **DoD:** trọn luồng ảnh → hồ sơ lưu thật → tìm lại được bằng tên tiếng Nhật → xuất ra file mở bằng Excel không vỡ chữ.
@@ -558,8 +580,9 @@ Ma trận bắt buộc chạy hết:
 | 8 | Nhấn Lưu hai lần | Một hồ sơ duy nhất |
 | 9 | Quét lại đúng ảnh cũ | Cảnh báo trùng, không tự gộp |
 | 10 | `grep -ri "AIza\|private_key\|BEGIN PRIVATE" .` trên toàn repo | Không có kết quả |
-| 11 | DevTools → Network trên frontend | Không thấy key trong request nào |
+| 11 | DevTools → Network khi dùng app | Chỉ thấy WebSocket của Streamlit; không có request nào đi thẳng tới Google |
 | 12 | Camera điện thoại qua HTTPS | Hoạt động (dùng `ngrok` hoặc chứng chỉ tự ký) |
+| 13 | Mở app ở hai tab trình duyệt cùng lúc | Hai phiên độc lập, bản quét của tab này không lọt sang tab kia |
 
 - [ ] Thứ tự sửa lỗi: mất dữ liệu → hỏng luồng chính → sai dữ liệu → khó dùng → hình thức.
 
@@ -603,8 +626,11 @@ Ma trận bắt buộc chạy hết:
 | `tests/integration/test_scan_flow.py` | `OCR_PROVIDER=mock`: POST ảnh → poll → commit → tìm kiếm | Bảo vệ luồng chính khi refactor |
 | `tests/integration/test_idempotency.py` | Hai lần POST cùng key → một hồ sơ | FR-11 |
 | `tests/integration/test_unicode.py` | Chữ Nhật đi qua lưu → tải lại → xuất JSON → xuất CSV không đổi | Checklist bắt buộc |
+| `frontend/tests/test_app_renders.py` | `AppTest` chạy cả ba trang headless, backend được giả lập | Bắt lỗi sai tên icon, sai tham số widget, `KeyError` trong `session_state` — những lỗi chỉ lộ ra khi mở đúng trang đó trên trình duyệt |
 
-Chạy: `pytest -q` trong `backend/`. Test không được gọi mạng thật.
+Chạy: `python -m pytest` ở **gốc dự án** (chạy cả backend lẫn frontend). Test không được gọi mạng thật.
+
+`AppTest` chạy app trong tiến trình pytest, không mở trình duyệt và không cần server — nên nó đủ nhanh để chạy sau mỗi thay đổi. Không thay thế được việc mở thật để kiểm tra camera, vì `st.camera_input` cần thiết bị thật.
 
 ---
 
@@ -616,6 +642,8 @@ Chạy: `pytest -q` trong `backend/`. Test không được gọi mạng thật.
 | **Vision đọc kém thẻ Nhật chữ dọc** | Ngày 2 | Ghi nhận là giới hạn đã biết; ưu tiên thẻ bố cục ngang cho MVP như đã tuyên bố phạm vi |
 | **Không được cấp quyền Google Cloud** | Ngày 1–2 | Chuyển sang Gemini API key đơn thuần (không cần GCP project) làm cả OCR lẫn trích xuất; hoặc PaddleOCR chạy local. Ghi rõ trong README |
 | **Ảnh điện thoại bị xoay EXIF** | Ngày 3 | Xử lý EXIF ngay ở ngày 3, đừng để lẫn với lỗi OCR ở ngày 4 |
+| **Streamlit chạy lại toàn bộ script, gọi OCR nhiều lần** | Ngày 4, hóa đơn Google tăng bất thường | Không bao giờ gọi API trực tiếp trong thân script. OCR chạy ở tác vụ nền của backend; frontend chỉ poll trạng thái bằng `st.fragment`. Bọc mọi input trong `st.form` để chỉ gửi khi bấm nút |
+| **Mất dữ liệu đang sửa khi chuyển trang** | Ngày 5 | `st.session_state` là nơi giữ trạng thái duy nhất; widget cần giữ giá trị qua chuyển trang phải đặt `persist_state="session"` |
 | **Vỡ chữ Nhật khi xuất CSV** | Ngày 7 | BOM UTF-8; kiểm tra bằng Excel thật trên Windows |
 | **Người chấm yêu cầu đủ 4 ngôn ngữ** | Bất kỳ lúc nào | Vision + Gemini vốn xử lý được `ko`/`zh`; thêm vào `languageHints` là gần như miễn phí. Chỉ cần thêm mẫu thử. Xem mục 9 |
 | **Hết thời gian** | Cuối ngày 7 | Theo bảng cắt phạm vi mục 9 |
@@ -679,7 +707,9 @@ ENRICH_MAX_BYTES=2097152
 ENRICH_USER_AGENT=BusinessCardBot/0.1
 ```
 
-`frontend/.env.example` chỉ có duy nhất `VITE_API_BASE_URL=http://localhost:8000`. Nếu có thêm bất cứ biến nào chứa key trong file này, đó là lỗi thiết kế.
+Frontend chỉ đọc **một** biến: `API_BASE_URL` (mặc định `http://127.0.0.1:8000`). Không cần `.streamlit/secrets.toml` vì frontend không giữ khóa nào — nếu bạn thấy mình sắp tạo file đó, hãy dừng lại và kiểm tra xem lời gọi dịch vụ đang bị đặt nhầm chỗ.
+
+`frontend/.streamlit/config.toml` đặt `maxUploadSize = 8` cho khớp với `MAX_UPLOAD_BYTES` của backend, để người dùng bị chặn ngay trên trình duyệt thay vì đợi tải xong mới nhận lỗi 413. Hai giá trị này phải sửa cùng nhau.
 
 ---
 
@@ -687,16 +717,16 @@ ENRICH_USER_AGENT=BusinessCardBot/0.1
 
 | ID | Yêu cầu | Thực hiện ở | Ngày |
 | --- | --- | --- | --- |
-| FR-01 | Chụp và tải ảnh | `CameraCapture.tsx`, `FileDrop.tsx` | 3 |
+| FR-01 | Chụp và tải ảnh | `app_pages/capture.py` (`st.camera_input`, `st.file_uploader`) | 1, 3 |
 | FR-02 | Kiểm tra đầu vào | `services/images.py`, `api/scans.py` | 3 |
 | FR-03 | Nhận diện Anh/Nhật | `google_vision.py` + `languageHints` | 2, 4 |
 | FR-04 | Trích xuất có cấu trúc | `extract/gemini.py` + `CardExtraction` | 4 |
-| FR-05 | Chuẩn hóa và duyệt | `normalize.py`, `ReviewPage.tsx` | 5 |
-| FR-06 | Tra cứu bổ sung | `enrich/` | 6 |
+| FR-05 | Chuẩn hóa và duyệt | `normalize.py`, `app_pages/review.py`, `lib/fields.py` | 5 |
+| FR-06 | Tra cứu bổ sung | `enrich/`, `lib/enrichment.py` | 6 |
 | FR-07 | Xử lý không tìm thấy | `enrichments.status = 'not_found'` | 6 |
 | FR-08 | Lưu tập trung | `models.py`, `POST /contacts` | 7 |
-| FR-09 | Tìm kiếm và tái sử dụng | `GET /contacts`, `/export` | 7 |
-| FR-10 | Phát hiện trùng | `dedupe.py`, `DuplicateBanner` | 7 |
+| FR-09 | Tìm kiếm và tái sử dụng | `GET /contacts`, `/export`, `app_pages/contacts.py` | 7 |
+| FR-10 | Phát hiện trùng | `dedupe.py` + khối cảnh báo ở `review.py` | 7 |
 | FR-11 | Trạng thái và lỗi | Máy trạng thái scan + `Idempotency-Key` | 4, 7, 8 |
 | — | Không bịa dữ liệu | `extract/grounding.py` | 4 |
 | — | Không lộ khóa | Cấu trúc backend + kiểm tra ngày 8 | 2, 8 |

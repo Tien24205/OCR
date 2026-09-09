@@ -5,6 +5,7 @@
 secrets/
 *.json.key
 gcp-sa.json
+.streamlit/secrets.toml
 
 # --- Dữ liệu chạy (ảnh danh thiếp, database) ---
 backend/data/
@@ -24,12 +25,6 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 *.egg-info/
-
-# --- Node ---
-node_modules/
-dist/
-.vite/
-npm-debug.log*
 
 # --- Hệ điều hành / IDE ---
 Thumbs.db

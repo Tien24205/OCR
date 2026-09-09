@@ -49,6 +49,19 @@ class Settings(BaseSettings):
     enrich_user_agent: str = "BusinessCardBot/0.1"
 
     @property
+    def image_path(self) -> Path:
+        """Thu muc anh, LUON tuyet doi.
+
+        `.env` ghi duong dan tuong doi (`./data/images`) cho de doc, nhung
+        duong dan tuong doi phu thuoc thu muc dang chay. Backend co the duoc
+        khoi dong tu goc du an (`--app-dir backend`) hoac tu trong `backend/`,
+        va hai cach do se tro toi hai thu muc khac nhau. Neo vao BACKEND_DIR
+        de ket qua luon giong nhau.
+        """
+        p = Path(self.image_dir)
+        return p if p.is_absolute() else (BACKEND_DIR / p).resolve()
+
+    @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 

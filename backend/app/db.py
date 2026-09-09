@@ -55,7 +55,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 def init_db() -> None:
     """Tao bang neu chua co. Du cho pham vi 10 ngay; neu sau nay can doi
     schema tren du lieu that thi chuyen sang Alembic."""
-    Path(settings.image_dir).mkdir(parents=True, exist_ok=True)
+    settings.image_path.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
 
 

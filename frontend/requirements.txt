@@ -1,0 +1,4 @@
+# Frontend Streamlit. Cai chung vao .venv o goc du an cung voi backend.
+streamlit>=1.57
+httpx>=0.27          # goi API cua backend
+pillow>=11.0         # xem truoc / xoay anh phia client truoc khi gui
