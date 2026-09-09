@@ -1,0 +1,42 @@
+# --- Bí mật: KHÔNG BAO GIỜ commit ---
+.env
+.env.*
+!.env.example
+secrets/
+*.json.key
+gcp-sa.json
+
+# --- Dữ liệu chạy (ảnh danh thiếp, database) ---
+backend/data/
+*.db
+*.db-wal
+*.db-shm
+
+# --- Ảnh mẫu: chứa thông tin cá nhân thật, chỉ chia sẻ khi được phép ---
+datasets/dev/
+datasets/eval/
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# --- Node ---
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# --- Hệ điều hành / IDE ---
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# --- File tạm khi render PDF ---
+tmp/
