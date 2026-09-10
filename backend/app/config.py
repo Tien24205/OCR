@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/app.db"
     image_dir: Path = BACKEND_DIR / "data" / "images"
     max_upload_bytes: int = 8 * 1024 * 1024
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = "http://localhost:8501"
 
     # --- OCR ---
     ocr_provider: str = "mock"          # google | mock

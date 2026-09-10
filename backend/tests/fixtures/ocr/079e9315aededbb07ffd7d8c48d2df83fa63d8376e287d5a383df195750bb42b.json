@@ -1,0 +1,102 @@
+{
+  "source_file": "en-001.png",
+  "raw_text": "Example Solutions Inc.\nSales Division\nJane Doe\nSenior Account Manager\n500 Market Street, Suite 200\nSan Francisco, CA 94105\nTel: +1 (415) 555-0142  ext. 88\njane.doe@example.com\nhttps://example.com",
+  "provider": "mock:synthetic",
+  "provider_version": "make_test_card",
+  "detected_languages": [],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  },
+  "extraction": {
+    "full_names": [],
+    "company_names": [
+      {
+        "value": "Example Solutions Inc.",
+        "source_text": "Example Solutions Inc."
+      }
+    ],
+    "job_titles": [
+      {
+        "value": "Senior Account Manager",
+        "source_text": "Senior Account Manager"
+      }
+    ],
+    "departments": [
+      {
+        "value": "Sales Division",
+        "source_text": "Sales Division"
+      }
+    ],
+    "emails": [
+      {
+        "value": "jane.doe@example.com",
+        "source_text": "jane.doe@example.com"
+      }
+    ],
+    "phones": [
+      {
+        "value": "+1 (415) 555-0142",
+        "source_text": "Tel: +1 (415) 555-0142  ext. 88",
+        "label": "tel",
+        "extension": "88"
+      }
+    ],
+    "websites": [
+      {
+        "value": "https://example.com",
+        "source_text": "https://example.com"
+      }
+    ],
+    "addresses": [],
+    "card_language": "en"
+  },
+  "grounding": {
+    "full_names": [],
+    "company_names": [
+      {
+        "value": "Example Solutions Inc.",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "job_titles": [
+      {
+        "value": "Senior Account Manager",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "departments": [
+      {
+        "value": "Sales Division",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "emails": [
+      {
+        "value": "jane.doe@example.com",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "phones": [
+      {
+        "value": "+1 (415) 555-0142",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "websites": [
+      {
+        "value": "https://example.com",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "addresses": []
+  },
+  "ms_ocr": 0,
+  "ms_extract": 0
+}

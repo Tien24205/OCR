@@ -1,0 +1,124 @@
+{
+  "source_file": "ja-001.png",
+  "raw_text": "株式会社サンプル製作所\n営業本部 第一営業部\n部長  山田 太郎\n〒100-0001 東京都千代田区千代田1-1-1\nTEL: 03-1234-5678 (内線 102)   FAX: 03-1234-5679\n携帯: 090-8765-4321\ntaro.yamada@example.co.jp\nhttps://www.example.co.jp",
+  "provider": "mock:synthetic",
+  "provider_version": "make_test_card",
+  "detected_languages": [],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  },
+  "extraction": {
+    "full_names": [],
+    "company_names": [
+      {
+        "value": "株式会社サンプル製作所",
+        "source_text": "株式会社サンプル製作所"
+      }
+    ],
+    "job_titles": [
+      {
+        "value": "部長  山田 太郎",
+        "source_text": "部長  山田 太郎"
+      }
+    ],
+    "departments": [
+      {
+        "value": "営業本部 第一営業部",
+        "source_text": "営業本部 第一営業部"
+      }
+    ],
+    "emails": [
+      {
+        "value": "taro.yamada@example.co.jp",
+        "source_text": "taro.yamada@example.co.jp"
+      }
+    ],
+    "phones": [
+      {
+        "value": "03-1234-5678",
+        "source_text": "TEL: 03-1234-5678 (内線 102)   FAX: 03-1234-5679",
+        "label": "fax",
+        "extension": "102"
+      },
+      {
+        "value": "03-1234-5679",
+        "source_text": "TEL: 03-1234-5678 (内線 102)   FAX: 03-1234-5679",
+        "label": "fax",
+        "extension": "102"
+      },
+      {
+        "value": "090-8765-4321",
+        "source_text": "携帯: 090-8765-4321",
+        "label": "mobile",
+        "extension": ""
+      }
+    ],
+    "websites": [
+      {
+        "value": "https://www.example.co.jp",
+        "source_text": "https://www.example.co.jp"
+      }
+    ],
+    "addresses": [],
+    "card_language": "mixed"
+  },
+  "grounding": {
+    "full_names": [],
+    "company_names": [
+      {
+        "value": "株式会社サンプル製作所",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "job_titles": [
+      {
+        "value": "部長  山田 太郎",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "departments": [
+      {
+        "value": "営業本部 第一営業部",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "emails": [
+      {
+        "value": "taro.yamada@example.co.jp",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "phones": [
+      {
+        "value": "03-1234-5678",
+        "verdict": "exact",
+        "score": 1.0
+      },
+      {
+        "value": "03-1234-5679",
+        "verdict": "exact",
+        "score": 1.0
+      },
+      {
+        "value": "090-8765-4321",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "websites": [
+      {
+        "value": "https://www.example.co.jp",
+        "verdict": "exact",
+        "score": 1.0
+      }
+    ],
+    "addresses": []
+  },
+  "ms_ocr": 0,
+  "ms_extract": 0
+}

@@ -1,8 +1,8 @@
-# Báo cáo tiến độ — Ngày 1/10
+# Báo cáo tiến độ — Ngày 1–2/10
 
 **Dự án:** Chuyển hóa danh thiếp thành hồ sơ đối tác chuẩn hóa (Đề bài #2)
-**Ngày lập:** 09/09/2026
-**Giai đoạn:** Ngày 1 trong kế hoạch 10 ngày — dựng khung dự án và thiết kế dữ liệu
+**Ngày lập:** 09/09/2026 · **Cập nhật:** 10/09/2026
+**Giai đoạn:** Ngày 1 (khung dự án, thiết kế dữ liệu) và Ngày 2 (spike OCR)
 
 Tài liệu liên quan: [đặc tả yêu cầu](Bai-2-business-card-yeu-cau-chuan-hoa.md) · [kế hoạch 10 ngày](Bai-2-noi-dung-va-ke-hoach-10-ngay.md) · [kế hoạch triển khai chi tiết](Bai-2-ke-hoach-trien-khai-chi-tiet.md)
 
@@ -10,20 +10,26 @@ Tài liệu liên quan: [đặc tả yêu cầu](Bai-2-business-card-yeu-cau-chu
 
 ## 1. Tóm tắt
 
-Đã hoàn thành toàn bộ hạng mục Ngày 1 ở phần kỹ thuật: khung backend, thiết kế cơ sở dữ liệu đầy đủ, khung frontend ba trang, bộ kiểm thử tự động và công cụ quản lý dữ liệu mẫu. Chuỗi chạy đã được kiểm chứng thật từ trình duyệt tới cơ sở dữ liệu.
+**Ngày 1** đã xong phần kỹ thuật: khung backend, thiết kế cơ sở dữ liệu đầy đủ, khung frontend ba trang, bộ kiểm thử và công cụ quản lý dữ liệu mẫu.
 
-| Chỉ số | Giá trị |
-| --- | --- |
-| Commit | 4 |
-| File mã nguồn được theo dõi | 24 |
-| Dòng Python | ~960 |
-| Bảng cơ sở dữ liệu | 8 |
-| Test tự động | 9, tất cả pass |
-| Hạng mục Ngày 1 hoàn thành | 6/7 |
+**Ngày 2** đã dựng xong toàn bộ đường đi OCR — lớp trừu tượng nhà cung cấp, hai bộ trích xuất, chốt chặn chống bịa dữ liệu và script spike chạy độc lập. Đường ống chạy thông đầu-cuối trên ảnh tổng hợp.
 
-Hạng mục còn lại là thu thập 40 ảnh danh thiếp mẫu — việc thủ công, không phụ thuộc mã nguồn, đang tiến hành song song.
+| Chỉ số | Cuối Ngày 1 | Hiện tại |
+| --- | --- | --- |
+| Commit | 5 | 7 |
+| File mã nguồn được theo dõi | 24 | 39 |
+| Dòng Python | 1.229 | 2.654 |
+| Bảng cơ sở dữ liệu | 8 | 8 |
+| Test tự động | 9 | 27, tất cả pass |
 
-**Điểm cần nói rõ ngay:** báo cáo này mô tả phần khung đã dựng. **Chưa có lời gọi OCR thật nào được thực hiện** vì chưa có tài khoản dịch vụ. Mọi tuyên bố về chất lượng nhận diện tiếng Anh/tiếng Nhật chỉ được đưa ra sau Ngày 2 và Ngày 9.
+*(Con số "~960 dòng" ở bản báo cáo trước đếm thiếu — lệnh PowerShell dùng khi đó bỏ qua dòng trống. Số đúng là 1.229.)*
+
+**Hai điểm phải nói rõ:**
+
+1. **Chưa có lời gọi OCR thật nào được thực hiện.** Chưa có tài khoản Google Cloud và Gemini. Mã nguồn đã sẵn sàng, nhưng Định nghĩa hoàn thành của Ngày 2 — bốn file kết quả OCR thật cho hai ngôn ngữ — **chưa đạt**.
+2. **Chưa có ảnh danh thiếp mẫu nào.** Bộ 40 ảnh vẫn ở mức 0/40.
+
+Cả hai đều là việc cần người thực hiện làm, không phải việc của mã nguồn.
 
 ---
 
@@ -221,6 +227,98 @@ Trang **Quét thẻ** đã làm thật, không phải khung rỗng: chọn giữ
 
 ---
 
+## Ngày 2 — dựng đường đi OCR
+
+### 4.8 Lớp trừu tượng nhà cung cấp OCR
+
+**Làm gì:** `services/ocr/` gồm `base.py` (giao diện `OcrProvider` + kiểu `OcrResult`), `google_vision.py` và `mock.py`.
+
+**Mục đích:** Phần còn lại của hệ thống chỉ biết một kiểu dữ liệu duy nhất, không biết dữ liệu đến từ nhà cung cấp nào.
+
+**Cách làm:** `OcrProvider` là một `Protocol` với đúng một phương thức `recognize(image, mime) -> OcrResult`. Chọn nhà cung cấp bằng biến `OCR_PROVIDER=google|mock`.
+
+**Vì sao cần lớp này:** Ngày 2 là ngày rủi ro cao nhất vì phụ thuộc dịch vụ ngoài. Nếu mã nguồn gọi thẳng `google.cloud.vision` ở khắp nơi thì đổi nhà cung cấp sẽ phải sửa cả ứng dụng. Lớp trừu tượng khiến đường lui trở thành một dòng cấu hình.
+
+**Vì sao `recognize` là hàm đồng bộ, không phải `async`:** SDK của Google Vision là đồng bộ. Bọc nó trong `async def` mà không đẩy sang thread pool sẽ **chặn event loop** của FastAPI — cả máy chủ đứng im trong lúc chờ OCR. FastAPI tự chạy hàm đồng bộ trong thread pool, nên để đồng bộ là đúng. Kế hoạch chi tiết viết `async def`; đây là chỗ đi khác kế hoạch và lý do đi khác.
+
+**Vì sao chọn `DOCUMENT_TEXT_DETECTION` chứ không `TEXT_DETECTION`:** Feature này dành cho ảnh chữ đặc, trả về cấu trúc trang/khối/đoạn kèm toạ độ và ngôn ngữ phát hiện được cho từng phần. `TEXT_DETECTION` chỉ trả chữ rời rạc, không có cấu trúc để đối chiếu.
+
+**Một chi tiết dễ sai:** Vision trả về từng ký tự riêng lẻ kèm cờ `detected_break` cho biết sau ký tự đó là dấu cách hay xuống dòng. Phải tôn trọng cờ này khi ghép chữ, nếu không địa chỉ tiếng Nhật nhiều dòng sẽ bị dính liền thành một chuỗi.
+
+**Vì sao có `MockOcrProvider`:** Bộ kiểm thử không được gọi mạng thật — vừa tốn tiền, vừa khiến test thất bại vì lý do không liên quan đến mã nguồn (mất mạng, hết quota). Mock đọc lại phản hồi đã lưu, đặt tên theo SHA-256 của ảnh. Fixture do lần gọi **thật** sinh ra, nên test vẫn chạy trên dữ liệu thực tế.
+
+### 4.9 Grounding — chốt chặn chống bịa dữ liệu
+
+**Làm gì:** `services/extract/grounding.py` — đối chiếu mọi giá trị mô hình trả về với văn bản OCR gốc, loại bỏ giá trị không đối chiếu được.
+
+**Mục đích:** Đáp ứng yêu cầu "không tự điền dữ liệu không đọc được" bằng **cơ chế kỹ thuật**, không bằng lời hứa.
+
+**Vì sao không giải quyết bằng prompt:** Gemini là mô hình sinh. Đưa nó ảnh một danh thiếp không có email, nó vẫn có thể trả về một email "hợp lý" ghép từ tên người và tên miền công ty. Câu lệnh "không được bịa" làm **giảm** tỷ lệ bịa chứ không triệt tiêu, và không đo lường được. Chốt chặn phải là một phép kiểm tra chạy được và viết được test.
+
+**Cách làm:** `raw_text` từ Google Vision là **bằng chứng** — nó đến trực tiếp từ điểm ảnh, không qua mô hình sinh. Mọi giá trị Gemini trả về đều phải đối chiếu được với bằng chứng đó. Kết quả có ba mức:
+
+| Mức | Nghĩa | Xử lý |
+| --- | --- | --- |
+| `exact` | Tìm thấy nguyên văn | Nhận |
+| `fuzzy` | Lệch ít, do OCR nhầm ký tự giống nhau | Nhận nhưng gắn cờ "cần kiểm tra" |
+| `unverified` | Không tìm thấy | **Loại khỏi bản nháp**, vẫn ghi lại để báo cáo |
+
+Trường bị loại **không biến mất** khỏi báo cáo — đó chính là số liệu cột "Tự sinh" của Ngày 9.
+
+#### Một lỗi thiết kế bị bắt bởi chính bộ test
+
+Bản đầu tiên kiểm tra bằng phép "chuỗi con nằm trong văn bản". Test phát hiện lỗ hổng: thẻ có thật `taro.yamada@example.co.jp`; nếu mô hình bịa ra `yamada@example.co.jp` thì chuỗi bịa **nằm gọn** trong chuỗi thật nên được chấm là hợp lệ. Một email không tồn tại sẽ vào hồ sơ đối tác mà không ai biết.
+
+**Cách sửa:** với email, URL và số điện thoại, đơn vị so sánh phải là **cả token** chứ không phải một đoạn bất kỳ. Văn bản OCR được cắt thành các token trọn vẹn bằng regex, rồi so bằng phép bằng nhau:
+
+- Email: so cả địa chỉ.
+- URL: quy về `host + path`, bỏ `https://` và `www.` vì không đổi trang; nhưng subdomain khác thật sự thì bị loại.
+- Điện thoại: so bằng chuỗi chữ số, nên `03-1234-5678` và `03 1234 5678` là một.
+
+Với tên/công ty/địa chỉ vẫn dùng phép chuỗi con, vì tên người xuất hiện hợp lệ bên trong một dòng; kèm ngưỡng độ dài tối thiểu để giá trị một ký tự không khớp bừa.
+
+**Vì sao đáng kể lại chuyện này:** đây là loại lỗi không làm sập gì cả, chỉ âm thầm cho dữ liệu bịa lọt qua. Nó chứng minh vì sao chốt chặn phải có test — bản thân người viết cũng không tự nhìn ra.
+
+### 4.10 Hai bộ trích xuất trường
+
+**Làm gì:** `services/extract/gemini.py` (mô hình vision, ép schema JSON) và `heuristic.py` (regex, không cần mạng). Chọn bằng `EXTRACTOR=gemini|heuristic`.
+
+**Vì sao đưa Gemini cả ảnh lẫn `raw_text`:** Ảnh cho mô hình thấy **bố cục** — trên danh thiếp, vị trí quyết định ý nghĩa: chữ ở góc trên trái thường là tên công ty, chữ ngay dưới tên thường là chức danh. Chỉ đưa văn bản thô thì mất toàn bộ thông tin này. Còn `raw_text` cho mô hình một bản đọc đã có, giảm việc nó phải tự đọc lại ảnh mờ và đọc sai.
+
+**Vì sao `temperature=0`:** cùng một ảnh phải cho cùng một kết quả. Ngày 9 đo chất lượng, mà không thể đo được thứ ngẫu nhiên.
+
+**Vì sao mọi trường trong schema đều là danh sách, không dùng `X | None`:** Về nghiệp vụ, danh thiếp Nhật thường in tên và tên công ty bằng **hai hệ chữ** (Kanji và romaji); cả hai đều là giá trị thật, không phải một đúng một sai — đặc tả yêu cầu `companyNames[]` chính vì lý do này. Về kỹ thuật, JSON Schema xử lý danh sách ổn định hơn kiểu nullable.
+
+**Vì sao có bộ regex dự phòng:** nếu không lấy được quyền truy cập Gemini thì cả lịch trình dừng lại. Email, điện thoại và website đều có định dạng đủ chặt chẽ để bắt bằng regex.
+
+**Giới hạn của bộ regex — đã đo, không phải phỏng đoán:** chạy thử trên thẻ tiếng Nhật tổng hợp, nó đưa `部長  山田 太郎` vào ô **chức danh** vì tên và chức danh nằm chung một dòng, và **không trích được `full_names` nào**. Đây là đường lui, không phải phương án tương đương. Báo cáo Ngày 9 bắt buộc phải ghi rõ đã dùng bộ trích xuất nào.
+
+### 4.11 Script spike `try_ocr.py`
+
+**Làm gì:** Công cụ chạy độc lập, không cần backend hay giao diện.
+
+**Mục đích:** Chứng minh OCR và trích xuất hoạt động thật với cả hai ngôn ngữ **trước khi** đầu tư thời gian vào giao diện.
+
+**Cách làm:**
+
+```powershell
+# Xem tài khoản của bạn dùng được model Gemini nào
+.\.venv\Scripts\python.exe backend\scripts\try_ocr.py --list-models
+
+# Chạy trên ảnh thật
+.\.venv\Scripts\python.exe backend\scripts\try_ocr.py datasets\dev\ja\001.jpg datasets\dev\en\001.jpg
+```
+
+Script in văn bản OCR, bảng trường trích xuất kèm kết quả đối chiếu, thời gian xử lý, rồi lưu fixture cho bộ test.
+
+**Vì sao có `--list-models` thay vì ghi sẵn tên model:** tên model Gemini thay đổi theo thời gian và khác nhau giữa các tài khoản. Đoán tên rồi hardcode là cách chắc chắn để gặp lỗi 404 khó chẩn đoán. Hỏi thẳng API là cách duy nhất biết chính xác — nên `GEMINI_MODEL` để trống trong `.env.example`, kèm hướng dẫn chạy lệnh này.
+
+**Vì sao script ép UTF-8 cho stdout:** console Windows mặc định dùng cp1252 và ném `UnicodeEncodeError` khi in chữ Nhật. Không xử lý thì sẽ tưởng OCR lỗi trong khi thực ra chỉ là lỗi hiển thị của terminal. Đây là lỗi đã gặp thật trong lúc phát triển.
+
+**Vì sao có `make_test_card.py`:** sinh ảnh danh thiếp tổng hợp để kiểm tra đường ống khi chưa có ảnh thật. Ảnh này là chữ in kỹ thuật số, sắc nét tuyệt đối — **chỉ dùng kiểm tra đường ống, không dùng đo chất lượng**. Ảnh quá đẹp sẽ cho kết quả lạc quan không phản ánh danh thiếp chụp bằng điện thoại ngoài đời. Fixture sinh ra ghi `provider: "synthetic"` để không ai nhầm là kết quả OCR thật.
+
+---
+
 ## 5. Bằng chứng đã kiểm chứng
 
 Phân biệt rõ giữa "đã viết code" và "đã chạy và thấy kết quả":
@@ -231,7 +329,10 @@ Phân biệt rõ giữa "đã viết code" và "đã chạy và thấy kết qu�
 | Backend trả lời qua HTTP | `Invoke-WebRequest http://127.0.0.1:8000/api/health` | 200, JSON đúng cấu trúc |
 | Frontend phục vụ được | `Invoke-WebRequest http://localhost:8501` | 200 |
 | Ba trang Streamlit chạy không lỗi | `AppTest` chạy headless từng trang | 4/4 pass, không exception |
-| Toàn bộ test | `python -m pytest` | 9/9 pass |
+| Toàn bộ test | `python -m pytest` | 27/27 pass |
+| Đường ống OCR đầu-cuối | `try_ocr.py` trên 2 ảnh tổng hợp (nhánh mock) | Chạy thông, chữ Nhật không lỗi mã hoá |
+| Grounding loại được dữ liệu bịa | 18 test đối kháng trong `test_grounding.py` | Email/tên/điện thoại/website bịa đều bị loại |
+| Đường lỗi của script spike | Chạy khi thiếu khoá và thiếu fixture | Báo lỗi rõ ràng kèm cách xử lý |
 | Đường dẫn ảnh neo đúng thư mục | In `settings.image_path` khi chạy từ gốc dự án | `backend\data\images` (đúng) |
 | Không rò rỉ bí mật | `git status --short` lọc `.env`, `secrets`, `.venv`, `/data/`, `.db` | Không có kết quả |
 
@@ -239,7 +340,9 @@ Phân biệt rõ giữa "đã viết code" và "đã chạy và thấy kết qu�
 
 | Hạng mục | Lý do chưa kiểm chứng |
 | --- | --- |
-| Lời gọi OCR thật | Chưa có tài khoản Google Cloud — việc của Ngày 2 |
+| **Lời gọi Google Vision thật** | Chưa có tài khoản Google Cloud. Mã nguồn đã viết xong nhưng chưa chạy lần nào |
+| **Lời gọi Gemini thật** | Chưa có API key. Chưa biết mô hình có bịa dữ liệu nhiều hay ít trên thẻ thật |
+| **Schema `CardExtraction` có được Gemini chấp nhận không** | Phải gọi thật mới biết. Đã thiết kế tránh kiểu nullable để giảm rủi ro |
 | Chất lượng nhận diện tiếng Anh/Nhật | Chưa có OCR thật và chưa có ảnh mẫu |
 | Ảnh từ `st.camera_input()` có bị lật gương không | Cần camera thật. Widget hiển thị preview dạng gương như mọi ứng dụng camera, nhưng bytes trả về thì không — phải chụp một thẻ có chữ rồi đọc lại kết quả để xác nhận, không tin vào preview |
 | Xử lý xoay ảnh theo EXIF | Chưa có endpoint nhận ảnh (Ngày 3) |
@@ -278,10 +381,13 @@ Với phạm vi ba màn hình của bài này, đánh đổi đó có lợi.
 
 | Ngày | Hạng mục | Trạng thái |
 | --- | --- | --- |
-| 1 | Thu thập 40 ảnh mẫu (20 Anh + 20 Nhật) và gán nhãn | **Đang làm**, thủ công |
-| 2 | Đăng ký Google Cloud + Gemini, chạy OCR thật trên 4 ảnh | Chưa bắt đầu |
+| 1 | Thu thập 40 ảnh mẫu (20 Anh + 20 Nhật) và gán nhãn | **0/40** — chưa bắt đầu |
+| 2 | Đăng ký Google Cloud + Gemini | **Chưa** — chặn Định nghĩa hoàn thành Ngày 2 |
+| 2 | Chạy OCR thật trên 2 ảnh Anh + 2 ảnh Nhật | **Chưa** — chờ mục trên |
+| 2 | Điền `Document/ocr-provider-notes.md` (model, quota, chi phí) | Phiếu đã có, **chưa điền** |
+| 2 | Kiểm tra nguồn tra cứu doanh nghiệp truy cập được | Chưa |
 | 3 | `POST /api/scans` — nhận ảnh, kiểm tra tệp thật, xoay EXIF, lưu | Chưa |
-| 4 | Nối OCR, ánh xạ sang schema, **grounding validator** | Chưa |
+| 4 | Nối OCR vào ứng dụng, tác vụ nền, `GET /api/scans/{id}` | Chưa |
 | 5 | Chuẩn hóa và form kiểm tra/chỉnh sửa | Chưa |
 | 6 | Tra cứu doanh nghiệp có dẫn nguồn + chặn SSRF | Chưa |
 | 7 | Lưu hồ sơ, tìm kiếm, phát hiện trùng, xuất dữ liệu | Chưa |
@@ -289,15 +395,18 @@ Với phạm vi ba màn hình của bài này, đánh đổi đó có lợi.
 | 9 | Đo chất lượng theo từng trường và từng ngôn ngữ | Chưa |
 | 10 | Đóng gói, README, demo | README có bản đầu |
 
+**Đi sớm hơn kế hoạch:** `grounding.py` vốn là hạng mục Ngày 4, đã làm xong ở Ngày 2. Lý do: nó là hàm thuần, kiểm thử được hoàn toàn offline, nên là việc có ích nhất để làm trong lúc chờ credentials. Nhờ vậy `try_ocr.py` báo được tỷ lệ bịa dữ liệu ngay từ lần gọi thật đầu tiên — đúng mục đích của một spike.
+
 ---
 
 ## 8. Rủi ro đang mở
 
 | Rủi ro | Mức độ | Xử lý |
 | --- | --- | --- |
-| **Chưa có quyền truy cập Google Cloud** | Cao | Độ trễ nằm ngoài tầm kiểm soát (duyệt tài khoản, gắn thẻ thanh toán). Phải đăng ký ngay hôm nay. Phương án dự phòng: Gemini API key đơn thuần không cần GCP project, hoặc PaddleOCR chạy local |
-| **Gemini bịa trường không có trên thẻ** | Cao | Đã thiết kế sẵn `grounding.py` cho Ngày 4: mọi giá trị LLM trả về phải kiểm chứng được với `raw_text`, không đạt thì bị loại khỏi bản nháp. Prompt không phải là bảo đảm; validator mới là |
-| **Chưa có ảnh mẫu** | Trung bình | Việc tốn thời gian mà dễ bị đánh giá thấp. Làm rải Ngày 1–3, không dồn |
+| **Chưa có quyền truy cập Google Cloud / Gemini** | **Cao — đang chặn tiến độ** | Độ trễ nằm ngoài tầm kiểm soát (duyệt tài khoản, gắn thẻ thanh toán). Mọi thứ khác của Ngày 2 đã xong; chỉ còn chờ mục này. Đường lui đã ghi ở `Document/ocr-provider-notes.md` mục E |
+| **Gemini bịa trường không có trên thẻ** | Cao → **đã có chốt chặn** | `grounding.py` đã viết xong và có 18 test đối kháng. Mọi giá trị không đối chiếu được với `raw_text` đều bị loại. Vẫn là rủi ro Cao vì **chưa đo được tỷ lệ bịa trên thẻ thật** |
+| **Chưa có ảnh mẫu** | **Cao** (tăng từ Trung bình) | Đã sang Ngày 2 mà vẫn 0/40. Không có ảnh thì Ngày 9 không đo được gì, và cũng không kiểm chứng được OCR ở Ngày 2 |
+| **Chưa biết Gemini có chấp nhận schema `CardExtraction` không** | Trung bình | Đã tránh kiểu nullable để giảm rủi ro, nhưng chỉ gọi thật mới biết chắc. Nếu lỗi thì `EXTRACTOR=heuristic` giữ luồng chính chạy |
 | **Phạm vi chỉ Anh + Nhật, đề gốc nêu 4 ngôn ngữ** | Trung bình | Vision và Gemini vốn xử lý được `ko`/`zh`; thêm vào `languageHints` gần như miễn phí, chỉ cần bổ sung mẫu thử. Là việc ưu tiên nếu còn dư thời gian |
 | **Chất lượng OCR thẻ Nhật chữ dọc** | Chưa rõ | Chỉ biết sau Ngày 2. Phạm vi MVP đã tuyên bố là bố cục ngang |
 
@@ -305,17 +414,41 @@ Với phạm vi ba màn hình của bài này, đánh đổi đó có lợi.
 
 ## 9. Bước tiếp theo
 
-**Ngày 2 — spike OCR, ngày rủi ro cao nhất của cả kế hoạch.**
+### Việc của người thực hiện — không có mã nguồn nào thay thế được
 
-1. Tạo Google Cloud project, bật Vision API, tạo service account, tải JSON key. Lấy `GEMINI_API_KEY` ở Google AI Studio.
-2. Viết `backend/scripts/try_ocr.py` chạy độc lập, gửi ít nhất 2 ảnh tiếng Anh và 2 ảnh tiếng Nhật.
-3. Lưu toàn bộ response làm fixture cho test.
-4. Xác nhận chữ Nhật đi qua backend không lỗi mã hóa.
-5. Ghi lại nhà cung cấp, phiên bản, quota, chi phí mỗi 1000 ảnh.
+**1. Lấy credentials (ưu tiên cao nhất).**
 
-**Định nghĩa hoàn thành Ngày 2:** có 4 file JSON kết quả OCR thật và 4 file JSON trích xuất thật cho cả hai ngôn ngữ, lưu trong repo.
+- Tạo Google Cloud project, bật Cloud Vision API, tạo service account, tải JSON key về `backend/secrets/gcp-sa.json`.
+- Lấy `GEMINI_API_KEY` ở Google AI Studio.
+- Điền vào `backend/.env`, đổi `OCR_PROVIDER=google` và `EXTRACTOR=gemini`.
 
-**Nếu chưa đạt:** dừng mọi việc khác cho tới khi xong. Được phép dùng fixture để dựng tiếp giao diện, nhưng phải ghi rõ trong README là dữ liệu mô phỏng và phải quay lại làm thật trước Ngày 8. Không che phần thiếu bằng demo giả.
+**2. Chọn model:**
+
+```powershell
+.\.venv\Scripts\python.exe backend\scripts\try_ocr.py --list-models
+```
+
+Chọn một model đọc được ảnh, điền vào `GEMINI_MODEL`.
+
+**3. Chụp ít nhất 2 danh thiếp tiếng Anh và 2 tiếng Nhật**, rồi:
+
+```powershell
+.\.venv\Scripts\python.exe backend\scripts\try_ocr.py <đường dẫn 4 ảnh>
+```
+
+**4. Điền `Document/ocr-provider-notes.md`** — phần B (model), C (kết quả chạy thật), D (chi phí), F (nguồn tra cứu).
+
+### Định nghĩa hoàn thành Ngày 2 — **chưa đạt**
+
+Có 4 file JSON kết quả OCR thật cho cả hai ngôn ngữ, lưu trong `backend/tests/fixtures/ocr/`.
+
+Hiện có 2 fixture nhưng chúng ghi `provider: "synthetic"` — sinh từ văn bản đã biết, **không phải kết quả OCR**. Chúng chỉ chứng minh đường ống chạy thông, không chứng minh OCR hoạt động.
+
+**Nếu kéo dài:** được phép dùng fixture để dựng tiếp Ngày 3–5, nhưng phải ghi rõ trong README là dữ liệu mô phỏng và phải quay lại làm thật trước Ngày 8. Không che phần thiếu bằng demo giả.
+
+### Sau khi Ngày 2 đạt — Ngày 3
+
+`POST /api/scans`: nhận ảnh, đọc magic bytes bằng Pillow để từ chối tệp không phải ảnh dù đuôi là `.jpg`, giới hạn 8 MB, **xoay ảnh theo EXIF**, lưu vào `data/images/<sha256>`, ghi dòng `scans`.
 
 ---
 
@@ -327,3 +460,5 @@ Với phạm vi ba màn hình của bài này, đánh đổi đó có lợi.
 | `f937083` | Kế hoạch triển khai chi tiết + `.gitignore` (trước khi tạo file `.env` nào) |
 | `5b42e49` | Khung Ngày 1: backend FastAPI, schema 8 bảng, frontend React, 5 test |
 | `b128e99` | Đổi frontend React → Streamlit; gộp về một venv; sửa neo đường dẫn ảnh |
+| `3ecfeec` | Báo cáo tiến độ Ngày 1 |
+| *(commit này)* | Ngày 2: lớp OCR, hai bộ trích xuất, grounding + 18 test, script spike |

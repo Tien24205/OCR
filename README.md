@@ -2,7 +2,7 @@
 
 Ứng dụng web: chụp/tải ảnh danh thiếp → OCR (Anh + Nhật) → trích xuất trường có cấu trúc → chuẩn hóa → tra cứu bổ sung thông tin doanh nghiệp có dẫn nguồn → lưu hồ sơ tập trung, tìm kiếm và xuất dữ liệu.
 
-Tài liệu: [đặc tả yêu cầu](Document/Bai-2-business-card-yeu-cau-chuan-hoa.md) · [kế hoạch 10 ngày](Document/Bai-2-noi-dung-va-ke-hoach-10-ngay.md) · [kế hoạch triển khai chi tiết](Document/Bai-2-ke-hoach-trien-khai-chi-tiet.md)
+Tài liệu: [đặc tả yêu cầu](Document/Bai-2-business-card-yeu-cau-chuan-hoa.md) · [kế hoạch 10 ngày](Document/Bai-2-noi-dung-va-ke-hoach-10-ngay.md) · [kế hoạch triển khai chi tiết](Document/Bai-2-ke-hoach-trien-khai-chi-tiet.md) · [báo cáo tiến độ](Document/Bao-cao-tien-do.md)
 
 Kiến trúc: **Streamlit** (frontend) → **FastAPI** (backend) → **SQLite** + Google Vision/Gemini. Cả hai tầng đều là Python, dùng chung một môi trường ảo.
 
@@ -86,9 +86,28 @@ Document/           đặc tả và kế hoạch
 
 ## Tình trạng hiện tại
 
-Ngày 1/10 đã xong: khung dự án, schema dữ liệu đầy đủ, `/api/health`, frontend Streamlit 3 trang nối được backend, bộ khung dữ liệu mẫu.
+**Ngày 1/10 xong:** khung dự án, schema 8 bảng, `/api/health`, frontend Streamlit 3 trang, bộ khung dữ liệu mẫu.
 
-Chưa làm: OCR thật (Ngày 2), chụp/tải ảnh (Ngày 3), trích xuất trường (Ngày 4), chuẩn hóa và màn hình duyệt (Ngày 5), tra cứu doanh nghiệp (Ngày 6), lưu/tìm kiếm/xuất (Ngày 7).
+**Ngày 2/10 xong phần mã nguồn:** lớp trừu tượng OCR (Google Vision + mock), hai bộ trích xuất trường (Gemini có schema + regex dự phòng), chốt chặn grounding chống bịa dữ liệu, script spike `try_ocr.py`.
+
+**Ngày 2 chưa đạt Định nghĩa hoàn thành:** chưa có tài khoản Google Cloud/Gemini nên **chưa chạy lời gọi OCR thật nào**. Hai fixture đang có ghi `provider: "synthetic"` — sinh từ văn bản đã biết, không phải kết quả OCR.
+
+**Chưa làm:** nhận ảnh ở backend (Ngày 3), nối OCR vào ứng dụng (Ngày 4), chuẩn hóa và màn hình duyệt (Ngày 5), tra cứu doanh nghiệp (Ngày 6), lưu/tìm kiếm/xuất (Ngày 7).
+
+### Chạy thử OCR
+
+```powershell
+# Xem model Gemini nào tài khoản của bạn dùng được
+.\.venv\Scripts\python.exe backend\scripts\try_ocr.py --list-models
+
+# Chạy OCR + trích xuất trên ảnh thật, lưu fixture cho bộ test
+.\.venv\Scripts\python.exe backend\scripts\try_ocr.py datasets\dev\ja\001.jpg
+
+# Sinh ảnh danh thiếp tổng hợp để thử đường ống khi chưa có ảnh thật
+.\.venv\Scripts\python.exe backend\scripts\make_test_card.py
+```
+
+Xem [Document/ocr-provider-notes.md](Document/ocr-provider-notes.md) để biết cách chọn model và các giới hạn cần theo dõi.
 
 ## Giới hạn đã biết
 
