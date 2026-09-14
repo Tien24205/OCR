@@ -50,8 +50,10 @@ def _run(page: str | None = None) -> AppTest:
 def test_trang_quet_the_chay_duoc():
     at = _run()
     # Nguoi dung phai chon duoc giua camera va tai anh (FR-01, FR-02:
-    # camera bi tu choi van dung duoc duong tai anh).
-    assert at.segmented_control[0].options == ["Chụp bằng camera", "Tải ảnh lên"]
+    # camera bi tu choi van dung duoc duong tai anh), va co duong tai hang loat
+    # de endpoint /api/scans/batch thuc su dung duoc tu giao dien.
+    assert at.segmented_control[0].options == [
+        "Chụp bằng camera", "Tải ảnh lên", "Tải hàng loạt"]
 
 
 def test_banner_trang_thai_hien_o_sidebar():
@@ -130,3 +132,20 @@ def test_tong_quan_bao_loi_khi_backend_chet(monkeypatch):
     at.run()
     assert not at.exception, at.exception
     assert at.error
+
+
+# --- Che do tai hang loat (IP-05) ----------------------------------------
+
+def test_tai_hang_loat_co_trong_giao_dien(monkeypatch):
+    """LOI DA SUA: endpoint /api/scans/batch ton tai tu moc 14/09 nhung khong
+    co giao dien nao goi duoc no - mot tinh nang khong ai dung toi duoc."""
+    at = _run()
+    at.segmented_control[0].set_value("Tải hàng loạt").run()
+    assert not at.exception, at.exception
+    assert at.file_uploader, "khong co o chon nhieu tep"
+
+
+def test_tai_hang_loat_bao_ro_gioi_han(monkeypatch):
+    at = _run()
+    at.segmented_control[0].set_value("Tải hàng loạt").run()
+    assert any("10" in c.value for c in at.caption)

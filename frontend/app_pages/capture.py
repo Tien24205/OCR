@@ -7,17 +7,77 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from lib import api
 
+MAX_BYTES = 8 * 1024 * 1024
+BATCH_MAX = 10
+
 st.caption(
-    "Chụp hoặc tải ảnh một danh thiếp. Mỗi lần xử lý một thẻ, một mặt, "
-    "bố cục ngang."
+    "Chụp hoặc tải ảnh danh thiếp. Mỗi ảnh chứa một thẻ, một mặt, bố cục ngang."
 )
 
 mode = st.segmented_control(
     "Nguồn ảnh",
-    options=["Chụp bằng camera", "Tải ảnh lên"],
+    options=["Chụp bằng camera", "Tải ảnh lên", "Tải hàng loạt"],
     default="Chụp bằng camera",
     key="capture_mode",
 )
+
+# --- Che do hang loat: xu ly rieng roi dung han o day ---------------------
+if mode == "Tải hàng loạt":
+    st.caption(
+        f"Gửi tối đa {BATCH_MAX} ảnh trong một lần. Ảnh hỏng không làm hỏng "
+        "cả lô — mỗi ảnh có kết quả riêng."
+    )
+    files = st.file_uploader(
+        "Chọn nhiều ảnh JPEG hoặc PNG",
+        type=["jpg", "jpeg", "png"],
+        accept_multiple_files=True,
+    )
+    if not files:
+        st.stop()
+
+    if len(files) > BATCH_MAX:
+        st.error(f"Chọn tối đa {BATCH_MAX} ảnh mỗi lần. Đang chọn {len(files)}.")
+        st.stop()
+
+    oversized = [f.name for f in files if len(f.getvalue()) > MAX_BYTES]
+    if oversized:
+        st.error("Vượt quá 8 MB: " + ", ".join(oversized))
+        st.stop()
+
+    st.caption(f"{len(files)} ảnh · "
+               f"{sum(len(f.getvalue()) for f in files) / 1024:,.0f} KB")
+
+    if st.button("Gửi cả lô", type="primary", icon=":material/send:"):
+        try:
+            result = api.create_batch([
+                (f.name or "card.jpg", f.getvalue(), f.type or "image/jpeg")
+                for f in files
+            ])
+        except api.ApiError as exc:
+            st.error(exc.message, icon=":material/error:")
+            st.stop()
+
+        items = result.get("items", [])
+        failed = [x for x in items if "error" in x]
+        st.success(f"Đã nhận {result.get('queued', 0)}/{len(items)} ảnh. "
+                   "Xử lý chạy nền.")
+        if failed:
+            st.warning("Không nhận được các ảnh sau — phần còn lại vẫn chạy:")
+            for item in failed:
+                st.caption(f"· **{item['filename']}** — {item['error']}")
+
+        st.dataframe(
+            [{"Tệp": x["filename"],
+              "Trạng thái": x.get("error") or x.get("status", "")}
+             for x in items],
+            width="stretch", hide_index=True,
+        )
+        st.caption(
+            "Xem kết quả từng thẻ ở trang **Hồ sơ** sau khi xử lý xong, hoặc "
+            "theo dõi tổng quan ở trang **Tổng quan**."
+        )
+    st.stop()
+
 
 uploaded = None
 if mode == "Chụp bằng camera":
@@ -36,7 +96,7 @@ if uploaded is None:
 
 data = uploaded.getvalue()
 
-if len(data) > 8 * 1024 * 1024:
+if len(data) > MAX_BYTES:
     st.error("Ảnh vượt quá 8 MB. Vui lòng chọn ảnh nhỏ hơn.")
     st.stop()
 

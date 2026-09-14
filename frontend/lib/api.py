@@ -154,3 +154,14 @@ def get_image(image_ref: str) -> bytes:
 def stats() -> dict[str, Any]:
     """So lieu tong quan cho trang Bang dieu khien."""
     return _request("GET", "/api/stats")
+
+
+def create_batch(items: list[tuple[str, bytes, str]]) -> dict[str, Any]:
+    """Gui nhieu anh trong mot yeu cau.
+
+    Backend gioi han so anh moi lo va xu ly voi so luong dong thoi co gioi han.
+    Mot anh hong khong lam hong ca lo: moi anh co muc ket qua rieng.
+    """
+    return _request("POST", "/api/scans/batch", files=[
+        ("files", (name, data, mime)) for name, data, mime in items
+    ])
