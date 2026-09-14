@@ -24,6 +24,7 @@ REQUIRED = ("image", "lang")
 KNOWN_FIELDS = {
     "image", "lang", "full_name", "company_name", "job_titles", "departments",
     "emails", "phones", "websites", "addresses", "uncertain", "note",
+    "full_name_alt", "company_name_alt",
 }
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
 

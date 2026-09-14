@@ -9,6 +9,9 @@ CACH DUNG:
     # 1. Xem model Gemini nao tai khoan cua ban dang dung duoc
     python backend/scripts/try_ocr.py --list-models
 
+    # 1b. Kiem tra credentials chay duoc - chi ton 2 loi goi
+    python backend/scripts/try_ocr.py --check
+
     # 2. Chay tren anh that (dat GEMINI_MODEL trong backend/.env truoc)
     python backend/scripts/try_ocr.py datasets/dev/ja/001.jpg datasets/dev/en/001.jpg
 
@@ -90,31 +93,146 @@ def list_models(settings) -> int:
     return 0
 
 
+def tiny_card() -> bytes:
+    """Anh nho nhat con doc duoc, de kiem tra san sang voi chi phi thap nhat."""
+    import io
+
+    from PIL import Image, ImageDraw, ImageFont
+
+    image = Image.new("RGB", (600, 200), "white")
+    draw = ImageDraw.Draw(image)
+    for path in ("C:/Windows/Fonts/YuGothM.ttc", "C:/Windows/Fonts/msgothic.ttc"):
+        if Path(path).is_file():
+            font = ImageFont.truetype(path, 40)
+            break
+    else:
+        font = ImageFont.load_default(40)
+    draw.text((30, 30), "\u5c71\u7530 \u592a\u90ce", font=font, fill=(0, 0, 0))
+    draw.text((30, 100), "taro@example.co.jp", font=font, fill=(0, 0, 0))
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def preflight(settings) -> int:
+    """Kiem tra cau hinh bang DUNG HAI loi goi dich vu.
+
+    VI SAO CAN: chay thang 40 anh khi cau hinh sai se cho 40 loi giong nhau,
+    kho biet loi nam o dau va van bi tinh tien nhung lan goi thanh cong. Lenh
+    nay tra loi bon cau hoi rieng biet:
+
+      1. Credentials cua Vision co doc duoc khong?
+      2. Vision co that su tra ve chu tieng Nhat khong?
+      3. GEMINI_MODEL co ton tai voi tai khoan nay khong?
+      4. Model co CHAP NHAN schema `CardExtraction` khong?
+
+    Cau 4 la an so lon nhat cua ca du an: schema do chua tung duoc mot model
+    nao chap nhan lan nao.
+    """
+    print(SEP)
+    print("KIEM TRA SAN SANG")
+    print(SEP)
+
+    ready = True
+    calls = 0
+    image = tiny_card()
+
+    # --- 1 & 2. Google Vision ---
+    print("")
+    print("[1/2] Google Cloud Vision")
+    if settings.ocr_provider != "google":
+        print("      BO QUA - OCR_PROVIDER dang la '" + settings.ocr_provider
+              + "'. Dat OCR_PROVIDER=google trong backend/.env de kiem tra.")
+    else:
+        creds = settings.credentials_path
+        if creds and not Path(creds).is_file():
+            print("      LOI  - khong tim thay file credentials: " + str(creds))
+            print("             Neu ban dung `gcloud auth application-default"
+                  " login`, hay DE TRONG bien")
+            print("             GOOGLE_APPLICATION_CREDENTIALS trong"
+                  " backend/.env.")
+            ready = False
+        else:
+            if creds is None:
+                print("      Dung Application Default Credentials"
+                      " (khong dat file service account).")
+            try:
+                from app.services.providers import build_ocr
+
+                provider = build_ocr(settings)
+                calls += 1
+                result = provider.recognize(image, "image/png")
+                text = (result.raw_text or "").strip().replace("\n", " / ")
+                print("      OK   - " + str(result.ms) + " ms, doc duoc: " + text)
+                has_jp = any("\u3040" <= ch <= "\u9fff" for ch in result.raw_text)
+                print("      " + ("OK   - chu Nhat qua duoc backend nguyen ven"
+                                  if has_jp else
+                                  "CANH BAO - khong thay chu Nhat trong ket qua"))
+                if hasattr(provider, "close"):
+                    provider.close()
+            except OcrError as exc:
+                print("      LOI  - [" + exc.code + "] " + exc.message)
+                ready = False
+
+    # --- 3 & 4. Gemini ---
+    print("")
+    print("[2/2] Gemini - trich xuat truong co schema")
+    if settings.extractor != "gemini":
+        print("      BO QUA - EXTRACTOR dang la '" + settings.extractor
+              + "'. Dat EXTRACTOR=gemini trong backend/.env de kiem tra.")
+    elif not settings.gemini_api_key:
+        print("      LOI  - thieu GEMINI_API_KEY")
+        ready = False
+    elif not settings.gemini_model:
+        print("      LOI  - thieu GEMINI_MODEL. Chay --list-models de xem"
+              " tai khoan nay dung duoc model nao.")
+        ready = False
+    else:
+        try:
+            from app.services.providers import build_extractor
+
+            extractor = build_extractor(settings)
+            calls += 1
+            extraction = extractor.extract(
+                image, "image/png", "\u5c71\u7530 \u592a\u90ce\ntaro@example.co.jp")
+            print("      OK   - model '" + settings.gemini_model
+                  + "' chap nhan schema CardExtraction")
+            names = [v.value for v in extraction.full_names]
+            emails = [v.value for v in extraction.emails]
+            print("      Ho ten doc duoc : " + (", ".join(names) or "(khong co)"))
+            print("      Email doc duoc  : " + (", ".join(emails) or "(khong co)"))
+        except ExtractionError as exc:
+            print("      LOI  - [" + exc.code + "] " + exc.message)
+            if exc.code == "EXTRACT_BAD_SCHEMA":
+                print("      >> Model tra ve JSON khong dung schema. Thu model"
+                      " khac, hoac bao lai de sua schema.")
+            ready = False
+
+    print("")
+    print(SEP)
+    if ready and settings.ocr_provider == "google" and settings.extractor == "gemini":
+        print("SAN SANG. Buoc tiep theo:")
+        print("  1. In 4 trang trong datasets/print/, cat, chup lai 40 the")
+        print("  2. python backend/scripts/try_ocr.py datasets/dev/ja/001.jpg")
+        print("  3. python backend/scripts/evaluate.py --split dev")
+    else:
+        print("CHUA SAN SANG. Sua cac loi o tren roi chay lai lenh nay.")
+    print(SEP)
+    print("So loi goi dich vu da dung: " + str(calls))
+    return 0 if ready else 1
+
+
 def build_ocr(settings):
-    if settings.ocr_provider == "mock":
-        from app.services.ocr.mock import MockOcrProvider
-
-        return MockOcrProvider()
-
-    from app.services.ocr.google_vision import GoogleVisionProvider
-
-    return GoogleVisionProvider(
-        language_hints=settings.language_hint_list,
-        timeout_s=settings.ocr_timeout_s,
-    )
+    from app.services.providers import build_ocr as create_provider
+    return create_provider(settings)
 
 
 def build_extractor(settings, force_heuristic: bool):
     if force_heuristic or settings.extractor == "heuristic":
         return HeuristicExtractor()
 
-    from app.services.extract.gemini import GeminiExtractor
-
-    return GeminiExtractor(
-        api_key=settings.gemini_api_key or "",
-        model=settings.gemini_model or "",
-        temperature=settings.gemini_temperature,
-    )
+    from app.services.providers import build_extractor as create_extractor
+    return create_extractor(settings)
 
 
 def save_fixture(path: Path, digest: str, ocr_result, extraction, grounded,
@@ -241,6 +359,9 @@ def main() -> int:
     parser.add_argument("images", nargs="*", type=Path)
     parser.add_argument("--list-models", action="store_true",
                         help="Liet ke model Gemini dung duoc roi thoat")
+    parser.add_argument("--check", action="store_true",
+                        help="Kiem tra credentials bang 1 loi goi Vision + "
+                             "1 loi goi Gemini roi thoat")
     parser.add_argument("--no-extract", action="store_true",
                         help="Chi chay OCR, bo qua buoc trich xuat truong")
     parser.add_argument("--heuristic", action="store_true",
@@ -253,6 +374,9 @@ def main() -> int:
 
     if args.list_models:
         return list_models(settings)
+
+    if args.check:
+        return preflight(settings)
 
     if not args.images:
         parser.print_help()
