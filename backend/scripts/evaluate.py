@@ -98,6 +98,42 @@ def load_labels(split: str, limit: int | None,
     return rows, missing
 
 
+# Bao nhieu lan thu lai va cho bao lau giua cac lan.
+#
+# VI SAO PHAI THU LAI: Gemini tra 503 "high demand" mot cach ngau nhien. Neu
+# bo luon the do, con so chat luong se bi tron lan giua hai thu khac han nhau:
+# OCR doc sai (dieu can do) va Google het cho (dieu khong lien quan). Mot lan
+# chay 40 the gap vai cai 503 rai rac se cho ket qua thap gia tao, va lan chay
+# sau lai ra so khac - khong con so sanh duoc giua cac lan.
+#
+# CHI thu lai loi CO CO the thu lai. Loi vinh vien (anh hong, sai quyen) ma
+# thu lai thi chi keo dai lan chay ma khong doi duoc ket qua.
+_RETRIES = 3
+_BACKOFF_S = (2, 6)
+
+# Nhung loi khien phan con lai cua lan chay chac chan cung hong. Gap la dung
+# han, khong chay tiep.
+_DUNG_HAN = {"EXTRACT_QUOTA_EXCEEDED"}
+
+
+def run_with_retry(row: dict, ocr, extractor, image_root: Path,
+                   log=print) -> tuple[dict, int]:
+    """Chay mot the, thu lai khi gap loi tam thoi. Tra ve (ket qua, so lan thu lai)."""
+    last: Exception | None = None
+    for attempt in range(_RETRIES):
+        try:
+            return run_one(row, ocr, extractor, image_root), attempt
+        except (OcrError, ExtractionError) as exc:
+            last = exc
+            if not exc.retryable or attempt == _RETRIES - 1:
+                raise
+            wait = _BACKOFF_S[min(attempt, len(_BACKOFF_S) - 1)]
+            log(f"      tam thoi [{exc.code}], chờ {wait}s rồi thử lại "
+                f"({attempt + 2}/{_RETRIES})")
+            time.sleep(wait)
+    raise last  # khong bao gio toi day, nhung de kieu tra ve ro rang
+
+
 def run_one(row: dict, ocr, extractor, image_root: Path) -> dict:
     """Chay tron duong ong tren mot anh va so voi nhan."""
     path = image_root / row["image"]
@@ -468,13 +504,22 @@ def main() -> int:
         return 1
 
     cards, failures = [], []
+    retried = 0
     for i, row in enumerate(rows, 1):
         try:
-            card = run_one(row, ocr, extractor, image_root)
+            card, attempts = run_with_retry(row, ocr, extractor, image_root)
         except (OcrError, ExtractionError) as exc:
             failures.append((row["image"], exc.code, exc.message))
             print(f"  [{i}/{len(rows)}] {row['image']}  LỖI {exc.code}")
+            if exc.code in _DUNG_HAN:
+                # Het han muc thi cac the con lai chac chan cung that bai. Chay
+                # tiep chi de in them 30 dong loi giong het nhau, va neu han
+                # muc co hoi phuc giua chung thi con te hon: bo mau do duoc
+                # nua nay nua kia, khong con dai dien cho cai gi ca.
+                print(f"\n  DUNG SOM sau {i}/{len(rows)} thẻ: {exc.message}")
+                break
             continue
+        retried += 1 if attempts else 0
         cards.append(card)
         err = sum(r.wrong + r.missed + r.spurious for r in card["per_field"].values())
         print(f"  [{i}/{len(rows)}] {row['image']}  {err} lỗi")
@@ -482,6 +527,9 @@ def main() -> int:
     if not cards:
         print("\nKhông thẻ nào chạy được.")
         return 1
+
+    if retried:
+        print(f"\n  {retried}/{len(cards)} thẻ phải thử lại vì lỗi tạm thời.")
 
     args.out.mkdir(parents=True, exist_ok=True)
     report = build_report(cards, missing, settings, args.split, image_root)
@@ -495,6 +543,10 @@ def main() -> int:
         "extractor": settings.extractor,
         "gemini_model": settings.gemini_model,
         "cards_measured": len(cards),
+        # So the phai thu lai moi xong. Ghi lai vi day la DIEU KIEN DO, khong
+        # phai ket qua do: con so cao nghia la dich vu hom do chap chon, va
+        # nguoi doc bao cao can biet dieu do khi so hai lan chay voi nhau.
+        "cards_needing_retry": retried,
         "images_missing": missing,
         "failures": [{"image": i, "code": c, "message": m} for i, c, m in failures],
         "per_card": [
