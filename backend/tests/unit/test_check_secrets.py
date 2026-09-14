@@ -7,6 +7,8 @@ KHONG bao dong gia o tai lieu va file mau.
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 from scripts.check_secrets import scan
@@ -126,3 +128,49 @@ def test_bao_cao_che_bot_gia_tri_tim_duoc(tmp_path):
     items = scan([write(tmp_path, "leak.py", f'K = "{key}"')])
     masked = items[0][3]
     assert key not in masked and masked.startswith("AIzaS") and "..." in masked
+
+# --- Pham vi quet --------------------------------------------------------
+
+def test_all_van_quet_file_da_theo_doi(tmp_path, monkeypatch):
+    """LOI DA SUA: `--all` tung bo qua het file da theo doi.
+
+    "git ls-files --others" THAY THE hanh vi mac dinh chu khong cong them, nen
+    tren mot kho sach `--all` quet 0 file roi bao "khong ro ri" - den xanh
+    khong kiem tra gi. Test nay dung mot kho git that de kiem chung.
+    """
+    import subprocess
+
+    from scripts import check_secrets as cs
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True,
+                       capture_output=True)
+
+    git("init")
+    git("config", "user.email", "t@example.com")
+    git("config", "user.name", "t")
+    (tmp_path / "da_theo_doi.py").write_text("x = 1", encoding="utf-8")
+    git("add", "da_theo_doi.py")
+    git("commit", "-m", "x")
+    (tmp_path / "chua_theo_doi.py").write_text("y = 2", encoding="utf-8")
+
+    monkeypatch.setattr(cs, "ROOT", tmp_path)
+    ten_mac_dinh = {f.name for f in cs.tracked_files(False)}
+    ten_tat_ca = {f.name for f in cs.tracked_files(True)}
+
+    assert ten_mac_dinh == {"da_theo_doi.py"}
+    # `--all` phai la tap CHA cua mac dinh, khong bao gio nho hon.
+    assert ten_tat_ca == {"da_theo_doi.py", "chua_theo_doi.py"}
+
+
+def test_khong_bao_an_toan_khi_quet_rong(monkeypatch, capsys):
+    """Quet 0 file phai la loi, khong duoc in "khong tim thay ro ri"."""
+    from scripts import check_secrets as cs
+
+    monkeypatch.setattr(cs, "tracked_files", lambda scan_all: [])
+    monkeypatch.setattr(sys, "argv", ["check_secrets.py"])
+    ma = cs.main()
+    ra = capsys.readouterr().out
+
+    assert ma == 1, "quet rong phai tra ma thoat khac 0"
+    assert "Khong tim thay khoa nao bi ro ri" not in ra

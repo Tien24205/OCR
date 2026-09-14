@@ -88,9 +88,18 @@ PLACEHOLDER = re.compile(
 
 
 def tracked_files(scan_all: bool) -> list[Path]:
+    """Liet ke cac file can quet.
+
+    LOI DA SUA: truoc day `--all` them "--others --exclude-standard" ma KHONG
+    them "--cached". Trong `git ls-files`, "--others" THAY THE hanh vi mac
+    dinh chu khong cong them, nen `--all` chi con quet file chua theo doi -
+    bo qua toan bo 167 file da theo doi. Kho sach thi no quet 0 file roi in
+    "Khong tim thay khoa nao bi ro ri": mot den xanh khong kiem tra gi ca, va
+    dung o che do nguoi ta chon vi tuong la ky hon.
+    """
     command = ["git", "ls-files"]
     if scan_all:
-        command += ["--others", "--exclude-standard"]
+        command += ["--cached", "--others", "--exclude-standard"]
     output = subprocess.run(command, cwd=ROOT, capture_output=True, text=True,
                             check=True).stdout
     return [ROOT / line for line in output.splitlines() if line.strip()]
@@ -141,6 +150,10 @@ def main() -> int:
     paths = tracked_files(args.all)
     findings = scan(paths)
 
+    if not paths:
+        print("LOI: khong liet ke duoc file nao de quet.")
+        print("Ket qua 'khong ro ri' o day la vo nghia - dung tin no.")
+        return 1
     print(f"Da quet {len(paths)} file"
           + (" (gom ca file chua theo doi)" if args.all else " duoc Git theo doi"))
 
