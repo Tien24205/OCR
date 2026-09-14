@@ -10,6 +10,7 @@ Mục lục này cập nhật ngày **14/09/2026**.
 | Đề bài gốc yêu cầu gì | [1-de-bai/De2.docx.pdf](1-de-bai/De2.docx.pdf) |
 | Yêu cầu đã chuẩn hóa thành tiêu chí nghiệm thu (FR-01…FR-11) | [1-de-bai/yeu-cau-chuan-hoa.md](1-de-bai/yeu-cau-chuan-hoa.md) |
 | Cách làm và thiết kế kỹ thuật | [2-ke-hoach/trien-khai-chi-tiet.md](2-ke-hoach/trien-khai-chi-tiet.md) |
+| Vì sao kiến trúc lại là agentic | [2-ke-hoach/kien-truc-agentic.md](2-ke-hoach/kien-truc-agentic.md) |
 | Đã làm được tới đâu | [3-bao-cao/](3-bao-cao/) — đọc từ `ngay-1-2.md` |
 | Cái gì đã kiểm chứng thật, cái gì chưa | [4-kiem-chung/](4-kiem-chung/) |
 
@@ -29,6 +30,8 @@ Mục lục này cập nhật ngày **14/09/2026**.
 | [ke-hoach-10-ngay.md](2-ke-hoach/ke-hoach-10-ngay.md) | Lịch trình 10 ngày ở mức mục tiêu | Đang theo |
 | [trien-khai-chi-tiet.md](2-ke-hoach/trien-khai-chi-tiet.md) | Kiến trúc, schema DB, hợp đồng API, DoD từng ngày | Tài liệu kỹ thuật chính |
 | [nang-cap-6-tieu-chi.md](2-ke-hoach/nang-cap-6-tieu-chi.md) | Kế hoạch mở rộng 12–29/09 theo 6 tiêu chí chấm | Đang theo, xem cảnh báo dưới |
+| [kien-truc-agentic.md](2-ke-hoach/kien-truc-agentic.md) | Vì sao chia thành nhiều tác tử, mô hình quyết định, grounding như lớp an toàn | Mốc 20/09 |
+| [roadmap.md](2-ke-hoach/roadmap.md) | Lộ trình v1.0 → v4.0, kèm điều kiện bắt đầu từng mốc | Mốc 20/09 |
 
 > **Mốc kế tiếp là 15/09 — OCR thật.** Mốc 12–14 đã xong hạng mục; 15/09 không phải việc lập trình mà là lấy credentials và chụp ảnh.
 

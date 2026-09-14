@@ -83,6 +83,35 @@ Ghi lại kết quả tại đây:
 | Giới hạn token vào / ra | 1 048 576 / 65 536 |
 | Lý do chọn model này | Bậc `flash` rẻ nhất trong thế hệ hiện tại còn đọc được ảnh; **bản chính thức, không phải `preview`** |
 | Ngày kiểm tra | 14/09/2026 |
+| **Hạn mức bậc miễn phí** | **20 lượt/ngày** — xem cảnh báo ngay dưới |
+
+> ### ⚠ Model này KHÔNG đủ để đo 40 thẻ
+>
+> Phát hiện ngày 14/09 khi chạy thử đường đo: bậc miễn phí của
+> `gemini-3.5-flash` giới hạn **20 lượt gọi mỗi ngày mỗi model**. Nguyên văn
+> phản hồi của Google:
+>
+> ```
+> Quota exceeded for metric: generate_content_free_tier_requests,
+> limit: 20, model: gemini-3.5-flash
+> quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier
+> ```
+>
+> Đo 40 thẻ cần tối thiểu 40 lượt — **gấp đôi hạn mức**. Ba đường đi:
+>
+> | Cách | Đánh đổi |
+> | --- | --- |
+> | Đổi sang model có hạn mức lớn hơn (bậc `flash-lite`) | Chất lượng thấp hơn một chút, nhưng đo được trong một ngày |
+> | Chia làm hai ngày, mỗi ngày 20 thẻ | Miễn phí, nhưng hai nửa bộ mẫu đo ở hai thời điểm khác nhau |
+> | Bật thanh toán trên Google AI Studio | Hết giới hạn, nhưng phải gắn thẻ |
+>
+> **Kiểm hạn mức thật của tài khoản bạn tại <https://ai.dev/rate-limit>** —
+> con số ở đây là của một tài khoản cụ thể vào một ngày cụ thể, đừng chép lại
+> làm sự thật chung.
+>
+> Lựa chọn model ở bảng trên được chốt trước khi biết ràng buộc này. Nó vẫn
+> đúng về mặt chất lượng và tính ổn định, nhưng **chưa tính tới hạn mức** —
+> và hạn mức mới là thứ đang chặn việc đo.
 
 **Vì sao không chọn `gemini-flash-latest`:** đó là bí danh trôi — Google trỏ nó
 sang model khác bất cứ lúc nào. Dự án này công bố số đo chất lượng, mà số đo chỉ
