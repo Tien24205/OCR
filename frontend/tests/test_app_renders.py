@@ -66,9 +66,8 @@ def test_trang_kiem_tra_khong_co_ban_quet():
     assert at.info[0].value.startswith("Chưa có bản quét nào")
 
 
-def test_trang_ho_so_bao_dung_khi_backend_chua_co_endpoint():
-    """Ngay 7 moi co GET /api/contacts. Truoc do trang phai bao ro rang
-    chu khong duoc vo."""
+def test_trang_ho_so_hien_loi_api_khong_vo_giao_dien():
+    """Day 7 endpoint exists; unexpected API errors stay visible."""
     def _raise_404(*args, **kwargs):
         raise api.ApiError("NOT_FOUND", "Not Found", False, 404)
 
@@ -78,4 +77,56 @@ def test_trang_ho_so_bao_dung_khi_backend_chua_co_endpoint():
         mp.setattr(api, "search_contacts", _raise_404)
         at.run()
     assert not at.exception, at.exception
-    assert "Ngày 7" in at.warning[0].value
+    assert at.error[0].value == "Not Found"
+
+
+# --- Trang Tong quan (Bang dieu khien) -----------------------------------
+
+EMPTY_STATS = {
+    "totals": {"scans": 0, "contacts": 0, "organizations": 0, "enrichments": 0},
+    "scans_by_status": {}, "contacts_by_review": {}, "enrichments_by_status": {},
+    "languages": {}, "agent_actions": {}, "missing_critical": {},
+    "confidence": {"measured_scans": 0, "average": None, "below_half": 0},
+    "contacts_per_day": [], "top_organizations": [],
+}
+
+FULL_STATS = {
+    "totals": {"scans": 12, "contacts": 9, "organizations": 5, "enrichments": 7},
+    "scans_by_status": {"committed": 9, "ocr_done": 2, "failed": 1},
+    "contacts_by_review": {"reviewed": 9},
+    "enrichments_by_status": {"verified": 5, "not_found": 2},
+    "languages": {"ja": 7, "en": 5},
+    "agent_actions": {"proceed": 20, "retry": 3, "escalate": 2},
+    "missing_critical": {"missing_name": 1},
+    "confidence": {"measured_scans": 12, "average": 0.82, "below_half": 1},
+    "contacts_per_day": [{"date": "2026-09-13", "contacts": 4},
+                         {"date": "2026-09-14", "contacts": 5}],
+    "top_organizations": [{"organization": "株式会社青葉テクノロジー", "contacts": 3}],
+}
+
+
+def test_tong_quan_khi_kho_du_lieu_rong(monkeypatch):
+    """Chua quet gi thi phai huong dan, khong duoc ve bieu do rong hay no."""
+    monkeypatch.setattr(api, "stats", lambda: EMPTY_STATS)
+    at = _run("app_pages/dashboard.py")
+    assert any("Chưa có bản quét nào" in i.value for i in at.info)
+
+
+def test_tong_quan_hien_day_du_so_lieu(monkeypatch):
+    monkeypatch.setattr(api, "stats", lambda: FULL_STATS)
+    at = _run("app_pages/dashboard.py")
+    values = [m.value for m in at.metric]
+    assert "12" in values and "9" in values
+    assert any("82%" in str(v) for v in values)
+
+
+def test_tong_quan_bao_loi_khi_backend_chet(monkeypatch):
+    def _down():
+        raise api.ApiError("BACKEND_UNREACHABLE", "Khong ket noi duoc", True, 0)
+
+    monkeypatch.setattr(api, "stats", _down)
+    at = AppTest.from_file(APP, default_timeout=30)
+    at.switch_page("app_pages/dashboard.py")
+    at.run()
+    assert not at.exception, at.exception
+    assert at.error

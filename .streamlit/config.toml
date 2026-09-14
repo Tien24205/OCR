@@ -1,0 +1,6 @@
+[server]
+# README starts Streamlit from the repository root.
+maxUploadSize = 8
+
+[browser]
+gatherUsageStats = false

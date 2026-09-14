@@ -42,7 +42,7 @@ def _client() -> httpx.Client:
     return httpx.Client(base_url=API_BASE_URL, timeout=TIMEOUT_S)
 
 
-def _request(method: str, path: str, **kwargs: Any) -> Any:
+def _request(method: str, path: str, *, raw: bool = False, **kwargs: Any) -> Any:
     try:
         res = _client().request(method, path, **kwargs)
     except httpx.RequestError as exc:
@@ -54,7 +54,7 @@ def _request(method: str, path: str, **kwargs: Any) -> Any:
         ) from exc
 
     if res.is_success:
-        return res.json()
+        return res.content if raw else res.json()
 
     body: dict[str, Any] = {}
     try:
@@ -85,7 +85,31 @@ def create_scan(filename: str, data: bytes, mime: str) -> dict[str, Any]:
 
 def get_scan(scan_id: str) -> dict[str, Any]:
     """Ngay 4: trang thai + raw_text + ban nhap da chuan hoa."""
-    return _request("GET", f"/api/scans/{scan_id}")
+    return _request("GET", f"/api/scans/{scan_id}", timeout=5.0)
+
+
+def retry_scan(scan_id: str) -> dict[str, Any]:
+    return _request("POST", f"/api/scans/{scan_id}/retry")
+
+
+def save_draft(scan_id: str, fields: dict, revision: int) -> dict[str, Any]:
+    return _request("PATCH", f"/api/scans/{scan_id}/draft", json={"fields": fields, "revision": revision})
+
+
+def start_enrichment(scan_id: str, revision: int) -> dict:
+    return _request("POST", f"/api/scans/{scan_id}/enrich", json={"revision": revision})
+
+
+def get_research(organization_id: str) -> dict:
+    return _request("GET", f"/api/organizations/{organization_id}", timeout=5.0)["research"]
+
+
+def retry_enrichment(organization_id: str) -> dict:
+    return _request("POST", f"/api/organizations/{organization_id}/enrich")
+
+
+def review_enrichment(enrichment_id: str, decision: str) -> dict:
+    return _request("PATCH", f"/api/enrichments/{enrichment_id}", json={"decision": decision})
 
 
 def search_contacts(q: str = "", page: int = 1, size: int = 20) -> dict[str, Any]:
@@ -95,8 +119,38 @@ def search_contacts(q: str = "", page: int = 1, size: int = 20) -> dict[str, Any
     )
 
 
+def get_contact(contact_id: str) -> dict:
+    return _request("GET", f"/api/contacts/{contact_id}")
+
+
+def scan_duplicates(scan_id: str, organization_id: str | None = None) -> dict:
+    return _request("GET", f"/api/scans/{scan_id}/duplicates",
+                    params={"organization_id": organization_id} if organization_id else {})
+
+
+def save_contact(body: dict, key: str) -> dict:
+    return _request("POST", "/api/contacts", json=body, headers={"Idempotency-Key": key})
+
+
+def edit_contact(contact_id: str, body: dict) -> dict:
+    return _request("PATCH", f"/api/contacts/{contact_id}", json=body)
+
+
+def organization_choices() -> dict:
+    return _request("GET", "/api/organizations")
+
+
+def export_contacts(format: str) -> bytes:
+    return _request("GET", "/api/export", params={"format": format}, raw=True)
+
+
 def get_image(image_ref: str) -> bytes:
     """Tai anh goc ve de hien thi. Anh khong duoc phuc vu truc tiep ra ngoai."""
     res = _client().get(f"/api/images/{image_ref}")
     res.raise_for_status()
     return res.content
+
+
+def stats() -> dict[str, Any]:
+    """So lieu tong quan cho trang Bang dieu khien."""
+    return _request("GET", "/api/stats")

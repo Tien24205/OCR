@@ -21,8 +21,7 @@ st.session_state.setdefault("pending_image", None)
 def show_backend_status() -> None:
     """Trang thai backend + cau hinh dich vu.
 
-    Day cung la checklist Ngay 2 nhin thay duoc: khi ca hai dong OCR va
-    trich xuat chuyen sang "sẵn sàng" thi phu thuoc rui ro cao nhat da xong.
+    Presence checks do not verify account permissions, quota or model access.
     """
     try:
         data = api.health()
@@ -30,8 +29,8 @@ def show_backend_status() -> None:
         st.error(
             f"{exc.message}\n\n"
             "Kiểm tra đã chạy backend chưa:\n\n"
-            "`.venv\\Scripts\\python.exe -m uvicorn app.main:app --reload` "
-            "trong thư mục `backend/`.",
+            "`.venv\\Scripts\\python.exe -m uvicorn app.main:app --app-dir backend --port 8000` "
+            "từ gốc dự án.",
             icon=":material/cloud_off:",
         )
         return
@@ -41,15 +40,18 @@ def show_backend_status() -> None:
     ext_ok = cfg["gemini_key_present"] and cfg["gemini_model_set"]
 
     def mark(ok: bool) -> str:
-        return ":green[sẵn sàng]" if ok else ":orange[chưa cấu hình]"
+        return "có cấu hình, chưa xác minh dịch vụ" if ok else "chưa đủ cấu hình"
 
     with st.sidebar:
         st.success(f"Backend đang chạy ({data['env']})", icon=":material/cloud_done:")
-        st.caption("Trạng thái dịch vụ")
-        st.markdown(f"- OCR — `{cfg['ocr_provider']}` — {mark(ocr_ok)}")
-        st.markdown(f"- Trích xuất — `{cfg['extractor']}` — {mark(ext_ok)}")
+        st.caption("Cấu hình xử lý")
+        st.caption("Điều phối agent: " + ("bật" if cfg.get("agent_enabled") else "tắt; dùng luồng hiện tại"))
+        ocr_status = "phát lại fixture, không gọi OCR thật" if cfg['ocr_provider'] == 'mock' else mark(ocr_ok)
+        ext_status = "regex dự phòng, giới hạn họ tên/địa chỉ" if cfg['extractor'] == 'heuristic' else mark(ext_ok)
+        st.markdown(f"- OCR — `{cfg['ocr_provider']}` — {ocr_status}")
+        st.markdown(f"- Trích xuất — `{cfg['extractor']}` — {ext_status}")
         st.markdown(
-            f"- Tra cứu — {'bật' if cfg['enrich_enabled'] else 'tắt'}"
+            f"- Tra cứu — {'bật, cần Gemini và nguồn phù hợp' if cfg['enrich_enabled'] else 'tắt'}"
         )
 
 
@@ -68,6 +70,10 @@ page = st.navigation(
         ),
         st.Page(
             "app_pages/contacts.py", title="Hồ sơ", icon=":material/contacts:"
+        ),
+        st.Page(
+            "app_pages/dashboard.py", title="Tổng quan",
+            icon=":material/insights:"
         ),
     ],
     position="top",

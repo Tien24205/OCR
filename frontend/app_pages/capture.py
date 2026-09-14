@@ -1,6 +1,9 @@
 """Ngay 3: chup bang camera hoac tai anh len, xem truoc, gui toi backend."""
 
+from io import BytesIO
+
 import streamlit as st
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from lib import api
 
@@ -33,9 +36,24 @@ if uploaded is None:
 
 data = uploaded.getvalue()
 
+if len(data) > 8 * 1024 * 1024:
+    st.error("Ảnh vượt quá 8 MB. Vui lòng chọn ảnh nhỏ hơn.")
+    st.stop()
+
+try:
+    with Image.open(BytesIO(data)) as source:
+        if source.format not in {"JPEG", "PNG"} or max(source.size) > 6000:
+            st.error("Chọn ảnh JPEG/PNG có cạnh không vượt quá 6000 pixel.")
+            st.stop()
+        display_image = ImageOps.exif_transpose(source)
+        display_image.load()
+except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+    st.error("Không đọc được ảnh. Vui lòng chọn lại tệp JPEG hoặc PNG hợp lệ.")
+    st.stop()
+
 preview, actions = st.columns([2, 1])
 with preview:
-    st.image(data, caption="Ảnh sẽ được gửi đi", width="stretch")
+    st.image(display_image, caption="Ảnh xem trước theo chiều EXIF", width="stretch")
 with actions:
     st.caption(f"Dung lượng: {len(data) / 1024:,.0f} KB")
     st.caption(f"Định dạng: `{uploaded.type or 'không rõ'}`")
@@ -51,14 +69,11 @@ with actions:
                 uploaded.name or "card.jpg", data, uploaded.type or "image/jpeg"
             )
         except api.ApiError as exc:
-            if exc.status == 404:
-                st.warning(
-                    "Backend chưa có `POST /api/scans`. Endpoint này được thêm "
-                    "ở **Ngày 3** theo kế hoạch triển khai.",
-                    icon=":material/construction:",
-                )
-            else:
-                st.error(exc.message, icon=":material/error:")
+            st.error(exc.message, icon=":material/error:")
         else:
             st.session_state.current_scan_id = scan["id"]
+            st.session_state.pop("scan_result", None)
+            st.session_state.pop("scan_poll", None)
+            st.success("Đã lưu ảnh. Bản quét đang chờ xử lý.")
+            st.caption(f"Mã bản quét: {scan['id']}")
             st.switch_page("app_pages/review.py")

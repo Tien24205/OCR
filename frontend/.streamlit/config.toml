@@ -1,7 +1,0 @@
-[server]
-# Khop voi MAX_UPLOAD_BYTES cua backend (8 MB). Dat o day de nguoi dung bi
-# chan ngay tren trinh duyet thay vi doi tai xong roi moi nhan loi 413.
-maxUploadSize = 8
-
-[browser]
-gatherUsageStats = false
