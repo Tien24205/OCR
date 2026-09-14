@@ -63,7 +63,7 @@ Tách riêng khỏi báo cáo, vì đây là nơi ghi **cái gì đã thật s�
 | --- | --- |
 | [ra-soat-ngay-1-2.md](4-kiem-chung/ra-soat-ngay-1-2.md) | Rà soát độc lập Ngày 1–2, đính chính báo cáo trước |
 | [doi-chieu-ke-hoach-nang-cap.md](4-kiem-chung/doi-chieu-ke-hoach-nang-cap.md) | Đối chiếu kế hoạch nâng cấp với code |
-| [ocr-provider-notes.md](4-kiem-chung/ocr-provider-notes.md) | Phiếu ghi chép nhà cung cấp OCR — **mục B, C, D, F chưa điền** |
+| [ocr-provider-notes.md](4-kiem-chung/ocr-provider-notes.md) | Phiếu ghi chép nhà cung cấp OCR — mục B **đã điền 14/09**; C, D, F chờ Vision |
 | `ket-qua-*.json` | Kết quả các lần kiểm tra tự động, có mốc thời gian |
 
 ---
@@ -74,8 +74,8 @@ Số liệu dưới đây lấy trực tiếp từ mã nguồn, không chép l�
 
 | Chỉ số | Giá trị |
 | --- | --- |
-| Test | 402 pass (49 giây) |
-| Endpoint API | 20, tất cả có mô tả OpenAPI |
+| Test | 435 pass (54 giây) |
+| Endpoint API | 24 (20 đường dẫn), tất cả có mô tả OpenAPI |
 | Bảng cơ sở dữ liệu | 10 |
 | Nhãn chuẩn sẵn sàng | 40 (20 Anh + 20 Nhật) |
 
@@ -106,7 +106,7 @@ Chạy thử toàn bộ đường đo mà chưa cần ảnh chụp:
 
 | Hạng mục | Ghi chú |
 | --- | --- |
-| **OCR thật** | Chưa có một lời gọi Google Vision hay Gemini nào trong cả dự án |
+| **Google Vision** | Chưa có một lời gọi thật nào. Thiếu `backend/secrets/gcp-sa.json` |
 | **Ảnh chụp** | 0/40 — nhãn và trang in đã sẵn sàng, còn thiếu bước in và chụp |
 | Ngày 8 — 3 dòng còn lại | Quyền camera, DevTools, HTTPS trên điện thoại — cần trình duyệt và thiết bị thật |
 | `Document/3-bao-cao/chat-luong.md` | Chỉ viết được sau khi có OCR thật |
@@ -115,7 +115,11 @@ Chạy thử toàn bộ đường đo mà chưa cần ảnh chụp:
 
 **Toàn bộ Ngày 3–7 được xây trên hai fixture tổng hợp.** Hai file trong `backend/tests/fixtures/ocr/` mang nhãn `provider: "synthetic"` — sinh từ văn bản viết tay ở Ngày 2, không phải kết quả OCR.
 
-402 test xanh chứng minh mã nguồn tự nhất quán. Nó **không** chứng minh OCR đọc được danh thiếp tiếng Nhật. Ba thứ chưa từng được kiểm chứng: schema `CardExtraction` đã bao giờ được Gemini chấp nhận chưa, ngưỡng `_FUZZY_THRESHOLD = 0.90` của grounding có đúng với chữ Kanji thật không, và nhánh tăng tương phản của agent có hoạt động trên ảnh mờ thật không.
+435 test xanh chứng minh mã nguồn tự nhất quán. Nó **không** chứng minh OCR đọc được danh thiếp tiếng Nhật.
+
+**Ngày 14/09 đã gạch được một gạch đầu dòng:** schema `CardExtraction` *đã* được Gemini chấp nhận — `gemini-3.5-flash`, gọi thật, trả về đúng `山田 太郎` và email. Đây là lần đầu dự án chạm tới một dịch vụ thật. Chi tiết ở [4-kiem-chung/ocr-provider-notes.md](4-kiem-chung/ocr-provider-notes.md) mục B.
+
+Còn **hai** thứ chưa từng được kiểm chứng, cả hai đều cần ảnh chụp thật: ngưỡng `_FUZZY_THRESHOLD = 0.90` của grounding có đúng với chữ Kanji thật không, và nhánh tăng tương phản của agent có hoạt động trên ảnh mờ thật không.
 
 Phần **đọc phản hồi của Vision** thì nay đã kiểm chứng được mà không cần gọi thật: 17 test dựng lại đúng cấu trúc trang → khối → đoạn → từ → ký tự mà Vision trả về, gồm cả cờ ngắt dòng. Trước đó vùng code này chưa từng chạy dòng nào.
 
