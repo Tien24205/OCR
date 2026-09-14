@@ -65,7 +65,7 @@ Câu 4 là ẩn số lớn nhất của cả dự án — schema đó chưa từ
 
 ---
 
-## B. Chọn model Gemini — **cần điền**
+## B. Chọn model Gemini — **đã xác minh 14/09/2026**
 
 Tên model Gemini thay đổi theo thời gian và khác nhau giữa các tài khoản. **Không đoán tên rồi hardcode** — sẽ gặp lỗi 404 khó chẩn đoán. Hỏi thẳng API:
 
@@ -79,10 +79,39 @@ Ghi lại kết quả tại đây:
 
 | Mục | Giá trị |
 | --- | --- |
-| Model đã chọn | *(điền)* |
-| Giới hạn token vào / ra | *(điền)* |
-| Lý do chọn model này | *(điền — ví dụ: rẻ nhất trong nhóm đọc được ảnh)* |
-| Ngày kiểm tra | *(điền)* |
+| Model đã chọn | `gemini-3.5-flash` |
+| Giới hạn token vào / ra | 1 048 576 / 65 536 |
+| Lý do chọn model này | Bậc `flash` rẻ nhất trong thế hệ hiện tại còn đọc được ảnh; **bản chính thức, không phải `preview`** |
+| Ngày kiểm tra | 14/09/2026 |
+
+**Vì sao không chọn `gemini-flash-latest`:** đó là bí danh trôi — Google trỏ nó
+sang model khác bất cứ lúc nào. Dự án này công bố số đo chất lượng, mà số đo chỉ
+có nghĩa khi nói rõ đo trên cái gì. Một cái tên trôi khiến kết quả hôm nay không
+lặp lại được vào tháng sau, và tệ hơn: chất lượng tụt mà không ai biết vì sao.
+Tên cố định thì khi đổi model là một thay đổi có chủ ý, có commit, đo lại được.
+
+**Vì sao không chọn bản `preview`:** Google có thể rút bản preview mà không báo
+trước, và không cam kết hành vi ổn định giữa các lần cập nhật.
+
+### Câu hỏi 4 đã có lời đáp
+
+Ẩn số lớn nhất của dự án — *model có chấp nhận schema `CardExtraction` không* —
+đã được trả lời bằng một lời gọi dịch vụ thật:
+
+```
+[2/2] Gemini - trich xuat truong co schema
+      OK   - model 'gemini-3.5-flash' chap nhan schema CardExtraction
+      Ho ten doc duoc : 山田 太郎
+      Email doc duoc  : taro@example.co.jp
+```
+
+Schema được chấp nhận nguyên vẹn, và chữ Nhật đi qua toàn tuyến không hỏng.
+Trước đây điều này chỉ được kiểm bằng `t_schema()` cục bộ — tức mới chứng minh
+schema *hợp lệ về hình thức*, chưa chứng minh máy chủ *nhận*. Nay đã có cả hai.
+
+**Phần còn thiếu:** Google Cloud Vision vẫn chưa cấu hình (`OCR_PROVIDER=mock`,
+chưa có `backend/secrets/gcp-sa.json`), nên câu 1 và 2 còn bỏ ngỏ và `--check`
+vẫn kết luận *chưa sẵn sàng*. Đó là việc duy nhất chắn giữa dự án và số đo thật.
 
 ---
 
