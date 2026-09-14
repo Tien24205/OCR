@@ -1,0 +1,13 @@
+{
+  "source_file": "002.jpg",
+  "raw_text": "有限会社あおぞら園芸\n店長\n森 久美子\n〒700-0901 岡山県岡山市北区本町6-30\nTEL: 086-234-1900\nhttps://aozora-engei.example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

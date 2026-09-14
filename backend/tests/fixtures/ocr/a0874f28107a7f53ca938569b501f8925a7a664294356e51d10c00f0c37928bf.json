@@ -1,0 +1,13 @@
+{
+  "source_file": "010.jpg",
+  "raw_text": "Bluewater Press\nEditorial\nManaging Editor\nOwen Radcliffe\n9 Fleet Street\nLondon EC4Y 1AA, UK\no.radcliffe@example.com\nhttps://bluewater-press.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source_file": "005.jpg",
+  "raw_text": "一般社団法人日本先端材料技術研究協会\n研究開発センター\n主任研究員\n田中 誠\n〒305-0047 茨城県つくば市千現2-1-6\nTEL: 029-859-2000\nm.tanaka@example.or.jp\nhttps://www.example.or.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

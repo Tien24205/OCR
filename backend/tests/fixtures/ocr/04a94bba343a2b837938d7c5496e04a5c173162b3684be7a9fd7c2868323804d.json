@@ -1,0 +1,13 @@
+{
+  "source_file": "007.jpg",
+  "raw_text": "Copperline Construction Group\nProject Delivery\nSite Manager\nRachel Nwosu\nLevel 8, 190 George Street\nSydney NSW 2000, Australia\nTEL: +61 2 5550 0177  ext. 23\nFAX: +61 2 5550 0178\nMobile: +61 4 5550 0179\nr.nwosu@example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

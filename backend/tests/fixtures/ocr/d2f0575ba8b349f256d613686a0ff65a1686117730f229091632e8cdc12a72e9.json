@@ -1,0 +1,13 @@
+{
+  "source_file": "006.jpg",
+  "raw_text": "Kestrel Marine Surveys\nField Operations\nSenior Surveyor\nThomas Lindqvist\nSkeppsbron 22\n111 30 Stockholm, Sweden\nTEL: +46 8 555 0121\nMobile: +46 70 555 0122\nt.lindqvist@example.com\nhttps://kestrel-marine.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

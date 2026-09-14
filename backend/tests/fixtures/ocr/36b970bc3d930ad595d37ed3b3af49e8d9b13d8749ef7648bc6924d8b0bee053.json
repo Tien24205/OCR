@@ -1,0 +1,13 @@
+{
+  "source_file": "004.jpg",
+  "raw_text": "Lumen Health Partners\nRegulatory Affairs\nCompliance Officer\nDavid Kim\n7 Raffles Place, #21-03\nSingapore 048616\nTEL: +65 6555 0133  ext. 412\ndavid.kim@example.com\nhttps://lumenhealth.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

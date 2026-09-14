@@ -1,0 +1,13 @@
+{
+  "source_file": "003.jpg",
+  "raw_text": "Northwind Precision Tools\nEngineering\nLead Design Engineer\nSarah Okafor\n880 Industrial Parkway\nCleveland, OH 44114\nTEL: +1 (216) 555-0108\nFAX: +1 (216) 555-0109\ns.okafor@example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

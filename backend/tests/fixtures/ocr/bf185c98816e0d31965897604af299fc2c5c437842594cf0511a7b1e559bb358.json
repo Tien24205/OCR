@@ -1,0 +1,13 @@
+{
+  "source_file": "001.jpg",
+  "raw_text": "株式会社北陸精機\n生産技術部\n次長\n岡田 隆\n〒920-0853 石川県金沢市本町2-15-1\nTEL: 076-263-8800\n携帯: 090-5555-1212\nt.okada@example.co.jp\nhttps://hokuriku-seiki.example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

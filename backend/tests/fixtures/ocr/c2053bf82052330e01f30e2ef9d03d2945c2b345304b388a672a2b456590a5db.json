@@ -1,0 +1,13 @@
+{
+  "source_file": "007.jpg",
+  "raw_text": "Redstone Software Partners\nPlatform Engineering\nEngineering Team Lead\nAnanya Krishnan\nPrestige Tower, 7th Floor\nBengaluru 560001, India\nTEL: +91 80 5555 0116  ext. 58\nFAX: +91 80 5555 0117\nMobile: +91 98 5555 0118\na.krishnan@example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

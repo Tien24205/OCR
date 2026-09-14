@@ -1,0 +1,13 @@
+{
+  "source_file": "007.jpg",
+  "raw_text": "株式会社大和建設\n工事部\n現場監督\n小林 大輔\n〒980-0021 宮城県仙台市青葉区中央1-3-1\nTEL: 022-268-4000（内線 12）\nFAX: 022-268-4001\n携帯: 070-3344-5566\nd.kobayashi@example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

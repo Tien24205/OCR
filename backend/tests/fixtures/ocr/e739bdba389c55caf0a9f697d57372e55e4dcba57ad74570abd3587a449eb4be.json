@@ -1,0 +1,13 @@
+{
+  "source_file": "003.jpg",
+  "raw_text": "合同会社ひかり物流\n配送管理課\n課長\n佐藤 健一\n〒460-0008 愛知県名古屋市中区栄3-15-1\nTEL: 052-961-1111\nFAX: 052-961-1112\nk.sato@example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source_file": "001.jpg",
+  "raw_text": "Ironwood Materials Corp.\nQuality Assurance\nQA Director\nRobert Ashworth\n2400 Foundry Lane\nPittsburgh, PA 15222\nTEL: +1 (412) 555-0186\nMobile: +1 (412) 555-0187\nr.ashworth@example.com\nhttps://ironwood.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

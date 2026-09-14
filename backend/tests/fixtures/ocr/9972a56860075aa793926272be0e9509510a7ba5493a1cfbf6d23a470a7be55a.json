@@ -1,0 +1,13 @@
+{
+  "source_file": "005.jpg",
+  "raw_text": "Atlantic Institute for Coastal Resilience\nResearch Programmes\nSenior Research Fellow\nMarcus Bello\nOne Ocean Drive\nHalifax, NS B3H 4R2, Canada\nTEL: +1 (902) 555-0171\nm.bello@example.org\nhttps://www.aicr.example.org",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

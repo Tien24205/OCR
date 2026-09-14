@@ -1,0 +1,13 @@
+{
+  "source_file": "006.jpg",
+  "raw_text": "株式会社ノヴァシステムズ\nNOVA SYSTEMS CO., LTD.\n海外事業部\nマネージャー\n中村 由美\nYumi Nakamura\n〒220-0012 神奈川県横浜市西区みなとみらい3-6-1\nTEL: 045-222-8800\n携帯: 080-9876-5432\nyumi.nakamura@example.co.jp\nhttps://www.novasystems.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

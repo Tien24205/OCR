@@ -1,0 +1,13 @@
+{
+  "source_file": "005.jpg",
+  "raw_text": "International Federation of Sustainable Packaging Research\nPolicy Division\nProgramme Officer\nElena Vasquez\nRue de la Loi 155\n1040 Brussels, Belgium\nTEL: +32 2 555 0190\ne.vasquez@example.org\nhttps://www.example.org",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

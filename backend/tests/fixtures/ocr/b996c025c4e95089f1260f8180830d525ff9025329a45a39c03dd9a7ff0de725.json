@@ -1,0 +1,13 @@
+{
+  "source_file": "001.jpg",
+  "raw_text": "株式会社青葉テクノロジー\n営業本部 第一営業部\n部長\n山田 太郎\n〒100-0001 東京都千代田区千代田1-2-3 青葉ビル7F\nTEL: 03-5432-1098\n携帯: 090-1234-5678\ntaro.yamada@example.co.jp\nhttps://www.example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

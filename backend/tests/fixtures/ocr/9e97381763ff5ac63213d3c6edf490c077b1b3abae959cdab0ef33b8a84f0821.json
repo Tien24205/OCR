@@ -1,0 +1,13 @@
+{
+  "source_file": "004.jpg",
+  "raw_text": "株式会社ひだまり介護サービス\n訪問介護課\nサービス提供責任者\n松本 恵子\n〒390-0811 長野県松本市中央1-2-8\nTEL: 0263-35-7700（内線 31）\nk.matsumoto@example.co.jp\nhttps://hidamari.example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

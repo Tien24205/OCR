@@ -1,0 +1,13 @@
+{
+  "source_file": "008.jpg",
+  "raw_text": "Whitfield Photography\nOwner\nDaniel Whitfield\nTEL: +1 (503) 555-0152\ndan@example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

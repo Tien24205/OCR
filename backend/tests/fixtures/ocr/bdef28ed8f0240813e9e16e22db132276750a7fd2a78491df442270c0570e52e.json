@@ -1,0 +1,13 @@
+{
+  "source_file": "009.jpg",
+  "raw_text": "Cascade Digital Transformation Services\nEnterprise Architecture\nPrincipal Solutions Architect\nJonas Meyer\nFriedrichstraße 68\n10117 Berlin, Germany\nTEL: +49 30 5550 0155\nj.meyer@example.com\nhttps://cascade-dts.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

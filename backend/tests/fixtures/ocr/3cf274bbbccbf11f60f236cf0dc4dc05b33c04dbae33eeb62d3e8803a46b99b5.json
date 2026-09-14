@@ -1,0 +1,13 @@
+{
+  "source_file": "009.jpg",
+  "raw_text": "株式会社トウキョウ・データワークス\nデジタルトランスフォーメーション推進室\nシニアソリューションアーキテクト\n渡辺 翔太\n〒150-0043 東京都渋谷区道玄坂1-12-1\nTEL: 03-6455-7700\nshota.watanabe@example.co.jp\nhttps://tdw.example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

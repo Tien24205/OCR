@@ -1,0 +1,13 @@
+{
+  "source_file": "002.jpg",
+  "raw_text": "有限会社みどり印刷\n製造部\n主任\n鈴木 花子\n〒530-0001 大阪府大阪市北区梅田2-4-9\nTEL: 06-6345-2100\nhttps://midori-print.example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source_file": "006.jpg",
+  "raw_text": "Solstice Beverage Group\nProduct Innovation\nHead of Development\nNaomi Fischer\nBahnhofstrasse 41\n8001 Zürich, Switzerland\nTEL: +41 44 555 0129\nMobile: +41 79 555 0130\nn.fischer@example.com\nhttps://solstice-bev.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

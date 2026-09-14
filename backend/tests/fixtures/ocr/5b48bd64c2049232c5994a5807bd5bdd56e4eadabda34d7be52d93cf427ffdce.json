@@ -1,0 +1,13 @@
+{
+  "source_file": "003.jpg",
+  "raw_text": "Pacific Rim Freight Services\nCustoms Brokerage\nSenior Broker\nHector Alvarez\n1100 Harbor Boulevard\nLong Beach, CA 90802\nTEL: +1 (562) 555-0143\nFAX: +1 (562) 555-0144\nh.alvarez@example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source_file": "006.jpg",
+  "raw_text": "株式会社ミナトフーズ\nMINATO FOODS INC.\n商品開発部\n部長代理\n清水 直樹\nNaoki Shimizu\n〒650-0024 兵庫県神戸市中央区海岸通5-1-1\nTEL: 078-333-6600\n携帯: 080-2233-4455\nn.shimizu@example.co.jp\nhttps://minatofoods.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

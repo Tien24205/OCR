@@ -1,0 +1,13 @@
+{
+  "source_file": "002.jpg",
+  "raw_text": "Greenfield Horticulture Ltd.\nNursery Manager\nCaroline Webb\nMill Lane, Bramley\nGuildford GU5 0BQ, UK\nTEL: +44 1483 555012\nhttps://greenfield-hort.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source_file": "005.jpg",
+  "raw_text": "公益財団法人東海環境保全機構\n調査研究部\n上席研究員\n斎藤 浩二\n〒420-0853 静岡県静岡市葵区追手町9-6\nTEL: 054-221-2000\nk.saito@example.or.jp\nhttps://www.tokai-kankyo.example.or.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

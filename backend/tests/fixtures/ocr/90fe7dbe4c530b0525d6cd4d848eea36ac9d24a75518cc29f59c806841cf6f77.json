@@ -1,0 +1,13 @@
+{
+  "source_file": "004.jpg",
+  "raw_text": "株式会社さくら食品工業\n品質保証部\n係長\n高橋 美咲\n〒812-0011 福岡県福岡市博多区博多駅前1-1-1\nTEL: 092-471-3300（内線 205）\nmisaki.takahashi@example.co.jp\nhttps://sakura-foods.example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

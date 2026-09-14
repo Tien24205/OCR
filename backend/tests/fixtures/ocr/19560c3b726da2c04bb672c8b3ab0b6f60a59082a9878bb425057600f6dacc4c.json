@@ -1,0 +1,13 @@
+{
+  "source_file": "009.jpg",
+  "raw_text": "Continental Urban Renewal Consultants\nHousing Regeneration\nPrincipal Consultant\nSofia Marchetti\nVia Torino 38\n20123 Milano, Italy\nTEL: +39 02 5555 0167\ns.marchetti@example.com\nhttps://curc.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

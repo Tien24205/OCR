@@ -1,0 +1,13 @@
+{
+  "source_file": "001.jpg",
+  "raw_text": "Meridian Analytics Inc.\nClient Solutions\nSenior Account Manager\nJane Doe\n500 Market Street, Suite 200\nSan Francisco, CA 94105\nTEL: +1 (415) 555-0142\nMobile: +1 (415) 555-0199\njane.doe@example.com\nhttps://www.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

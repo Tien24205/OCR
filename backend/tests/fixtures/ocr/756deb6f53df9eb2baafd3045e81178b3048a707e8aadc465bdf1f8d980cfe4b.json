@@ -1,0 +1,13 @@
+{
+  "source_file": "003.jpg",
+  "raw_text": "株式会社瀬戸内マリンサービス\n運航部\n主任\n村上 拓也\n〒760-0011 香川県高松市浜ノ町1-20\nTEL: 087-822-4400\nFAX: 087-822-4401\nt.murakami@example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

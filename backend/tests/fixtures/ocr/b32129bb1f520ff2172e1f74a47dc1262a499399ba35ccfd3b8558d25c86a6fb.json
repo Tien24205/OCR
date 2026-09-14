@@ -1,0 +1,13 @@
+{
+  "source_file": "010.jpg",
+  "raw_text": "株式会社そらいろ出版\n編集部\n編集長\n井上 麻衣\n〒101-0051 東京都千代田区神田神保町1-3\nmai.inoue@example.co.jp\nhttps://sorairo-pub.example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

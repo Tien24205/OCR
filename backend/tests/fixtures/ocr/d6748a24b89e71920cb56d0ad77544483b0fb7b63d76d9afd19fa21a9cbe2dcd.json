@@ -1,0 +1,13 @@
+{
+  "source_file": "008.jpg",
+  "raw_text": "長谷川写真館\n代表取締役\n長谷川 明\nTEL: 0552-22-3300\nhasegawa@example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

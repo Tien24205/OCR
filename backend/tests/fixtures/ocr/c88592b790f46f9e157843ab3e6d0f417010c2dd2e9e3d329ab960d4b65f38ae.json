@@ -1,0 +1,13 @@
+{
+  "source_file": "008.jpg",
+  "raw_text": "Alder & Finch Studio\nFounder\nPriya Raman\nTEL: +91 22 5555 0164\npriya@example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

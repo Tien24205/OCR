@@ -1,0 +1,13 @@
+{
+  "source_file": "008.jpg",
+  "raw_text": "石川デザイン事務所\n代表\n石川 涼\nTEL: 075-343-1200\nishikawa@example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

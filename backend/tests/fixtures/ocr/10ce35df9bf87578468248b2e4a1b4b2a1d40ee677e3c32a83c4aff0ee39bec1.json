@@ -1,0 +1,13 @@
+{
+  "source_file": "002.jpg",
+  "raw_text": "Bridgeport Logistics Ltd.\nOperations\nFleet Coordinator\nMichael Brennan\n12 Harbour Road\nLiverpool L3 4AA, United Kingdom\nTEL: +44 151 555 0176\nhttps://bridgeport.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

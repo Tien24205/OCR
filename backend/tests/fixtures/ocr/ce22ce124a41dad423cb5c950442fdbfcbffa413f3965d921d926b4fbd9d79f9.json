@@ -1,0 +1,13 @@
+{
+  "source_file": "004.jpg",
+  "raw_text": "Silverbrook Care Services\nCommunity Nursing\nCare Team Supervisor\nFiona Docherty\n18 Hanover Street\nEdinburgh EH2 2EN, UK\nTEL: +44 131 555 0198  ext. 27\nf.docherty@example.com\nhttps://silverbrook.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "en"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

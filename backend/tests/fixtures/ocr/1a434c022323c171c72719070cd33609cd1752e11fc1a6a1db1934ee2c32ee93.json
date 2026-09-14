@@ -1,0 +1,13 @@
+{
+  "source_file": "009.jpg",
+  "raw_text": "株式会社アーバンリノベーション東北\n住宅リフォーム事業部\nチーフコンサルタント\n木村 大地\n〒990-0031 山形県山形市十日町1-1-1\nTEL: 023-622-5500\nd.kimura@example.co.jp\nhttps://urban-reno.example.co.jp",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ja"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}
