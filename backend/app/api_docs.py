@@ -50,6 +50,9 @@ TAGS = [
     {"name": "enrichment", "description":
      "Tra cứu thông tin doanh nghiệp từ nguồn công khai. Mỗi khẳng định kèm "
      "URL nguồn, thời điểm và đoạn trích nguyên văn."},
+    {"name": "webhooks", "description":
+     "Báo cho hệ thống bên ngoài khi một bản quét xử lý xong. "
+     "**Mặc định tắt** — xem mô tả endpoint đăng ký."},
     {"name": "system", "description": "Trạng thái và số liệu tổng quan."},
 ]
 
@@ -69,6 +72,9 @@ ERROR_CODES = {
     "EXTRACTOR_NOT_CONFIGURED": "Thiếu GEMINI_API_KEY hoặc GEMINI_MODEL.",
     "FIXTURE_MISSING": "Đang chạy OCR_PROVIDER=mock và chưa có bản ghi cho "
                        "ảnh này. Xem mục 'Thử ngay khi chưa có API key' trong README.",
+    "WEBHOOK_DISABLED": "Webhook đang tắt. Bật bằng WEBHOOK_ENABLED=true.",
+    "WEBHOOK_URL_REJECTED": "URL không hợp lệ hoặc trỏ tới địa chỉ mạng nội bộ.",
+    "WEBHOOK_DUPLICATE": "URL này đã được đăng ký.",
 }
 
 # Mo ta cho tung endpoint. Khoa la (method, duong dan).
@@ -214,6 +220,33 @@ ENDPOINTS: dict[tuple[str, str], dict] = {
             "Mỗi khẳng định có `status`: `verified`, `unverified`, "
             "`conflicting` (nhiều nguồn nói khác nhau) hoặc `not_found`.",
     },
+    ("post", "/api/webhooks"): {
+        "summary": "Đăng ký một URL nhận thông báo",
+        "description":
+            "**Mặc định tắt** (`WEBHOOK_ENABLED=false`). Đây là tính năng duy "
+            "nhất gửi dữ liệu **ra ngoài** tới địa chỉ do người dùng nhập, mà "
+            "API hiện chưa có xác thực — bất kỳ ai gọi được API đều có thể "
+            "đăng ký một URL và nhận toàn bộ dữ liệu bản quét. Chỉ bật khi đã "
+            "thêm xác thực hoặc chắc chắn chỉ chạy trong mạng nội bộ.\n\n"
+            "URL được kiểm tra bằng cùng bộ chặn của bước tra cứu doanh "
+            "nghiệp: chỉ http/https tới địa chỉ công khai, không nhận thông "
+            "tin đăng nhập trong URL, không nhận cổng ngoài 80/443. Địa chỉ "
+            "được **kiểm tra lại ở từng lần gửi**, vì tên miền có thể đổi sang "
+            "địa chỉ nội bộ sau khi đăng ký.\n\n"
+            "Khóa bí mật chỉ trả về **một lần duy nhất** ở phản hồi này. Bên "
+            "nhận dùng nó để xác minh chữ ký `X-Signature-256` "
+            "(HMAC-SHA256 của thân yêu cầu).",
+    },
+    ("get", "/api/webhooks"): {
+        "summary": "Danh sách URL đã đăng ký",
+        "description": "Không kèm khóa bí mật.",
+    },
+    ("patch", "/api/webhooks/{target_id}"): {
+        "summary": "Bật hoặc tắt một webhook",
+    },
+    ("delete", "/api/webhooks/{target_id}"): {
+        "summary": "Xoá một webhook",
+    },
     ("post", "/api/scans/{scan_id}/enrich"): {
         "summary": "Tra cứu doanh nghiệp từ một bản quét",
         "description":
@@ -228,6 +261,7 @@ TAG_BY_PREFIX = [
     ("/api/organizations", "enrichment"),
     ("/api/enrichments", "enrichment"),
     ("/api/export", "contacts"),
+    ("/api/webhooks", "webhooks"),
 ]
 
 

@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     batch_max_images: int = 10
     # So ban quet chay dong thoi trong mot lo. Dat 1 de chay tuan tu.
     batch_workers: int = 3
+    # Webhook gui du lieu RA NGOAI toi URL do nguoi dung nhap. App chua
+    # co xac thuc, nen mac dinh TAT - chi bat khi da co xac thuc hoac
+    # chi chay trong mang noi bo.
+    webhook_enabled: bool = False
+    webhook_timeout_s: int = 8
+    webhook_max_attempts: int = 3
     cors_origins: str = "http://localhost:8501"
 
     # --- OCR ---

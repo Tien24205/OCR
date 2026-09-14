@@ -141,6 +141,7 @@ def run_legacy_scan(scan_id: str, config: Settings, session_factory) -> None:
             scan.status = "ocr_done"
             scan.completed_at = utcnow()
             db.commit()
+            notify_completed(scan_id, grounding, config, session_factory)
         except Exception as exc:
             db.rollback()
             scan = db.get(Scan, scan_id)
@@ -198,3 +199,29 @@ def run_batch(scan_ids: list[str], config: Settings, session_factory) -> None:
                    for sid in scan_ids]
         for future in futures:
             future.result()      # nem lai loi thay vi nuot im lang
+
+
+def notify_completed(scan_id: str, grounding: dict, config: Settings,
+                     session_factory) -> None:
+    """Bao webhook rang ban quet da xong.
+
+    Ban quet DA hoan tat truoc khi ham nay chay. Loi gui webhook khong duoc
+    lam hong no, nen moi ngoai le deu bi nuot lai va chi ghi log.
+    """
+    if not getattr(config, "webhook_enabled", False):
+        return
+    try:
+        from app.webhook import dispatch_scan_completed
+
+        draft = grounding.get("draft") or {}
+        dispatch_scan_completed(
+            scan_id,
+            {
+                "card_language": draft.get("card_language", ""),
+                "fields": draft.get("fields", {}),
+                "confidence": (grounding.get("confidence") or {}).get("overall_score"),
+            },
+            config, session_factory,
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("Gui webhook that bai cho %s", scan_id)

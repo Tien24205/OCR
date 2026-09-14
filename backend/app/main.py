@@ -55,6 +55,10 @@ from app.contact_routes import router as contact_router
 
 app.include_router(contact_router)
 
+from app.webhook import router as webhook_router  # noqa: E402
+
+app.include_router(webhook_router)
+
 
 @app.exception_handler(ApiError)
 async def api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
