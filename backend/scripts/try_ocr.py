@@ -236,7 +236,22 @@ def build_extractor(settings, force_heuristic: bool):
 
 
 def save_fixture(path: Path, digest: str, ocr_result, extraction, grounded,
-                 extract_ms: int) -> Path:
+                 extract_ms: int) -> Path | None:
+    """Ghi ket qua lam du lieu gia lap cho bo kiem thu.
+
+    LOI DA SUA: truoc day ham nay ghi de vo dieu kien. Chay lai script voi
+    `OCR_PROVIDER=mock` se doc fixture roi ghi no lai voi nhan provider
+    "mock:...", tuc lam hong chinh ban ghi OCR that vua ton tien tao ra -
+    va khong bao gi ca.
+
+    Nay: ket qua tu mock khong bao gio duoc phep ghi de.
+    """
+    if str(ocr_result.provider).startswith("mock"):
+        print("")
+        print("  Bo qua ghi fixture: dang chay o che do mock, ghi lai se lam")
+        print("  hong ban ghi OCR that. Dat OCR_PROVIDER=google de sinh moi.")
+        return None
+
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
     fixture = {
         "source_file": path.name,
@@ -288,7 +303,24 @@ def process(path: Path, ocr, extractor, save: bool) -> dict | None:
     print(ocr_result.raw_text or "(rong)")
 
     if extractor is None:
-        return None
+        # LOI DA SUA: truoc day return None o day, gay HAI hau qua:
+        #   - Ket qua OCR khong duoc luu, nen `--no-extract` vo dung: chay xong
+        #     roi khong con gi de dung lai.
+        #   - Nguoi goi coi None la that bai va tra ma thoat 1, du OCR da chay
+        #     thanh cong.
+        if save:
+            out = save_fixture(path, digest, ocr_result, None, None, 0)
+            if out is not None:
+                print("")
+                print("  Da luu fixture: "
+                      + str(out.relative_to(BACKEND_DIR.parent)))
+        return {
+            "name": path.name,
+            "ms_ocr": ocr_result.ms,
+            "ms_extract": 0,
+            "counts": {"exact": 0, "fuzzy": 0, "unverified": 0},
+            "chars": len(ocr_result.raw_text),
+        }
 
     started = time.perf_counter()
     try:
@@ -321,8 +353,9 @@ def process(path: Path, ocr, extractor, save: bool) -> dict | None:
     if save:
         out = save_fixture(path, digest, ocr_result, extraction, grounded,
                            extract_ms)
-        print("")
-        print("  Da luu fixture: " + str(out.relative_to(BACKEND_DIR.parent)))
+        if out is not None:
+            print("")
+            print("  Da luu fixture: " + str(out.relative_to(BACKEND_DIR.parent)))
 
     return {
         "name": path.name,
