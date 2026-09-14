@@ -11,7 +11,12 @@ def build_ocr(config: Settings):
     if config.ocr_provider == "google":
         from app.services.ocr.google_vision import GoogleVisionProvider
         return GoogleVisionProvider(config.language_hint_list, config.ocr_timeout_s, config.credentials_path)
-    raise OcrError("OCR_NOT_CONFIGURED", "OCR_PROVIDER phải là google hoặc mock.")
+    if config.ocr_provider == "tesseract":
+        from app.services.ocr.tesseract import TesseractProvider
+        return TesseractProvider(config.language_hint_list, config.ocr_timeout_s,
+                                 config.tesseract_cmd)
+    raise OcrError("OCR_NOT_CONFIGURED",
+                   "OCR_PROVIDER phải là google, tesseract hoặc mock.")
 
 
 def build_extractor(config: Settings):

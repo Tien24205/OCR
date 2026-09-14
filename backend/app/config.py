@@ -39,8 +39,10 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:8501"
 
     # --- OCR ---
-    ocr_provider: str = "mock"          # google | mock
+    ocr_provider: str = "mock"          # google | tesseract | mock
     google_application_credentials: str | None = None
+    # Chi can khi Tesseract khong nam trong PATH (hay gap tren Windows).
+    tesseract_cmd: str | None = None
     ocr_timeout_s: int = 20
     ocr_language_hints: str = "ja,en,ko,zh"
 

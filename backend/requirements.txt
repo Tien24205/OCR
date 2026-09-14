@@ -12,6 +12,9 @@ SQLAlchemy>=2.0
 
 # --- Xu ly anh ---
 pillow>=11.0                  # validate anh that + xoay theo EXIF
+# OCR cuc bo - mien phi, khong can mang. Goi nay chi la lop goi mong;
+# ban than Tesseract la phan mem he thong, phai cai rieng (xem README).
+pytesseract>=0.3.13
 
 # --- Goi dich vu ngoai ---
 httpx>=0.27                   # tai trang web o buoc tra cuu (Ngay 6)
