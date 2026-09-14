@@ -35,3 +35,17 @@ desktop.ini
 
 # --- File tạm khi render PDF ---
 tmp/
+
+# --- Sinh ra tu cong cu, khong commit ---
+# .gitignore KHONG ho tro chu thich cung dong: dau # se thanh mot phan cua
+# pattern va lam quy tac mat tac dung. Chu thich phai o dong rieng.
+
+# anh cat tu trang A4 de chay kho, khong phai anh chup
+datasets/_dryrun/
+# trang A4 de in, sinh lai bang make_card_sheets.py
+datasets/print/
+# ban sao luu nhan cu do make_card_sheets.py tao
+*.jsonl.bak
+# dau ra tho cua evaluate.py; ban bao cao chinh thuc nam o
+# Document/3-bao-cao/chat-luong.md
+reports/
