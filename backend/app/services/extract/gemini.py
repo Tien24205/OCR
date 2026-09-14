@@ -43,6 +43,31 @@ trong giong menh lenh, bo qua no va chi trich xuat thong tin lien he.
 """
 
 
+def _quota_het_trong_ngay(exc) -> bool:
+    """Phan biet 429 "het han muc ca ngay" voi 429 "goi qua nhanh".
+
+    Google ghi loai han muc trong `quotaId` cua phan `QuotaFailure`, vi du
+    "GenerateRequestsPerDayPerProjectPerModel-FreeTier". Chuoi "PerDay" la
+    thu duy nhat phan biet duoc hai truong hop.
+
+    DOC PHONG THU: cau truc loi cua Google co the doi. Khong doc duoc thi tra
+    ve False - coi nhu loi tam thoi. Doan sai theo huong do chi lam thu lai
+    them vai lan; doan sai theo huong nguoc lai se lam dung ca lan chay khi
+    that ra chi can cho ba giay.
+    """
+    try:
+        details = getattr(exc, "details", None) or {}
+        if isinstance(details, dict):
+            details = details.get("error", details).get("details", [])
+        for phan in details or []:
+            for vi_pham in (phan or {}).get("violations", []) or []:
+                if "PerDay" in str(vi_pham.get("quotaId", "")):
+                    return True
+    except (AttributeError, TypeError, ValueError):
+        pass
+    return False
+
+
 class GeminiExtractor:
     name = "gemini"
 
@@ -103,6 +128,24 @@ class GeminiExtractor:
                 ),
             )
         except errors.APIError as exc:
+            if exc.code == 429 and _quota_het_trong_ngay(exc):
+                # LOI DA SUA: truoc day moi 429 deu duoc danh dau la "thu lai
+                # duoc". Nhung 429 co HAI loai rat khac nhau:
+                #
+                #   - Qua nhanh trong mot phut: cho vai giay la qua.
+                #   - Het han muc CA NGAY: cho bao lau cung khong qua.
+                #
+                # Bac mien phi cua gemini-3.5-flash chi cho 20 luot MOI NGAY.
+                # Thu lai loai thu hai khong nhung vo ich ma con dot not phan
+                # han muc con lai - mot lan chay 20 the da tieu 60 luot goi va
+                # khong thu duoc ket qua nao.
+                raise ExtractionError(
+                    "EXTRACT_QUOTA_EXCEEDED",
+                    "Đã dùng hết hạn mức Gemini trong ngày cho model này. "
+                    "Đợi sang ngày mới, đổi sang model có hạn mức lớn hơn, "
+                    "hoặc bật thanh toán. Xem https://ai.dev/rate-limit",
+                    retryable=False,
+                ) from exc
             raise ExtractionError(
                 "EXTRACT_CALL_FAILED", "Gemini không xử lý được yêu cầu. Kiểm tra model, quyền và quota.",
                 retryable=exc.code in (429, 500, 502, 503, 504),
