@@ -2,7 +2,7 @@
 
 Ke hoach liet ke 13 dong. Bo test nay tu dong hoa nhung dong KIEM CHUNG DUOC
 bang may; nhung dong con lai (quyen camera, DevTools, HTTPS tren dien thoai)
-can nguoi lam tay va nam o `Document/3-bao-cao/ngay-8-kiem-thu.md`.
+can nguoi lam tay va nam o `Document/3-bao-cao/ngay-8.md`.
 
 Doi tuong cua Ngay 8 khac voi cac ngay truoc: khong phai kiem tra tung bo phan
 ma kiem tra TOAN LUONG duoi dieu kien xau, va kiem tra nhung thu chua ai test.

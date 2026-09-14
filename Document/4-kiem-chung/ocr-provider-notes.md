@@ -4,7 +4,13 @@
 
 > **Cập nhật Ngày 4, 11/09/2026:** Đã sửa đường dẫn credentials tương đối và truyền trực tiếp cho Vision SDK, dùng chung factory giữa app và spike; đã nối pipeline, timeout, retry và lưu bằng chứng vào DB. Xem [báo cáo Ngày 4](../3-bao-cao/ngay-4.md). Chưa có lời gọi thật. Các lỗi `--no-extract` và ghi đè fixture của script nêu trong đính chính bên dưới vẫn còn; việc lưu DB không thay thế bốn fixture OCR thật của Ngày 2.
 
-> **Đính chính 11/09/2026:** Xem [rà soát Ngày 1–2](ra-soat-ngay-1-2.md). Trước khi chạy thật cần sửa đường truyền credentials và cách lưu kết quả; mock replay hiện có thể ghi đè fixture. `--no-extract` hiện không lưu OCR và trả exit 1 dù OCR thành công. Các mục B/C/D/F vẫn chờ bằng chứng thực tế.
+> **Cập nhật 14/09/2026 — ba lỗi nêu bên dưới đã sửa xong:**
+> `--no-extract` nay lưu kết quả OCR và trả mã thoát 0 khi OCR thành công;
+> chạy ở chế độ mock không còn ghi đè được fixture (kết quả mock bị từ chối
+> ghi, kèm thông báo giải thích); đường truyền credentials hỗ trợ đầy đủ cả
+> file service account lẫn ADC. Mục B/C/D/F vẫn chờ bằng chứng thực tế.
+
+> **Đính chính 11/09/2026:** Xem [rà soát Ngày 1–2](ra-soat-ngay-1-2.md). Trước khi chạy thật cần sửa đường truyền credentials và cách lưu kết quả; mock replay hiện có thể ghi đè fixture. `--no-extract` hiện không lưu OCR và trả exit 1 dù OCR thành công.
 
 Mục 6 của kế hoạch Ngày 2 yêu cầu ghi lại nhà cung cấp, phiên bản, cách cấu hình, giới hạn và chi phí cần theo dõi. File này là nơi ghi.
 

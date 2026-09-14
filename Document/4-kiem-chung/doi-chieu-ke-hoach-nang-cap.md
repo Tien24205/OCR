@@ -45,6 +45,17 @@ Lần kiểm tra này chỉ đối chiếu và ghi báo cáo, không hiện th�
 
 **Cần làm:** quy định rõ khi nào cảnh báo và tiếp tục, khi nào yêu cầu chụp lại, khi nào retry; điều khiển luồng thật theo quyết định đó. Không chỉ đổi tên class thành Agent hoặc thêm log.
 
+> **Cập nhật 14/09/2026 — trạng thái sáu mục IP:**
+>
+> | Mục | Trạng thái |
+> | --- | --- |
+> | IP-01 điều phối không rẽ nhánh | **Đã sửa** — `agent_runner.py` có nhánh rẽ thật |
+> | IP-02 retry lặp cùng đầu vào | **Đã sửa** — thử lại với ảnh tăng tương phản và prompt khác |
+> | IP-03 confidence mất trước khi tới UI | **Đã sửa** — `drafts.with_confidence()` gắn điểm theo giá trị |
+> | IP-04 confidence thiếu tín hiệu | **Đã sửa** — đủ 4 tín hiệu |
+> | IP-05 batch chạy tuần tự, thiếu UI | **Đã sửa** — `run_batch` song song có giới hạn; giao diện có chế độ "Tải hàng loạt"; có trang Tổng quan |
+> | IP-06 test chưa phủ tiêu chí | **Đã sửa** — 429 test |
+
 ### IP-02 — Smart retry hiện lặp cùng đầu vào (ưu tiên cao)
 
 **Kế hoạch:** retry OCR với chỉnh contrast/rotation; retry extraction bằng prompt khác; ghi lý do từng lần, tối đa hai retry tự động.
