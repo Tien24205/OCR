@@ -37,6 +37,13 @@ PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     ("Google API key",
      re.compile(r"AIza[0-9A-Za-z_\-]{35}"),
      "Khoa API cua Google (Gemini, Maps...) - thu hoi ngay tren Google Cloud"),
+    # LOI DA SUA: Google AI Studio cap khoa Gemini theo dang moi "AQ.Ab8..."
+    # chu khong con chi "AIzaSy..." nua. Mau tren khong bat duoc dang do, nen
+    # mot khoa that dan vao tai lieu hay JSON se lot qua ma khong ai biet.
+    # Phat hien khi kiem tra chinh khoa that cua du an nay.
+    ("Google API key (dang AQ.)",
+     re.compile(r"(?<![A-Za-z0-9_])AQ\.[A-Za-z0-9_\-]{40,}"),
+     "Khoa API Gemini dang moi cua Google AI Studio - thu hoi ngay"),
     ("Khoa rieng PEM",
      re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
      "Khoa rieng - thu hoi va tao lai"),

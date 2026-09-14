@@ -32,6 +32,24 @@ def test_bat_duoc_khoa_google_that(tmp_path):
     assert "Google API key" in found(tmp_path, "config.py", f'KEY = "{key}"')
 
 
+def test_bat_duoc_khoa_google_dang_moi(tmp_path):
+    """Google AI Studio da doi sang dang "AQ.Ab8..." dai hon, khong con "AIza".
+
+    LOI DA SUA: mau cu chi bat "AIza" nen mot khoa Gemini that cap nam 2026
+    dan vao tai lieu se lot qua bo quet ma khong ai biet. Phat hien khi doi
+    chieu voi khoa that dang dung cua du an.
+    """
+    key = "AQ" + "." + "Ab8RN6" + "J" * 42
+    names = found(tmp_path, "ghi-chu.md", f"khoa dang dung: {key}")
+    assert "Google API key (dang AQ.)" in names
+
+
+def test_khong_bao_dong_gia_voi_chuoi_aq_ngan(tmp_path):
+    """Chu "AQ." binh thuong trong van ban khong duoc bi coi la khoa."""
+    text = "Phan AQ. 3 cua tai lieu noi ve chat luong anh dau vao."
+    assert "Google API key (dang AQ.)" not in found(tmp_path, "ghi-chu.md", text)
+
+
 def test_bat_duoc_khoa_rieng_pem(tmp_path):
     pem = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg\n-----END"  # secret-scan: allow
     assert "Khoa rieng PEM" in found(tmp_path, "key.pem", pem + " PRIVATE KEY-----")
