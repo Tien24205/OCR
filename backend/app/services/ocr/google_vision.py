@@ -55,17 +55,29 @@ def _paragraph_text(paragraph) -> str:
 class GoogleVisionProvider:
     name = "google_vision"
 
-    def __init__(self, language_hints: list[str], timeout_s: int = 20) -> None:
+    def __init__(self, language_hints: list[str], timeout_s: int = 20, credentials_path=None) -> None:
         self._hints = language_hints
         self._timeout = timeout_s
         try:
-            self._client = vision.ImageAnnotatorClient()
+            self._client = (
+                vision.ImageAnnotatorClient.from_service_account_file(str(credentials_path))
+                if credentials_path else vision.ImageAnnotatorClient()
+            )
         except Exception as exc:  # thieu credentials, sai duong dan JSON...
+            # Co HAI cach xac thuc va thong bao phai neu ca hai. Nguoi dung
+            # ADC ma chi duoc bao "kiem tra GOOGLE_APPLICATION_CREDENTIALS" se
+            # di sai huong: ho khong can file nao ca.
             raise OcrError(
                 "OCR_NOT_CONFIGURED",
-                "Khong khoi tao duoc Vision client. Kiem tra "
-                "GOOGLE_APPLICATION_CREDENTIALS.",
+                "Khong khoi tao duoc Vision client. Chon MOT trong hai cach:\n"
+                "  (a) Dat GOOGLE_APPLICATION_CREDENTIALS tro toi file JSON "
+                "service account (duong dan tuong doi tinh tu backend/), hoac\n"
+                "  (b) De trong bien do va chay "
+                "`gcloud auth application-default login`.",
             ) from exc
+
+    def close(self) -> None:
+        self._client.transport.close()
 
     def recognize(self, image: bytes, mime: str) -> OcrResult:
         request = vision.AnnotateImageRequest(
@@ -81,17 +93,17 @@ class GoogleVisionProvider:
         started = time.perf_counter()
         try:
             response = self._client.annotate_image(
-                request=request, timeout=self._timeout
+                request=request, timeout=self._timeout, retry=None
             )
         except _RETRYABLE as exc:
-            raise OcrError("OCR_UNAVAILABLE", str(exc), retryable=True) from exc
+            raise OcrError("OCR_UNAVAILABLE", "Vision tạm thời không phản hồi. Thử lại sau.", retryable=True) from exc
         except gexc.GoogleAPICallError as exc:
-            raise OcrError("OCR_CALL_FAILED", str(exc)) from exc
+            raise OcrError("OCR_CALL_FAILED", "Vision từ chối lời gọi. Kiểm tra quyền và cấu hình API.") from exc
         elapsed_ms = int((time.perf_counter() - started) * 1000)
 
         # Vision tra loi trong THAN phan hoi chu khong nem exception.
         if response.error.message:
-            raise OcrError("OCR_REJECTED", response.error.message)
+            raise OcrError("OCR_REJECTED", "Vision không xử lý được ảnh này.")
 
         annotation = response.full_text_annotation
         blocks: list[OcrBlock] = []

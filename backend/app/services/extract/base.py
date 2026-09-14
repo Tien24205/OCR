@@ -54,7 +54,9 @@ class CardExtraction(BaseModel):
     phones: list[PhoneValue] = Field(default_factory=list)
     websites: list[ExtractedValue] = Field(default_factory=list)
     addresses: list[ExtractedValue] = Field(default_factory=list)
-    card_language: str = Field(default="", description="en, ja, mixed hoac other.")
+    card_language: str = Field(
+        default="",
+        description="en, ja, ko, zh, mixed, han (chu Han chua ro) hoac other.")
 
 
 class ExtractionError(Exception):

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 
+from app.services import languages
 from app.services.extract.base import CardExtraction, ExtractedValue, PhoneValue
 
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
@@ -21,20 +22,38 @@ _URL = re.compile(
 )
 # So dien thoai: it nhat 9 chu so, cho phep +, dau cach, gach, ngoac.
 _PHONE = re.compile(r"(?:\+?\d[\d\-\s()]{7,}\d)")
-_EXTENSION = re.compile(r"(?:内線|内|ext\.?|EXT\.?)\s*[:：]?\s*(\d{1,6})", re.IGNORECASE)
+_EXTENSION = re.compile(
+    r"(?:内線|内|내선|分机|分機|ext\.?|EXT\.?)"
+    r"\s*[:：]?\s*(\d{1,6})", re.IGNORECASE)
 
 _COMPANY_MARKERS = (
-    "株式会社", "有限会社", "合同会社", "一般社団法人",
+    # Nhat
+    "株式会社", "有限会社", "合同会社", "一般社団法人", "公益財団法人",
+    # Han
+    "주식회사", "(주)", "유한회사", "재단법인",
+    # Trung
+    "有限公司", "股份有限公司", "集团", "集團", "企業", "企业",
+    # Anh
     "Inc.", "Inc", "Ltd.", "Ltd", "LLC", "Corp.", "Corp",
     "Corporation", "Company", "Co.", "K.K.", "GmbH", "Pte",
 )
 _TITLE_MARKERS = (
+    # Nhat
     "代表取締役", "取締役", "部長", "課長", "係長", "主任", "社長", "専務",
+    # Han
+    "대표이사", "부장", "과장", "차장", "팀장", "사장", "이사",
+    # Trung
+    "总经理", "總經理", "经理", "經理", "主管", "总监", "總監", "董事长",
+    # Anh
     "CEO", "CTO", "CFO", "COO", "President", "Director", "Manager",
     "Engineer", "Head of", "Lead", "Chief", "Officer", "Senior",
 )
-_DEPT_MARKERS = ("事業部", "営業部", "開発部", "技術部", "部", "課", "室",
-                 "Division", "Department", "Sales", "Marketing", "Engineering")
+_DEPT_MARKERS = (
+    "事業部", "営業部", "開発部", "技術部", "部", "課", "室",           # Nhat
+    "영업부", "개발부", "기술부", "본부",                               # Han
+    "事业部", "营销部", "研发部", "技术部",                             # Trung
+    "Division", "Department", "Sales", "Marketing", "Engineering",    # Anh
+)
 
 # Ten mien cua dich vu email cong cong: KHONG duoc coi la website doanh nghiep.
 _FREE_MAIL = frozenset({
@@ -117,14 +136,6 @@ class HeuristicExtractor:
 
     @staticmethod
     def _guess_language(text: str) -> str:
-        has_jp = any(
-            "\u3040" <= ch <= "\u30ff" or "\u4e00" <= ch <= "\u9fff" for ch in text
-        )
-        has_latin = any("a" <= ch.lower() <= "z" for ch in text)
-        if has_jp and has_latin:
-            return "mixed"
-        if has_jp:
-            return "ja"
-        if has_latin:
-            return "en"
-        return "other"
+        # Quy tac nam o `languages.py`. Ban cu chi phan biet duoc Nhat voi Anh
+        # va goi moi chu Han la "ja", nen the tieng Trung bi gan nhan sai.
+        return languages.guess_language(text)

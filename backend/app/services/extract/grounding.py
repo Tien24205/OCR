@@ -31,17 +31,15 @@ Verdict = Literal["exact", "fuzzy", "unverified"]
 # Dung de cat van ban OCR thanh TOKEN tron ven. Xem `_tokens_of` ben duoi.
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 _URL_RE = re.compile(
-    r"(?:https?://)?(?:www\.)?[\w-]+(?:\.[\w-]+)+(?:/[^\s]*)?", re.IGNORECASE
+    r"(?:https?://)?(?:www\.)?[\w-]+(?:\.[\w-]+)+(?:[/?#][^\s]*)?", re.IGNORECASE
 )
-_PHONE_RE = re.compile(r"\+?\d[\d\-\s()./]{7,}\d")
+_PHONE_RE = re.compile(r"\+?\d[\d\- \t().]{7,}\d")
 
 # Nhung cap ky tu ma OCR hay doc nham lan nhau. Quy ve cung mot dai dien de
 # "0" va "O" khong bi tinh la hai ky tu khac nhau khi doi chieu.
 _CONFUSABLES = str.maketrans({
     "0": "o", "1": "l", "5": "s", "8": "b", "2": "z",
     "|": "l", "!": "l", "i": "l",
-    "-": "", "\u2010": "", "\u2011": "", "\u2012": "", "\u2013": "",
-    "\u2014": "", "\uff0d": "", "_": "", ".": "", ",": "", "(": "", ")": "",
 })
 
 # Nguong khop cho truong tu do (ten, cong ty, dia chi): cho phep sai khoang
@@ -114,8 +112,12 @@ def _digits(text: str) -> str:
 
 
 def _canon_url(text: str) -> str:
-    host_and_path = re.sub(r"^https?://", "", text.strip(), flags=re.IGNORECASE)
-    return norm_for_match(host_and_path.removeprefix("www.").rstrip("/"))
+    text = unicodedata.normalize("NFKC", text).strip()
+    host_and_path = re.sub(r"^https?://", "", text, flags=re.IGNORECASE)
+    parts = re.split(r"(?=[/?#])", host_and_path, maxsplit=1)
+    host = parts[0].casefold().removeprefix("www.")
+    suffix = parts[1] if len(parts) > 1 else ""
+    return host + ("" if suffix == "/" else suffix)
 
 
 def _tokens_of(kind: str, raw_text: str) -> set[str]:
@@ -174,7 +176,7 @@ def _ground_strict(value: str, raw_text: str, kind: str) -> Grounding:
     # Chi tha cho viec OCR doc nham ky tu giong nhau (0/O, 1/l). KHONG dung
     # khop mo o day: mot ky tu sai trong email la mot email khac han.
     collapsed = _collapse(needle)
-    if any(collapsed == _collapse(token) for token in tokens):
+    if kind == "email" and any(collapsed == _collapse(token) for token in tokens):
         return Grounding(value, kind, "fuzzy", 0.95)
 
     return Grounding(value, kind, "unverified", 0.0)
@@ -216,11 +218,35 @@ _FIELD_KINDS = {
 }
 
 
+def _phone_metadata(item, raw_text: str) -> dict:
+    """Keep a label/extension only when attached to this exact phone token."""
+    labels = {"tel": r"\b(?:tel(?:ephone)?|phone)\b|電話",
+              "fax": r"\bfax\b|ファックス",
+              "mobile": r"\b(?:mobile|cell)\b|携帯"}
+    label, extension = "", ""
+    for line in unicodedata.normalize("NFKC", raw_text).splitlines():
+        matches = list(_PHONE_RE.finditer(line))
+        for index, match in enumerate(matches):
+            if _digits(match.group()) != _digits(item.value):
+                continue
+            before = line[matches[index - 1].end() if index else 0:match.start()]
+            after = line[match.end():matches[index + 1].start() if index + 1 < len(matches) else len(line)]
+            # The nearest explicit label before the number wins.
+            candidates = [(m.start(), kind) for kind, pattern in labels.items()
+                          for m in re.finditer(pattern, before, re.IGNORECASE)]
+            if candidates and max(candidates)[1] == item.label.lower():
+                label = item.label.lower()
+            ext = re.match(r"\s*\(?\s*(?:ext\.?|内線|内)\s*[:：]?\s*(\d+)\b", after, re.IGNORECASE)
+            if ext and ext.group(1) == unicodedata.normalize("NFKC", item.extension).strip():
+                extension = item.extension
+    return {"label": label, "extension": extension}
+
+
 def ground_extraction(extraction, raw_text: str) -> dict:
     """Doi chieu toan bo ket qua trich xuat.
 
     Tra ve ban da loc + bao cao. Bao cao duoc luu vao `scans.grounding_json`;
-    Ngay 9 no chinh la so lieu cot "Tu sinh" trong bang danh gia.
+    Unverified means absent from OCR, not proof of fabrication: OCR can miss text.
     """
     kept: dict[str, list] = {}
     report: dict[str, list[dict]] = {}
@@ -242,15 +268,16 @@ def ground_extraction(extraction, raw_text: str) -> dict:
                 "score": round(verdict.score, 3),
             })
             if verdict.accepted:
+                source = item.source_text if item.source_text and item.source_text in raw_text else ""
+                metadata = _phone_metadata(item, raw_text) if kind == "phone" else {}
+                metadata_changed = kind == "phone" and (
+                    metadata["label"] != item.label or metadata["extension"] != item.extension
+                )
                 kept[field].append({
                     "value": item.value,
-                    "source_text": item.source_text,
-                    "needs_review": verdict.needs_review,
-                    **(
-                        {"label": item.label, "extension": item.extension}
-                        if kind == "phone"
-                        else {}
-                    ),
+                    "source_text": source,
+                    "needs_review": verdict.needs_review or metadata_changed or bool(item.source_text and not source),
+                    **metadata,
                 })
 
     return {

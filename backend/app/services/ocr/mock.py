@@ -2,8 +2,8 @@
 
 Vi sao can: bo kiem thu KHONG duoc goi mang that. Vua ton tien, vua khien
 test that bai vi ly do khong lien quan den ma nguon (mat mang, het quota).
-Fixture duoc sinh boi `scripts/try_ocr.py` tu lan goi THAT o Ngay 2, nen du
-lieu trong test van la du lieu thuc te chu khong phai bia ra.
+Fixture can be recorded from a real call or synthetic. Preserve its origin;
+replaying a fixture is never a new OCR call or evidence of recognition quality.
 
 Fixture duoc dat ten theo SHA-256 cua anh, nen cung mot anh luon cho cung
 mot ket qua.
@@ -39,7 +39,7 @@ class MockOcrProvider:
         data = json.loads(path.read_text(encoding="utf-8"))
         return OcrResult(
             raw_text=data["raw_text"],
-            provider=f"mock:{data.get('provider', 'unknown')}",
+            provider="mock:" + data.get("provider", "unknown").removeprefix("mock:"),
             provider_version=data.get("provider_version", "fixture"),
             blocks=[
                 OcrBlock(
