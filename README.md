@@ -73,8 +73,9 @@ Toàn bộ nằm ở `backend/.env` (đã bị `.gitignore` chặn). Xem `backen
 
 | Biến | Ý nghĩa | Mặc định |
 | --- | --- | --- |
-| `OCR_PROVIDER` | `google` hoặc `mock` (phát lại bản ghi, chạy offline) | `mock` |
+| `OCR_PROVIDER` | `google`, `tesseract` (cục bộ, miễn phí) hoặc `mock` (phát lại bản ghi, offline) | `mock` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Đường dẫn JSON service account; tương đối thì tính từ `backend/` | — |
+| `TESSERACT_CMD` | Đường dẫn file chạy Tesseract — chỉ cần khi nó không nằm trong `PATH` | — |
 | `EXTRACTOR` | `gemini` hoặc `heuristic` (regex, không cần mạng) | `heuristic` |
 | `GEMINI_API_KEY` | Khóa từ Google AI Studio | — |
 | `GEMINI_MODEL` | Tên model — **đừng đoán**, xem lệnh bên dưới | — |
@@ -98,6 +99,39 @@ Giao diện chỉ đọc **một** biến: `API_BASE_URL` (mặc định `http:/
 
 ### Bật OCR thật
 
+Có hai đường. **Grounding hoạt động như nhau ở cả hai** — nó chỉ đòi hỏi OCR
+và Gemini là hai nguồn độc lập, chứ không đòi OCR phải là nhà cung cấp nào.
+
+| | `tesseract` | `google` |
+| --- | --- | --- |
+| Chi phí | Miễn phí, không giới hạn | Miễn phí trong 1 000 đơn vị/tháng |
+| Cần gắn thẻ | Không | **Có** — bắt buộc bật billing |
+| Cần mạng | Không | Có |
+| Chất lượng Kanji | Kém hơn rõ rệt | Tốt nhất |
+
+#### Đường A — Tesseract (miễn phí, chạy cục bộ)
+
+Tesseract là phần mềm hệ thống, `pip install` không đủ:
+
+- **Windows:** tải bản [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki).
+  Trong trình cài đặt, mở mục *Additional language data* và **tick Japanese,
+  Korean, Chinese** — quên bước này là lỗi hay gặp nhất, và ứng dụng sẽ báo
+  đích danh gói nào còn thiếu.
+- **macOS:** `brew install tesseract tesseract-lang`
+- **Linux:** `apt install tesseract-ocr tesseract-ocr-jpn tesseract-ocr-kor tesseract-ocr-chi-sim`
+
+Rồi đặt `OCR_PROVIDER=tesseract` trong `backend\.env`. Nếu lệnh `tesseract`
+không nằm trong `PATH`, trỏ thẳng tới nó bằng `TESSERACT_CMD`.
+
+#### Đường B — Google Vision
+
+Cần bật billing trên Google Cloud và bật Cloud Vision API, sau đó chọn **một**
+trong hai cách xác thực: trỏ `GOOGLE_APPLICATION_CREDENTIALS` tới file JSON
+service account, hoặc để trống biến đó và chạy `gcloud auth application-default
+login`.
+
+#### Xác nhận cấu hình
+
 ```powershell
 # 1. Xem tài khoản của bạn dùng được model Gemini nào
 .\.venv\Scripts\python.exe backend\scripts\try_ocr.py --list-models
@@ -106,7 +140,7 @@ Giao diện chỉ đọc **một** biến: `API_BASE_URL` (mặc định `http:/
 .\.venv\Scripts\python.exe backend\scripts\try_ocr.py --check
 ```
 
-`--check` trả lời bốn câu tách bạch: credentials đọc được không, Vision có trả về chữ Nhật không, model có tồn tại không, và model có chấp nhận schema trích xuất không.
+`--check` trả lời bốn câu tách bạch: OCR có chạy được không, nó có đọc ra chữ không, model Gemini có tồn tại không, và model có chấp nhận schema trích xuất không. Với `tesseract`, câu đầu kiểm cả việc đã cài gói ngôn ngữ chưa.
 
 `GET /api/health` báo trạng thái sẵn sàng của từng dịch vụ **mà không tiết lộ giá trị khóa**. Sidebar của ứng dụng hiển thị đúng thông tin này.
 
@@ -120,7 +154,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**402 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**449 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI
