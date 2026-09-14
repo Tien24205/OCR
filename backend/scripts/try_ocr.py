@@ -137,12 +137,37 @@ def preflight(settings) -> int:
     calls = 0
     image = tiny_card()
 
-    # --- 1 & 2. Google Vision ---
+    # --- 1 & 2. OCR ---
     print("")
-    print("[1/2] Google Cloud Vision")
-    if settings.ocr_provider != "google":
+    print("[1/2] OCR - " + settings.ocr_provider)
+    if settings.ocr_provider == "tesseract":
+        # Tesseract chay cuc bo nen khong co credentials de kiem, nhung co hai
+        # thu khac hay hong hon: chua cai phan mem, va cai roi nhung quen tick
+        # goi tieng Nhat. Ca hai deu lo ra ngay o ham dung.
+        try:
+            from app.services.providers import build_ocr
+
+            provider = build_ocr(settings)
+            calls += 1
+            result = provider.recognize(image, "image/png")
+            print("      OK   - Tesseract " + provider._version
+                  + ", " + str(result.ms) + " ms")
+            print("      OK   - goi ngon ngu: "
+                  + result.payload.get("requested_languages", "?"))
+            text = (result.raw_text or "").strip().replace("\n", " / ")
+            print("      Doc duoc tu anh thu: " + (text or "(trong)"))
+            print("      LUU Y - Tesseract doc Kanji kem hon Vision. So do")
+            print("              chat luong se xau hon, nhung van la so that.")
+        except OcrError as exc:
+            print("      LOI  - [" + exc.code + "]")
+            for dong in exc.message.splitlines():
+                print("             " + dong)
+            ready = False
+    elif settings.ocr_provider != "google":
         print("      BO QUA - OCR_PROVIDER dang la '" + settings.ocr_provider
-              + "'. Dat OCR_PROVIDER=google trong backend/.env de kiem tra.")
+              + "'. Dat OCR_PROVIDER=google (can billing) hoac"
+              " OCR_PROVIDER=tesseract")
+        print("               (mien phi, chay cuc bo) trong backend/.env.")
     else:
         creds = settings.credentials_path
         if creds and not Path(creds).is_file():
