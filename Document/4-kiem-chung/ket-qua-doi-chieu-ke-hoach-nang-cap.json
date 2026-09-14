@@ -1,0 +1,66 @@
+{
+  "checked_at": "2026-09-11T13:32:58.167126+00:00",
+  "readiness": {
+    "ocr_provider": "mock",
+    "ocr_credentials_present": false,
+    "extractor": "heuristic",
+    "gemini_key_present": false,
+    "gemini_model_set": false,
+    "enrich_enabled": true
+  },
+  "schema_tables": 10,
+  "dataset_images": 0,
+  "fixture_providers": [
+    "mock:synthetic",
+    "mock:synthetic"
+  ],
+  "orchestrator_has_run": false,
+  "unverified_name_score": 0.2,
+  "score_unchanged_by_language": true,
+  "quality_and_missing_fields_probe": {
+    "status": "ocr_done",
+    "calls": {
+      "ocr": 1,
+      "extract": 1
+    },
+    "quality_action": "escalate",
+    "missing_critical": [
+      "missing_name",
+      "missing_company"
+    ]
+  },
+  "confidence_delivery": {
+    "stored_draft_field_has_score": true,
+    "api_draft_field_has_score": false,
+    "api_has_overall_confidence": true
+  },
+  "ocr_retry_probe": {
+    "calls": 3,
+    "same_image_each_time": true
+  },
+  "batch_probe": {
+    "items": 2,
+    "scheduled_tasks": 2,
+    "executed_in_submission_order": true,
+    "backgroundtasks_implementation": "async def __call__(self) -> None:\n        for task in self.tasks:\n            await task()"
+  },
+  "planned_files_exist": {
+    "frontend/app_pages/dashboard.py": false,
+    "backend/app/api_docs.py": false,
+    "backend/app/webhook.py": false,
+    "backend/scripts/evaluate.py": false,
+    "Document/Bao-cao-chat-luong.md": false,
+    "Document/AGENTIC_AI_ARCHITECTURE.md": false,
+    "Document/ROADMAP.md": false,
+    "backend/app/auth.py": false,
+    "backend/app/services/storage.py": false,
+    "frontend/app_pages/graph.py": false,
+    "docker-compose.yml": false
+  },
+  "test_suite": {
+    "passed": 201,
+    "warnings": 5,
+    "seconds": 42.56,
+    "command": ".venv/Scripts/python.exe -m pytest"
+  }
+}

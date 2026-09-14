@@ -1,0 +1,169 @@
+{
+  "head": "7ae5ef6",
+  "commit_count": 6,
+  "counts": {
+    "3ecfeec": {
+      "tracked_files_total": 29,
+      "python_files": 14,
+      "backend_frontend_files": 18,
+      "python_lines_including_blank": 1229
+    },
+    "HEAD": {
+      "tracked_files_total": 45,
+      "python_files": 27,
+      "backend_frontend_files": 33,
+      "python_lines_including_blank": 2654
+    }
+  },
+  "versions": {
+    "streamlit": "1.63.0",
+    "fastapi": "0.141.1",
+    "SQLAlchemy": "2.0.52",
+    "google-cloud-vision": "3.15.0",
+    "google-genai": "2.22.0"
+  },
+  "dataset_images": [],
+  "fixtures": [
+    {
+      "file": "079e9315aededbb07ffd7d8c48d2df83fa63d8376e287d5a383df195750bb42b.json",
+      "provider": "mock:synthetic"
+    },
+    {
+      "file": "f21e79022b4c9119e370c1cb9d7421fdeddc6abdf6cda9ad4ce581dce8c656b4.json",
+      "provider": "mock:synthetic"
+    }
+  ],
+  "config_presence_only": {
+    "env_file_exists": true,
+    "settings_credential_path_set": true,
+    "sdk_environment_credential_set": false,
+    "credential_file_at_backend": false,
+    "gemini_key_present": false,
+    "gemini_model_present": false
+  },
+  "ground_probes": [
+    {
+      "value": "taroyamada@example.co.jp",
+      "raw": "taro.yamada@example.co.jp",
+      "kind": "email",
+      "verdict": "fuzzy",
+      "accepted": true
+    },
+    {
+      "value": "03-1234-5678",
+      "raw": "03-1234-5678\n090-8765-4321",
+      "kind": "phone",
+      "verdict": "unverified",
+      "accepted": false
+    },
+    {
+      "value": "https://example.com/profile",
+      "raw": "https://example.com/Profile",
+      "kind": "url",
+      "verdict": "exact",
+      "accepted": true
+    },
+    {
+      "value": "https://example.com?a=1",
+      "raw": "https://example.com?a=1",
+      "kind": "url",
+      "verdict": "unverified",
+      "accepted": false
+    },
+    {
+      "value": "Example",
+      "raw": "Example Solutions Inc.",
+      "kind": "name",
+      "verdict": "exact",
+      "accepted": true
+    }
+  ],
+  "unchecked_phone_metadata": [
+    {
+      "value": "03-1234-5678",
+      "source_text": "invented",
+      "needs_review": false,
+      "label": "fax",
+      "extension": "999"
+    }
+  ],
+  "heuristic_sample": {
+    "full_names": [],
+    "company_names": [
+      {
+        "value": "株式会社サンプル",
+        "source_text": "株式会社サンプル"
+      }
+    ],
+    "job_titles": [
+      {
+        "value": "部長  山田 太郎",
+        "source_text": "部長  山田 太郎"
+      }
+    ],
+    "departments": [],
+    "emails": [],
+    "phones": [
+      {
+        "value": "03-1234-5678",
+        "source_text": "TEL: 03-1234-5678 (内線 102) FAX: 03-1234-5679",
+        "label": "fax",
+        "extension": "102"
+      },
+      {
+        "value": "03-1234-5679",
+        "source_text": "TEL: 03-1234-5678 (内線 102) FAX: 03-1234-5679",
+        "label": "fax",
+        "extension": "102"
+      }
+    ],
+    "websites": [],
+    "addresses": [],
+    "card_language": "mixed"
+  },
+  "credential_sdk_wiring": {
+    "client_call_kwargs": {},
+    "environment_populated": false
+  },
+  "no_extract_success_probe": {
+    "exit_code": 1,
+    "fixtures_written": 0
+  },
+  "fixture_overwrite_probe": {
+    "before": "google_vision",
+    "after": "mock:google_vision"
+  },
+  "readiness_relative_path_probe": {
+    "exists_when_anchored_backend": true,
+    "readiness": false
+  },
+  "streamlit_max_upload_mb_from_repo_root": 200,
+  "api_probe": {
+    "health_status": 200,
+    "scan_post": 404,
+    "contacts_get": 404,
+    "routes": [
+      "/openapi.json",
+      "/docs",
+      "/docs/oauth2-redirect",
+      "/redoc",
+      "/api/health"
+    ],
+    "tables": [
+      "addresses",
+      "contact_emails",
+      "contact_phones",
+      "contacts",
+      "enrichments",
+      "idempotency_keys",
+      "organizations",
+      "scans"
+    ]
+  },
+  "ignored_paths": [
+    "backend/.env",
+    "backend/secrets/gcp-sa.json",
+    "backend/data/app.db",
+    "datasets/dev/ja/001.jpg"
+  ]
+}

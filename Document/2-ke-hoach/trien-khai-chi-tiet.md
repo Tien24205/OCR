@@ -1,9 +1,11 @@
 # Bài 2: Kế hoạch triển khai chi tiết
 
+> **Lưu ý sau rà soát 11/09/2026:** Đây là kế hoạch, không phải danh sách chức năng đã hoạt động. Đối chiếu [báo cáo rà soát](../4-kiem-chung/ra-soat-ngay-1-2.md) trước khi triển khai tiếp. Code hiện dùng OCR đồng bộ, `full_names[]`/`company_names[]`; ví dụ schema và thuật toán grounding dưới đây là thiết kế cũ cần đồng bộ. `unverified` không phải số liệu “AI bịa” nếu chưa đối chiếu ảnh/nhãn chuẩn. Trạng thái repo trống và “việc hôm nay” là mốc lịch sử ban đầu.
+
 Ngày lập: 09/09/2026. Tài liệu này là **kế hoạch thi công**, bổ sung cho hai tài liệu đã có:
 
-- [`Bai-2-business-card-yeu-cau-chuan-hoa.md`](Bai-2-business-card-yeu-cau-chuan-hoa.md) — đặc tả yêu cầu và tiêu chí nghiệm thu (FR-01…FR-11).
-- [`Bai-2-noi-dung-va-ke-hoach-10-ngay.md`](Bai-2-noi-dung-va-ke-hoach-10-ngay.md) — lịch trình 10 ngày ở mức mục tiêu.
+- [`Bai-2-business-card-yeu-cau-chuan-hoa.md`](../1-de-bai/yeu-cau-chuan-hoa.md) — đặc tả yêu cầu và tiêu chí nghiệm thu (FR-01…FR-11).
+- [`Bai-2-noi-dung-va-ke-hoach-10-ngay.md`](ke-hoach-10-ngay.md) — lịch trình 10 ngày ở mức mục tiêu.
 
 Tài liệu này chốt các quyết định kỹ thuật còn để mở ở mục 10 của đặc tả, và mô tả cụ thể: kiến trúc, cấu trúc thư mục, schema cơ sở dữ liệu, hợp đồng API, thuật toán từng bước, bộ kiểm thử và checklist theo ngày.
 
@@ -515,54 +517,64 @@ Mỗi ngày có **Định nghĩa hoàn thành (DoD)** kiểm tra được. Khôn
 
 ### Ngày 3 — Đầu vào ảnh trọn vẹn
 
+**Cập nhật 11/09/2026:** Phần tiếp nhận ảnh, EXIF, lưu file/scan đã triển khai; 46 test pass. Kiểm tra camera vật lý còn chờ nên chưa đóng toàn bộ DoD. Xem [báo cáo Ngày 3](../3-bao-cao/ngay-3.md). Cấu hình Streamlit thực tế đã chuyển về `.streamlit/config.toml` ở gốc repo; POST scan hiện đặt trong `main.py`, phần xử lý ảnh ở `services/images.py`.
+
 - [ ] `app_pages/capture.py`: `st.segmented_control` chọn giữa `st.camera_input()` và `st.file_uploader()`; xem trước ảnh; nút gửi. **Đã làm ở Ngày 1** vì Streamlit cho sẵn cả hai widget — Ngày 3 chỉ còn phần backend.
-- [ ] `POST /api/scans`: đọc magic bytes bằng Pillow (`Image.open` + `verify()`), từ chối tệp không phải ảnh dù đuôi là `.jpg`; giới hạn 8 MB; lưu vào `data/images/<sha256>` và ghi dòng `scans`.
+- [x] `POST /api/scans`: đọc magic bytes bằng Pillow (`Image.open` + `verify()`), từ chối tệp không phải ảnh dù đuôi là `.jpg`; giới hạn 8 MB; lưu vào `data/images/<sha256>` và ghi dòng `scans`.
 - [ ] Kiểm tra ảnh do `st.camera_input()` trả về **không bị lật gương**. Widget hiển thị preview dạng gương như mọi ứng dụng camera, nhưng bytes trả về không lật — phải xác nhận bằng cách chụp một thẻ có chữ và đọc lại `raw_text`, đừng tin vào preview.
-- [ ] Đọc EXIF orientation và xoay ảnh về đúng chiều trước khi gửi OCR — ảnh chụp từ điện thoại rất hay bị xoay 90°, và đây là nguyên nhân OCR ra rác mà rất khó phát hiện.
+- [x] Đọc EXIF orientation và xoay ảnh về đúng chiều trước khi lưu làm đầu vào OCR — đã kiểm thử JPEG/PNG; gọi OCR thuộc Ngày 4.
 
 **DoD:** cả hai đường (chụp và tải) đều tạo được `scans` với ảnh đúng trong `data/images/`; chặn được tệp `.txt` đổi tên thành `.jpg`.
 
 ### Ngày 4 — Nối OCR vào ứng dụng
 
-- [ ] `services/ocr/google_vision.py` + `mock.py` theo `OcrProvider`.
-- [ ] `services/extract/gemini.py` + `heuristic.py`.
-- [ ] `services/extract/grounding.py` — **viết unit test trước phần này**, nó là chốt chặn chính.
-- [ ] `pipeline.py`: `BackgroundTasks` chạy OCR → extract → ground → normalize → ghi `scans`, đo `ms_ocr`, `ms_extract`.
-- [ ] `GET /api/scans/{id}` trả `status` + `draft` + `grounding`.
-- [ ] `app_pages/review.py` poll bằng `@st.fragment(run_every="1s")` và hiển thị các trường thật. Khung poll đã dựng ở Ngày 1; chỉ cần điền phần hiển thị dữ liệu.
+- [x] `services/ocr/google_vision.py` + `mock.py` theo `OcrProvider` — đã nối, kiểm thử bằng mock SDK; lời gọi thật còn chờ.
+- [x] `services/extract/gemini.py` + `heuristic.py` — đã nối, có timeout; regex vẫn có giới hạn tên/địa chỉ.
+- [x] `services/extract/grounding.py` — thêm test hồi quy trước khi sửa email/phone/URL/metadata.
+- [x] `pipeline.py`: `BackgroundTasks` chạy OCR → extract → ground → normalize sơ bộ → ghi `scans`, đo `ms_ocr`, `ms_extract`.
+- [x] `GET /api/scans/{id}` trả `status` + `draft` + `grounding`; có GET ảnh và POST retry scan lỗi.
+- [x] `app_pages/review.py` poll bằng `@st.fragment(run_every="1s")`, dừng sau mốc 60 giây và hiển thị trường từ bản nháp; đánh dấu mock rõ ràng.
 
 **DoD:** gửi 1 ảnh Anh và 1 ảnh Nhật qua giao diện, thấy đúng tên/công ty/email/điện thoại trong ứng dụng. Trường không có trên thẻ để trống, không tự sinh.
 
+**Cập nhật 11/09/2026:** Phần triển khai được kiểm tra bằng 73 test pass; **DoD dịch vụ thật vẫn chưa đạt**. Xem [báo cáo Ngày 4](../3-bao-cao/ngay-4.md). Chuẩn hóa hiện chỉ trim và giữ dữ liệu gốc; form sửa và quy tắc đầy đủ vẫn thuộc Ngày 5.
+
 ### Ngày 5 — Chuẩn hóa và màn hình duyệt
 
-- [ ] `normalize.py` đầy đủ theo bảng 5.4 + unit test cho từng quy tắc.
-- [ ] `app_pages/review.py`: hai cột `st.columns` — ảnh gốc bên trái, form bên phải.
-- [ ] `lib/fields.py`: widget đa giá trị cho email, điện thoại, chức danh, phòng ban, địa chỉ. Dùng `st.data_editor(num_rows="dynamic")` để thêm/sửa/xóa dòng — rẻ hơn nhiều so với tự dựng danh sách widget động.
-- [ ] Bọc form trong `st.form` để mọi thay đổi chỉ gửi đi khi bấm nút, thay vì chạy lại script sau từng ký tự gõ vào.
-- [ ] Cờ trạng thái mỗi trường: **xanh** (`exact`), **vàng** (`fuzzy`, cần kiểm tra), **xám** (không đọc được). Chú thích rõ: cờ vàng là tín hiệu hỗ trợ, không phải kết luận đúng/sai.
-- [ ] Mọi sửa đổi của người dùng đặt `source = "user"`; `scans.extraction_json` giữ nguyên.
+- [x] `normalize.py` theo bảng 5.4 + 27 ca unit test; giới hạn bộ kiểm tra cấu trúc ghi trong báo cáo Ngày 5.
+- [x] `app_pages/review.py`: hai cột `st.columns` — ảnh gốc bên trái, form bên phải.
+- [x] `lib/fields.py`: `st.data_editor(num_rows="dynamic")` cho tám nhóm trường, gồm cả tên/công ty đa giá trị, điện thoại có nhãn/máy lẻ.
+- [x] Bọc trong `st.form`: gửi khi bấm Lưu bản nháp; giữ nội dung đã gửi nếu lưu thất bại.
+- [x] Cờ xanh/vàng/xám và chú thích giới hạn; cột trạng thái mô tả bản đang lưu, nhãn người dùng sửa riêng.
+- [x] Backend đặt `source = "user"` cho dòng thêm/sửa; `scans.extraction_json` giữ nguyên. `PATCH /api/scans/{id}/draft` lưu bản sửa riêng và kiểm tra revision.
 
 **DoD:** sửa được một trường OCR đọc sai, `extraction_json` không đổi, chữ Nhật trong ô nhập hiển thị và lưu đúng.
 
+**Cập nhật 11/09/2026:** DoD được xác nhận bằng test form → API → DB; toàn bộ **116 test pass**. Kiểm tra ô nhập bằng trình duyệt thật vẫn chờ. Xem [báo cáo Ngày 5](../3-bao-cao/ngay-5.md). `st.data_editor` 1.63 không hỗ trợ `persist_state`; cần lưu form trước khi chuyển trang. Chuẩn hóa URL giữ path/query và chỉ bỏ `/` ở đường dẫn gốc, tránh đổi nghĩa đường dẫn con.
+
 ### Ngày 6 — Tra cứu bổ sung
 
-- [ ] `fetcher.py` + **unit test cho guard SSRF**: `http://127.0.0.1/`, `http://192.168.1.1/`, `http://169.254.169.254/`, `file:///etc/passwd`, và một URL công khai redirect về `127.0.0.1` — tất cả phải bị chặn.
-- [ ] `discover.py`, `summarize.py`, validator đoạn trích.
-- [ ] `POST /api/organizations/{id}/enrich` chạy nền; `lib/enrichment.py` hiển thị từng khẳng định trong một `st.container(border=True)` kèm nguồn bấm được, thời điểm tra cứu, đoạn trích, và nút Duyệt/Bác bỏ.
-- [ ] Kiểm tra hai kịch bản: một công ty có website (ra kết quả có nguồn) và một danh thiếp không có website (ra `not_found` đúng cách, OCR vẫn còn nguyên).
+- [x] `fetcher.py` + unit test SSRF, DNS/IP pinning, redirect, robots, giới hạn tải/giải nén và charset Nhật.
+- [x] `discover.py`, `summarize.py`, validator URL/snippet/value; quy mô thiếu ngày/đơn vị và nguồn mâu thuẫn được đánh dấu.
+- [x] `POST /api/organizations/{id}/enrich` chạy nền; `lib/enrichment.py` hiển thị từng khẳng định có nguồn, thời điểm, trích đoạn, Duyệt/Bác bỏ. Có cầu nối `POST /api/scans/{id}/enrich` và bảng `enrichment_jobs` vì hồ sơ Contact chỉ tạo ở Ngày 7.
+- [x] Hai kịch bản có website và thiếu domain đã được test bằng nguồn giả lập, xác nhận OCR/bản nháp không đổi. Nghiệm thu doanh nghiệp thật còn chờ.
 
 **DoD:** có ảnh chụp màn hình một hồ sơ với lĩnh vực + sản phẩm/dịch vụ kèm URL nguồn và đoạn trích kiểm chứng được. Chỉ hiện một link tìm kiếm cho người dùng tự tra là **chưa** hoàn thành bước này.
 
+**Cập nhật 11/09/2026:** 174 test pass; bộ tải ứng dụng đã tải HTTPS thật từ Python.org. **Chưa đạt DoD đầy đủ trên doanh nghiệp thật**: cần Gemini key/model và ảnh màn hình nghiệm thu. Xem [báo cáo Ngày 6](../3-bao-cao/ngay-6.md). Không triển khai tìm kiếm/lưu/xuất hồ sơ Ngày 7 trong bước này.
+
 ### Ngày 7 — Lưu, tìm kiếm, xuất dữ liệu
 
-- [ ] `POST /api/contacts` trong một transaction: tạo/liên kết `organizations`, tạo `contacts`, `contact_emails`, `contact_phones`, `addresses`, cập nhật `scans.status = 'committed'` và `scans.contact_id`.
-- [ ] Kiểm tra `Idempotency-Key`; nhấn Lưu hai lần trả về cùng một `contact_id`.
-- [ ] `dedupe.py` + khối cảnh báo trùng với ba lựa chọn.
-- [ ] `app_pages/contacts.py`: ô tìm kiếm + `st.dataframe(on_select="rerun")` để bấm vào một dòng là mở chi tiết.
-- [ ] `GET /api/export?format=json`, sau đó `csv` với BOM UTF-8. Trên Streamlit dùng `st.download_button`.
-- [ ] **Tắt hẳn backend, khởi động lại, kiểm tra hồ sơ còn nguyên.**
+- [x] `POST /api/contacts` trong một transaction: tạo/liên kết `organizations`, tạo `contacts`, `contact_emails`, `contact_phones`, `addresses`, cập nhật `scans.status = 'committed'` và `scans.contact_id`.
+- [x] Kiểm tra `Idempotency-Key`; nhấn Lưu hai lần trả về cùng một `contact_id`.
+- [x] `dedupe.py` + khối cảnh báo trùng với ba lựa chọn.
+- [x] `app_pages/contacts.py`: ô tìm kiếm + `st.dataframe(on_select="rerun")` để bấm vào một dòng là mở chi tiết.
+- [x] `GET /api/export?format=json`, sau đó `csv` với BOM UTF-8. Trên Streamlit dùng `st.download_button`.
+- [x] **Tắt hẳn backend, khởi động lại, kiểm tra hồ sơ còn nguyên.**
 
 **DoD:** trọn luồng ảnh → hồ sơ lưu thật → tìm lại được bằng tên tiếng Nhật → xuất ra file mở bằng Excel không vỡ chữ.
+
+**Cập nhật 11/09/2026:** 201 test pass. Đã kiểm tra restart bằng hai tiến trình Uvicorn trên DB thử riêng; OCR dùng mock. **DoD chưa đóng đầy đủ:** CSV đã kiểm tra BOM/Unicode bằng parser, chưa mở bằng Excel; dịch vụ OCR/Gemini thật còn chờ. Bổ sung bảng `contact_profiles` để giữ toàn bộ đa giá trị/nguồn. Hợp đồng POST thực tế lấy bản nháp đã lưu bằng `scan_id` + `revision`, thay vì nhận lại dữ liệu trường từ client; xem chi tiết API trong [báo cáo Ngày 7](../3-bao-cao/ngay-7.md) và [bằng chứng restart](../4-kiem-chung/ket-qua-khoi-dong-lai-ngay-7.json).
 
 ### Ngày 8 — Kiểm thử tích hợp và các trường hợp hỏng
 
@@ -586,7 +598,7 @@ Ma trận bắt buộc chạy hết:
 
 - [ ] Thứ tự sửa lỗi: mất dữ liệu → hỏng luồng chính → sai dữ liệu → khó dùng → hình thức.
 
-**DoD:** 12/12 dòng đạt. Còn lỗi mất dữ liệu thì **không** được sang ngày 9.
+**DoD:** 13/13 dòng đạt. Còn lỗi mất dữ liệu thì **không** được sang ngày 9.
 
 ### Ngày 9 — Đo chất lượng
 

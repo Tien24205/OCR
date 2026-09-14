@@ -1,10 +1,22 @@
-# Báo cáo tiến độ — Ngày 1–2/10
+# Báo cáo tiến độ — Ngày 1–7/10
+
+> **Ngày 7, cập nhật 11/09/2026:** Đã lưu hồ sơ bằng transaction, giữ đa giá trị/nguồn trong `contact_profiles` (schema 10 bảng), chống gửi lặp và ghi đè phiên cũ; có cảnh báo trùng để chọn, tìm kiếm/chi tiết/cập nhật và JSON/CSV BOM UTF-8. **201 test pass**; đã tắt/khởi động lại hai tiến trình backend và xác nhận hồ sơ, tìm kiếm tiếng Nhật, khóa idempotency còn nguyên. Rà soát đã sửa route GET scan bị thiếu, retry OCR lặp và exception thô trong decision log. **DoD còn chờ kiểm tra Excel trực quan và dữ liệu OCR/Gemini thật.** Xem [báo cáo Ngày 7](ngay-7.md). Số liệu và nghĩa “chưa làm” ở các mốc dưới đây là lịch sử.
+
+> **Ngày 6, cập nhật 11/09/2026:** Đã nối tra cứu web có giới hạn, kiểm tra SSRF/robots, Gemini có schema và validator nguồn, lưu khẳng định riêng để duyệt/bác bỏ. Có thêm bảng `enrichment_jobs` (tổng 9 bảng) để gắn doanh nghiệp phục vụ tra cứu với revision bản nháp; chưa tạo hồ sơ Contact. **174 test pass** và đã tải HTTPS thật qua bộ tải ứng dụng. **DoD doanh nghiệp thật chưa đạt** do chưa cấu hình Gemini và chưa có ảnh màn hình nghiệm thu đủ nguồn. Xem [báo cáo Ngày 6](ngay-6.md).
+
+> **Ngày 5, cập nhật 11/09/2026:** Đã triển khai chuẩn hóa theo trường, form đa giá trị và lưu bản sửa riêng trong scan; nguồn thay đổi do backend đặt `user`, bằng chứng OCR/extraction gốc giữ nguyên. Có cờ kiểm tra, giữ nội dung sau lỗi lưu và chống ghi đè phiên bản cũ. **116 test pass**. Xem [báo cáo Ngày 5](ngay-5.md) để biết cách dùng, kiến thức cần nắm và kiểm tra thủ công còn lại. Chưa triển khai Ngày 6–7; kiểm chứng OCR thật vẫn theo báo cáo trước.
+
+> **Ngày 4, cập nhật 11/09/2026:** Đã nối OCR → extraction → grounding → bản nháp bằng tác vụ nền, thêm API đọc scan/ảnh và retry, hoàn thiện trang Kiểm tra. **73 test pass**, gồm hai ca UI → API → worker → kết quả Anh/Nhật với provider giả lập. Đã sửa một số lỗi grounding và truyền credentials trực tiếp cho SDK; chưa gọi dịch vụ thật, chưa đóng DoD Ngày 2/4. Xem [báo cáo Ngày 4](ngay-4.md) để biết phạm vi, kiểm thử, kiến thức và việc cần nghiệm thu. Các mốc số liệu phía dưới là lịch sử, không phải số đo hiện tại.
+
+> **Ngày 3, cập nhật 11/09/2026:** Đã triển khai nhận ảnh, kiểm tra JPEG/PNG, giới hạn 8 MiB/6000px, xử lý EXIF, lưu ảnh và scan pending. **46 test pass**. Xem [báo cáo Ngày 3](ngay-3.md) để biết chi tiết và checklist camera thật còn chưa kiểm chứng. Nội dung Ngày 1–2 phía dưới được giữ làm lịch sử; việc tiếp tục Ngày 3 không đóng các tồn đọng Ngày 2.
+
+> **Rà soát bổ sung 11/09/2026:** Đọc [kết quả kiểm tra và việc cần làm tiếp](../4-kiem-chung/ra-soat-ngay-1-2.md) trước khi dùng báo cáo này để trình bày. Nội dung phía dưới giữ diễn giải lịch sử ngày 10/09; các khẳng định về “mã nguồn đã sẵn sàng”, grounding, bảo mật và readiness phải hiểu theo đính chính trong bản rà soát. Kết luận hiện tại: **Ngày 1 còn thiếu dữ liệu mẫu; Ngày 2 còn lỗi mã nguồn và chưa kiểm chứng dịch vụ thật**, không chỉ chờ credentials. 27 test hiện có vẫn pass; kết quả probe bổ sung được lưu riêng.
 
 **Dự án:** Chuyển hóa danh thiếp thành hồ sơ đối tác chuẩn hóa (Đề bài #2)
 **Ngày lập:** 09/09/2026 · **Cập nhật:** 10/09/2026
 **Giai đoạn:** Ngày 1 (khung dự án, thiết kế dữ liệu) và Ngày 2 (spike OCR)
 
-Tài liệu liên quan: [đặc tả yêu cầu](Bai-2-business-card-yeu-cau-chuan-hoa.md) · [kế hoạch 10 ngày](Bai-2-noi-dung-va-ke-hoach-10-ngay.md) · [kế hoạch triển khai chi tiết](Bai-2-ke-hoach-trien-khai-chi-tiet.md)
+Tài liệu liên quan: [đặc tả yêu cầu](../1-de-bai/yeu-cau-chuan-hoa.md) · [kế hoạch 10 ngày](../2-ke-hoach/ke-hoach-10-ngay.md) · [kế hoạch triển khai chi tiết](../2-ke-hoach/trien-khai-chi-tiet.md)
 
 ---
 
@@ -16,8 +28,8 @@ Tài liệu liên quan: [đặc tả yêu cầu](Bai-2-business-card-yeu-cau-chu
 
 | Chỉ số | Cuối Ngày 1 | Hiện tại |
 | --- | --- | --- |
-| Commit | 5 | 7 |
-| File mã nguồn được theo dõi | 24 | 39 |
+| Commit | 5 | 6 (mốc `7ae5ef6`, kiểm tra 11/09) |
+| File được theo dõi ngoài `Document` (gồm cấu hình/fixture) | 24 | 39 |
 | Dòng Python | 1.229 | 2.654 |
 | Bảng cơ sở dữ liệu | 8 | 8 |
 | Test tự động | 9 | 27, tất cả pass |
@@ -461,4 +473,4 @@ Hiện có 2 fixture nhưng chúng ghi `provider: "synthetic"` — sinh từ vă
 | `5b42e49` | Khung Ngày 1: backend FastAPI, schema 8 bảng, frontend React, 5 test |
 | `b128e99` | Đổi frontend React → Streamlit; gộp về một venv; sửa neo đường dẫn ảnh |
 | `3ecfeec` | Báo cáo tiến độ Ngày 1 |
-| *(commit này)* | Ngày 2: lớp OCR, hai bộ trích xuất, grounding + 18 test, script spike |
+| `7ae5ef6` | Ngày 2: lớp OCR, hai bộ trích xuất, grounding + 18 test, script spike |

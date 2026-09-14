@@ -1,5 +1,7 @@
 # Bài 2: Nội dung đề bài và kế hoạch hoàn thành trong 10 ngày
 
+> **Cập nhật triển khai 11/09/2026:** Dự án thực tế đã chọn Streamlit + FastAPI + SQLite, Google Vision + Gemini. Các đoạn React/Blazor/Azure bên dưới là lựa chọn tham khảo ban đầu; mục tiêu theo ngày vẫn giữ nguyên. Khi học frontend, ưu tiên Streamlit `session_state`, `form`, `fragment`, camera/upload; backend học FastAPI, Pydantic, SQLAlchemy và httpx. Xem [rà soát Ngày 1–2](../4-kiem-chung/ra-soat-ngay-1-2.md) để biết phần đã đạt và việc còn thiếu.
+
 ## 1. Hiểu đúng bài tập cần hoàn thành
 
 **Tên đề bài:** Chuyển hóa danh thiếp thành dữ liệu đối tác chuẩn hóa.

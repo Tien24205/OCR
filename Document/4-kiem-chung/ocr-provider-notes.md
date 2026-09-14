@@ -1,5 +1,11 @@
 # Phiếu ghi chép nhà cung cấp OCR — Ngày 2
 
+> **Cập nhật 14/09/2026:** Đã có `--check` để kiểm tra credentials bằng 2 lời gọi (mục A2), và 17 test dựng lại cấu trúc phản hồi thật của Vision để kiểm chứng phần đọc dữ liệu trước khi tốn tiền gọi API. Bộ mẫu 40 nhãn chuẩn và 4 trang A4 để in đã sẵn sàng — xem `backend/scripts/make_card_sheets.py`. Vẫn **chưa có lời gọi thật nào**.
+
+> **Cập nhật Ngày 4, 11/09/2026:** Đã sửa đường dẫn credentials tương đối và truyền trực tiếp cho Vision SDK, dùng chung factory giữa app và spike; đã nối pipeline, timeout, retry và lưu bằng chứng vào DB. Xem [báo cáo Ngày 4](../3-bao-cao/ngay-4.md). Chưa có lời gọi thật. Các lỗi `--no-extract` và ghi đè fixture của script nêu trong đính chính bên dưới vẫn còn; việc lưu DB không thay thế bốn fixture OCR thật của Ngày 2.
+
+> **Đính chính 11/09/2026:** Xem [rà soát Ngày 1–2](ra-soat-ngay-1-2.md). Trước khi chạy thật cần sửa đường truyền credentials và cách lưu kết quả; mock replay hiện có thể ghi đè fixture. `--no-extract` hiện không lưu OCR và trả exit 1 dù OCR thành công. Các mục B/C/D/F vẫn chờ bằng chứng thực tế.
+
 Mục 6 của kế hoạch Ngày 2 yêu cầu ghi lại nhà cung cấp, phiên bản, cách cấu hình, giới hạn và chi phí cần theo dõi. File này là nơi ghi.
 
 **Trạng thái:** phần A (cài đặt) đã xong. Phần B, C, D **chưa điền** vì chưa có tài khoản dịch vụ — đây là việc phải làm khi có credentials.
@@ -29,6 +35,27 @@ GEMINI_TEMPERATURE=0
 ```
 
 `secrets/` đã bị `.gitignore` chặn.
+
+---
+
+## A2. Kiểm tra sẵn sàng trước khi chạy cả bộ
+
+Sau khi điền `backend/.env`, chạy:
+
+```powershell
+.\.venv\Scripts\python.exe backend\scripts\try_ocr.py --check
+```
+
+Lệnh này dùng **đúng hai lời gọi dịch vụ** để trả lời bốn câu hỏi riêng biệt:
+
+1. Credentials của Vision có đọc được không?
+2. Vision có thật sự trả về chữ tiếng Nhật không?
+3. `GEMINI_MODEL` có tồn tại với tài khoản này không?
+4. Model có **chấp nhận schema `CardExtraction`** không?
+
+Câu 4 là ẩn số lớn nhất của cả dự án — schema đó chưa từng được model nào chấp nhận lần nào.
+
+**Vì sao không chạy thẳng 40 ảnh:** cấu hình sai sẽ cho 40 lỗi giống nhau, khó biết lỗi nằm ở đâu, mà những lần gọi thành công vẫn bị tính tiền.
 
 ---
 
@@ -67,7 +94,7 @@ Script tự in bảng tổng kết. Chép vào đây:
 | --- | --- | --- | --- | --- | --- | --- |
 | | | | | | | |
 
-**Cột "Bị loại" là chỉ số quan trọng nhất.** Đó là số trường Gemini trả về nhưng không đối chiếu được với văn bản OCR gốc — tức là dữ liệu model tự sinh. Con số này chính là cột "Tự sinh" của báo cáo Ngày 9.
+**Cột "Bị loại" đếm giá trị không đối chiếu được với văn bản OCR.** Không được đồng nhất với dữ liệu model tự sinh: OCR có thể bỏ sót chữ, hoặc grounding loại nhầm. Cột "Tự sinh/không có trên ảnh" của Ngày 9 phải dựa vào ảnh và nhãn chuẩn. Báo riêng số bị grounding loại, số bị loại nhầm, số gán sai trường và số không có trên ảnh; giữ đầu ra trước/sau lọc.
 
 Câu hỏi phải trả lời được sau khi chạy:
 
@@ -97,7 +124,7 @@ Câu hỏi phải trả lời được sau khi chạy:
 
 ## E. Đường lui nếu không lấy được quyền truy cập
 
-Đã chuẩn bị sẵn, không phải tìm phương án lúc bị kẹt:
+Các phương án dự phòng: mock và heuristic đã có mã; phương án Gemini làm cả OCR lẫn trích xuất **chưa được triển khai**, cần adapter mới và kiểm thử, không chỉ đổi biến cấu hình.
 
 | Tình huống | Đường lui | Hạn chế |
 | --- | --- | --- |

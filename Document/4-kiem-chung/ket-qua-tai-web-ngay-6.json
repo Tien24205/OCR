@@ -1,0 +1,13 @@
+{
+  "check": "SafeFetcher live HTTPS and robots.txt smoke test",
+  "url": "https://www.python.org/",
+  "title": "Welcome to Python.org",
+  "text_characters": 7134,
+  "fetched_at": "2026-09-11T07:48:27.749713+00:00",
+  "result": "success",
+  "notes": [
+    "First attempt in sandbox failed with WinError 10013; network retry used approved escalation.",
+    "Live server returned encoded content. Bounded gzip/deflate support was added and tested before the successful retry.",
+    "This checks the application fetcher only, not Gemini extraction, business identity or Day 6 end-to-end acceptance."
+  ]
+}

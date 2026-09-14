@@ -1,0 +1,23 @@
+{
+  "checked_at": "2026-09-11T13:09:00.536724+00:00",
+  "result": "passed",
+  "backend_pids": [
+    3652,
+    8984
+  ],
+  "separate_processes": true,
+  "storage": "isolated temporary SQLite database",
+  "ocr": "mock:synthetic",
+  "checks": [
+    "HTTP upload and draft review",
+    "transactional contact save",
+    "terminate backend and start another process",
+    "identical profile after restart",
+    "Japanese search",
+    "idempotency key survives restart",
+    "JSON round-trip",
+    "CSV BOM and Japanese/leading-zero preservation"
+  ],
+  "excel_visual_check": "not performed",
+  "real_ocr_quality": "not evaluated"
+}

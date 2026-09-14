@@ -1,5 +1,7 @@
 # Bài 2: Chuyển hóa danh thiếp thành hồ sơ đối tác chuẩn hóa
 
+> **Trạng thái triển khai 11/09/2026:** React/Blazor/Azure trong bản này là phương án tham khảo ban đầu. Mã nguồn hiện dùng Streamlit + FastAPI + SQLite và adapter Google Vision/Gemini; chưa có bằng chứng lời gọi OCR thật. Yêu cầu nghiệp vụ Anh/Nhật vẫn giữ nguyên. Xem [rà soát tiến độ](../4-kiem-chung/ra-soat-ngay-1-2.md).
+
 Ngày đối chiếu: 09/09/2026. Đây là bản phân tích và đặc tả đề xuất; không phải báo cáo đã triển khai hoặc đã đo chất lượng OCR.
 
 ## 1. Căn cứ và cách hiểu phạm vi
