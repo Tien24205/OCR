@@ -1,6 +1,6 @@
 """Mo hinh du lieu SQLAlchemy 2.0.
 
-BA QUY TAC BAT BIEN (xem Document/Bai-2-ke-hoach-trien-khai-chi-tiet.md muc 3):
+BA QUY TAC BAT BIEN (xem Document/2-ke-hoach/trien-khai-chi-tiet.md muc 3):
 
 1. `Scan.raw_text` va `Scan.extraction_json` LA BAT BIEN. Nguoi dung sua gi
    thi sua o Contact/ContactEmail/..., ket qua goc cua may phai con nguyen
@@ -27,6 +27,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -299,6 +300,29 @@ class Enrichment(Base):
 # Chong gui trung (FR-11)
 # --------------------------------------------------------------------------
 
+class EnrichmentJob(Base):
+    """A research target for one saved scan revision, before Day 7 contact creation."""
+    __tablename__ = "enrichment_jobs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    scan_id: Mapped[str] = mapped_column(ForeignKey("scans.id", ondelete="CASCADE"), nullable=False)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), unique=True, nullable=False)
+    draft_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="pending", nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(64))
+    result_ids: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    decisions: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    pages: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), default=utcnow, nullable=False)
+    completed_at: Mapped[str | None] = mapped_column(String(40))
+    __table_args__ = (
+        UniqueConstraint("scan_id", "draft_revision", name="uq_enrich_scan_revision"),
+        CheckConstraint("status IN ('pending','processing','done')", name="ck_enrich_job_status"),
+    )
+
+
 class IdempotencyKey(Base):
     __tablename__ = "idempotency_keys"
 
@@ -306,3 +330,18 @@ class IdempotencyKey(Base):
     endpoint: Mapped[str] = mapped_column(String(64), nullable=False)
     response_id: Mapped[str] = mapped_column(String(36), nullable=False)
     created_at: Mapped[str] = mapped_column(String(40), default=utcnow, nullable=False)
+
+
+class ContactProfile(Base):
+    """All reviewed values, including bilingual aliases, with optimistic versioning.
+
+    Additive table: existing databases need no destructive column migration.
+    Contact and its child tables are searchable projections, updated atomically.
+    """
+    __tablename__ = "contact_profiles"
+    contact_id: Mapped[str] = mapped_column(
+        ForeignKey("contacts.id", ondelete="CASCADE"), primary_key=True)
+    draft: Mapped[dict] = mapped_column(JSON, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    names_norm: Mapped[str] = mapped_column(Text, nullable=False)
+    companies_norm: Mapped[str] = mapped_column(Text, nullable=False)
