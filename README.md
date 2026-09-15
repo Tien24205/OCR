@@ -52,7 +52,7 @@ Cần **hai terminal**, cả hai chạy **từ thư mục gốc dự án**:
 .\.venv\Scripts\streamlit.exe run frontend\streamlit_app.py
 ```
 
-Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 20 endpoint, bảng mã lỗi và lưu ý khi tích hợp
+Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 24 endpoint, bảng mã lỗi và lưu ý khi tích hợp
 
 > **Phải chạy từ gốc dự án.** Streamlit đọc `.streamlit/config.toml` theo thư mục đang chạy, không theo vị trí file ứng dụng. Chạy từ chỗ khác thì giới hạn dung lượng tải lên 8 MB sẽ không được áp dụng.
 
@@ -159,11 +159,14 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**461 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**469 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI
 .\.venv\Scripts\python.exe backend\scripts\check_secrets.py --all
+
+# Đối chiếu số liệu trong tài liệu với mã nguồn thật (thêm --fix để sửa luôn)
+.\.venv\Scripts\python.exe backend\scripts\check_docs.py
 
 # Kiểm tra bộ nhãn dữ liệu mẫu
 .\.venv\Scripts\python.exe backend\scripts\check_labels.py
