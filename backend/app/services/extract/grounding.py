@@ -294,6 +294,45 @@ def _phone_metadata(item, raw_text: str) -> dict:
     return {"label": label, "extension": extension}
 
 
+def _bang_chung_hop_le(source_text: str, raw_text: str) -> str:
+    """Tra ve `source_text` neu no that su co trong van ban OCR, khong thi "".
+
+    Model duoc yeu cau dan kem doan van ban goc lam BANG CHUNG cho moi gia tri.
+    Model co the bia ca doan nay, nen phai kiem - va doan bia thi bi xoa, dong
+    thoi truong bi gan co "can xem lai".
+
+    LOI DA SUA: phep kiem truoc day la `source_text in raw_text` - so chuoi con
+    THO, khong chuan hoa gi ca. Trong khi chinh GIA TRI thi di qua NFKC va xoa
+    khoang trang.
+
+    Hai muc do kho tinh khac nhau nay gay hau qua that: Tesseract chen khoang
+    trang giua cac chu CJK, nen OCR tra ve
+
+        株 式 会 社 青葉 テク ノロ ジー
+
+    con model dan bang chung la `株式会社青葉テクノロジー`. Gia tri thi khop
+    `exact`, nhung bang chung truot phep so chuoi con - the la truong da duoc
+    XAC MINH XONG van bi gan co "can xem lai", va o bang chung bi xoa trang.
+
+    Do that tren mot the tieng Nhat: 3/6 truong bi gan co oan kieu nay. Mot co
+    canh bao bat o gan nhu moi cho se lam nguoi duyet thoi nhin no - luc do no
+    con te hon la khong co co, vi nhung truong dang ngo that su se chim lan
+    giua dam canh bao vo nghia. Va o bang chung bi xoa lai lay mat dung thu
+    giup ho doi chieu.
+
+    Chuan hoa o day KHONG lam yeu phep kiem: mot doan bang chung bia dat van
+    khong xuat hien trong van ban OCR da chuan hoa.
+    """
+    if not source_text:
+        return ""
+    if source_text in raw_text:
+        return source_text
+    chuan = norm_for_match(source_text)
+    if chuan and chuan in norm_for_match(raw_text):
+        return source_text
+    return ""
+
+
 def ground_extraction(extraction, raw_text: str) -> dict:
     """Doi chieu toan bo ket qua trich xuat.
 
@@ -320,7 +359,7 @@ def ground_extraction(extraction, raw_text: str) -> dict:
                 "score": round(verdict.score, 3),
             })
             if verdict.accepted:
-                source = item.source_text if item.source_text and item.source_text in raw_text else ""
+                source = _bang_chung_hop_le(item.source_text, raw_text)
                 metadata = _phone_metadata(item, raw_text) if kind == "phone" else {}
                 metadata_changed = kind == "phone" and (
                     metadata["label"] != item.label or metadata["extension"] != item.extension

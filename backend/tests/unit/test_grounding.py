@@ -239,3 +239,45 @@ def test_so_dien_thoai_KHONG_duoc_noi_dong():
     assert ground("03-1234-5678", raw, "phone").verdict == "exact"
     assert ground("090-1234-5678", raw, "phone").verdict == "exact"
     assert ground("031234567809012345678", raw, "phone").verdict == "unverified"
+
+
+# --- Bang chung kem theo gia tri ------------------------------------------
+
+def _mot_truong(gia_tri: str, bang_chung: str, raw: str) -> dict:
+    ket = ground_extraction(
+        CardExtraction(company_names=[
+            ExtractedValue(value=gia_tri, source_text=bang_chung)]), raw)
+    return ket["fields"]["company_names"][0]
+
+
+OCR_CHEN_KHOANG_TRANG = "株 式 会 社 青葉 テク ノロ ジー\n山田 太郎"
+
+
+def test_bang_chung_dung_nhung_bi_OCR_chen_khoang_trang_van_duoc_nhan():
+    """LOI DA SUA: phep kiem bang chung kho tinh hon phep kiem gia tri.
+
+    Tesseract chen khoang trang giua cac chu CJK. Gia tri thi khop `exact` vi
+    no duoc chuan hoa, con bang chung thi truot phep so chuoi con tho - the la
+    truong DA XAC MINH XONG van bi gan co "can xem lai" va o bang chung bi xoa.
+
+    Do that tren mot the tieng Nhat: 3/6 truong bi gan co oan kieu nay.
+    """
+    item = _mot_truong("株式会社青葉テクノロジー", "株式会社青葉テクノロジー",
+                       OCR_CHEN_KHOANG_TRANG)
+    assert item["source_text"] == "株式会社青葉テクノロジー"
+    assert item["needs_review"] is False
+
+
+def test_bang_chung_bia_dat_van_bi_xoa_va_gan_co():
+    """Lop bao ve chinh: chuan hoa khong duoc lam lot bang chung bia."""
+    item = _mot_truong("株式会社青葉テクノロジー", "bang chung tu bia ra",
+                       OCR_CHEN_KHOANG_TRANG)
+    assert item["source_text"] == ""
+    assert item["needs_review"] is True
+
+
+def test_khong_dan_bang_chung_thi_khong_bi_gan_co():
+    """Model khong dan gi thi khong co gi de nghi ngo - gia tri van da duoc
+    doi chieu rieng roi."""
+    item = _mot_truong("株式会社青葉テクノロジー", "", OCR_CHEN_KHOANG_TRANG)
+    assert item["source_text"] == "" and item["needs_review"] is False
