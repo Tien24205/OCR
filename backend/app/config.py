@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     webhook_max_attempts: int = 3
     cors_origins: str = "http://localhost:8501"
 
+    # --- Xac thuc API ---
+    # Danh sach khoa, ngan cach bang dau phay. DE TRONG = khong xac thuc.
+    # Xem `auth.py` de biet vi sao che do tat ton tai.
+    api_keys: str = ""
+    rate_limit_per_minute: int = 60
+
     # --- OCR ---
     ocr_provider: str = "mock"          # google | tesseract | mock
     google_application_credentials: str | None = None
@@ -89,6 +95,10 @@ class Settings(BaseSettings):
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @property
+    def api_key_list(self) -> list[str]:
+        return [k.strip() for k in self.api_keys.split(",") if k.strip()]
+
+    @property
     def language_hint_list(self) -> list[str]:
         return [h.strip() for h in self.ocr_language_hints.split(",") if h.strip()]
 
@@ -108,6 +118,9 @@ class Settings(BaseSettings):
             "gemini_model_set": bool(self.gemini_model),
             "enrich_enabled": self.enrich_enabled,
             "agent_enabled": self.agent_enabled,
+            # Bao ro API dang mo hay dong. KHONG bao gio tra ve gia tri
+            # khoa - chi tra ve co, giong moi truong khac o day.
+            "auth_enabled": bool(self.api_key_list),
         }
 
 

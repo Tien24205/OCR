@@ -41,6 +41,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Gan TRUOC CORS de lop xac thuc nam ngoai cung: mot loi goi khong co khoa bi
+# chan ngay, khong di sau vao ung dung.
+from app.auth import gan_xac_thuc  # noqa: E402
+
+gan_xac_thuc(app, settings.api_key_list, settings.rate_limit_per_minute)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

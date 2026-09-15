@@ -25,6 +25,13 @@ import streamlit as st
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://127.0.0.1:8000")
 TIMEOUT_S = 30.0
 
+# Khoa API, neu backend co bat xac thuc.
+#
+# VI SAO KHOA NAM O DAY LA AN TOAN: Streamlit chay PHIA MAY CHU. Trinh duyet
+# chi nhan HTML da dung san, khong bao gio thay bien moi truong nay - dung
+# nhu cach khoa Gemini khong bao gio roi khoi backend.
+API_KEY = os.environ.get("API_KEY", "").strip()
+
 
 class ApiError(Exception):
     def __init__(self, code: str, message: str, retryable: bool, status: int) -> None:
@@ -39,7 +46,12 @@ class ApiError(Exception):
 def _client() -> httpx.Client:
     """Mot client dung chung cho ca tien trinh (giu ket noi, khong tao lai
     moi lan Streamlit chay lai script)."""
-    return httpx.Client(base_url=API_BASE_URL, timeout=TIMEOUT_S)
+    # Dat khoa o muc CLIENT chu khong o tung loi goi: dat o tung loi goi thi
+    # chi can quen mot cho la loi goi do hong, va no se hong am tham cho den
+    # khi ai do bat xac thuc len.
+    headers = {"X-API-Key": API_KEY} if API_KEY else {}
+    return httpx.Client(base_url=API_BASE_URL, timeout=TIMEOUT_S,
+                        headers=headers)
 
 
 def _request(method: str, path: str, *, raw: bool = False, **kwargs: Any) -> Any:
