@@ -201,3 +201,20 @@ def test_chay_duoc_ngoai_kho_git(tmp_path, monkeypatch, capsys):
     # Phai noi ro dang chay che do nao, de khong ai nham mot lan quet thieu
     # voi mot lan quet du.
     assert "Khong dung duoc git" in capsys.readouterr().out
+
+
+def test_bat_duoc_khoa_API_cua_chinh_du_an(tmp_path):
+    """Them cung luc voi tinh nang xac thuc (15/09).
+
+    Mot dang khoa moi ma bo quet chua biet thi cung vo dung nhu khong co bo
+    quet. Da mac dung loi nay mot lan voi dang "AQ." cua Google, nen lan nay
+    them mau NGAY khi sinh ra dang khoa moi.
+    """
+    khoa = "ocr" + "_" + "K" * 43
+    assert "Khoa API cua du an" in found(tmp_path, "ghi-chu.md", f"khoa: {khoa}")
+
+
+def test_khong_bao_dong_voi_bien_OCR_binh_thuong(tmp_path):
+    """`ocr_provider`, `ocr_timeout_s`... la ten bien, khong phai khoa."""
+    noi_dung = "OCR_PROVIDER=tesseract\nocr_timeout_s = 20"
+    assert "Khoa API cua du an" not in found(tmp_path, "config.py", noi_dung)

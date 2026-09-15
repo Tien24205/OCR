@@ -44,6 +44,15 @@ PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     ("Google API key (dang AQ.)",
      re.compile(r"(?<![A-Za-z0-9_])AQ\.[A-Za-z0-9_\-]{40,}"),
      "Khoa API Gemini dang moi cua Google AI Studio - thu hoi ngay"),
+    # Khoa API cua chinh du an nay, sinh boi:
+    #   "ocr_" + secrets.token_urlsafe(32)  -> 4 + 43 ky tu
+    #
+    # Them cung luc voi tinh nang xac thuc: mot dang khoa moi ma bo quet chua
+    # biet thi cung vo dung nhu khong co bo quet. Da mac dung loi nay mot lan
+    # voi dang "AQ." cua Google.
+    ("Khoa API cua du an",
+     re.compile(r"(?<![A-Za-z0-9_])ocr_[A-Za-z0-9_\-]{30,}"),
+     "Khoa API cua chinh he thong nay - thu hoi bang cach xoa khoi API_KEYS"),
     ("Khoa rieng PEM",
      re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
      "Khoa rieng - thu hoi va tao lai"),
