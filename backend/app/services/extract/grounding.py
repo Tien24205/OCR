@@ -133,25 +133,77 @@ def _tokens_of(kind: str, raw_text: str) -> set[str]:
     Voi email, URL va so dien thoai, don vi so sanh phai la CA TOKEN chu
     khong phai mot doan bat ky trong van ban.
     """
+    tokens: set[str] = set()
+    for doan in _cac_doan_ung_vien(raw_text, kind):
+        if kind == "email":
+            tokens |= {norm_for_match(m) for m in _EMAIL_RE.findall(doan)}
+        elif kind == "url":
+            # Go email ra truoc: neu khong, "jane.doe@example.com" se sinh ra
+            # token URL gia "example.com" va mot website bia dat se duoc chap
+            # nhan.
+            without_emails = _EMAIL_RE.sub(" ", doan)
+            tokens |= {_canon_url(m) for m in _URL_RE.findall(without_emails)}
+        elif kind == "phone":
+            # So sanh bang chuoi chu so: the in "03-1234-5678", model co the
+            # tra ve "03 1234 5678" - cung mot so, khac cach viet.
+            tokens |= {d for m in _PHONE_RE.findall(doan)
+                       if len(d := _digits(m)) >= 9}
+    return tokens
+
+
+def _cac_doan_ung_vien(raw_text: str, kind: str):
+    """Sinh ra van ban OCR, cong them tung CAP DONG LIEN TIEP duoc noi lien.
+
+    VI SAO CAN NOI DONG: OCR hay cat mot token lam doi giua chung. Do that tren
+    anh the ngay 15/09, Tesseract tra ve:
+
+        https://www.example.co.
+        Jp
+
+    Ca chuoi `https://www.example.co.jp` DEU nam tren tam the - OCR chi chen
+    them mot dau ngat dong vao giua. Dau ngat do la HIEN VAT cua OCR, khong
+    phai noi dung. Khong noi lai thi grounding loai mot website co that, va do
+    that cho thay 100% so lan loai deu la loai oan kieu nay.
+
+    VI SAO LAM VAY LA AN TOAN - khong he noi long chong bia dat:
+
+      - Chi THEM token, khong bao gio bot. Moi token deu sinh ra tu chinh chu
+        ma OCR doc duoc, khong phai tu suy dien.
+      - Chi noi HAI dong lien tiep, khong noi ca van ban. Noi tat ca se tao ra
+        nhung chuoi dai vo nghia va co the ghep nham hai token cach xa nhau.
+      - De mot gia tri bia dat duoc chap nhan nho buoc nay, no phai TRUNG KHIT
+        voi phan noi cua hai dong that lien nhau - tuc la chinh truong hop gia
+        tri do co that tren the nhung bi cat dong.
+
+    VI SAO NHAT QUAN VOI PHAN CON LAI: `norm_for_match` da xoa sach moi khoang
+    trang khi doi chieu ten, cong ty va dia chi. Nhanh token truoc day khong
+    lam vay, nen no kho tinh hon phan con lai cua he thong ma khong co ly do.
+
+    KHONG AP DUNG CHO SO DIEN THOAI: so dien thoai duoc so sanh bang chuoi chu
+    so, nen noi hai dong lai se bien hai so that nam canh nhau
+
+        03-1234-5678
+        090-1234-5678
+
+    thanh mot so 21 chu so KHONG he ton tai - va no se duoc chap nhan nhu bang
+    chung. Da co test khoa dieu nay tu Ngay 4
+    (`test_phone_tokens_do_not_join_lines_or_slash_separated_numbers`), va test
+    do dung: chinh no bat duoc ban sua dau tien cua ham nay.
+
+    Email va URL khong gap rui ro do vi chung khong so bang chuoi chu so: mot
+    gia tri bia dat phai TRUNG KHIT ca chuoi thi moi qua duoc, ma noi hai dong
+    chi tao ra chuoi ghep - khong tao ra phan duoi hay phan dau cua chuoi that.
+    """
     normalized = unicodedata.normalize("NFKC", raw_text)
-
-    if kind == "email":
-        return {norm_for_match(m) for m in _EMAIL_RE.findall(normalized)}
-
-    if kind == "url":
-        # Go email ra truoc: neu khong, "jane.doe@example.com" se sinh ra
-        # token URL gia "example.com" va mot website bia dat se duoc chap nhan.
-        without_emails = _EMAIL_RE.sub(" ", normalized)
-        return {_canon_url(m) for m in _URL_RE.findall(without_emails)}
+    yield normalized
 
     if kind == "phone":
-        # So sanh bang chuoi chu so: the in "03-1234-5678", model co the tra
-        # ve "03 1234 5678" - cung mot so, khac cach viet.
-        return {
-            d for m in _PHONE_RE.findall(normalized) if len(d := _digits(m)) >= 9
-        }
+        return
 
-    return set()
+    lines = [ln.strip() for ln in normalized.splitlines()]
+    for truoc, sau in zip(lines, lines[1:]):
+        if truoc and sau:
+            yield truoc + sau
 
 
 def _ground_strict(value: str, raw_text: str, kind: str) -> Grounding:

@@ -188,3 +188,54 @@ def test_gia_tri_qua_ngan_khong_duoc_nhan():
     """Mot ky tu khop duoc voi gan nhu moi van ban, nen phep doi chieu mat
     y nghia. Khong duoc coi la da kiem chung."""
     assert ground("山", CARD_JA, "name").verdict == "unverified"
+
+
+# --- OCR cat token lam doi giua chung -------------------------------------
+#
+# Do that ngay 15/09 tren anh the voi Tesseract: 100% so gia tri bi grounding
+# loai deu la loai OAN, va nguyen nhan chinh la OCR chen dau ngat dong vao
+# giua mot URL. Ca chuoi DEU nam tren tam the - dau ngat la hien vat cua OCR.
+
+OCR_CAT_DONG = "\n".join([
+    "株式会社青葉テクノロジー",
+    "taro.yamada@example.co.",
+    "Jp",
+    "https://www.example.co.",
+    "Jp",
+])
+
+
+def test_url_bi_ngat_dong_van_duoc_kiem_chung():
+    assert ground("https://www.example.co.jp", OCR_CAT_DONG, "url").verdict == "exact"
+
+
+def test_email_bi_ngat_dong_van_duoc_kiem_chung():
+    assert ground("taro.yamada@example.co.jp", OCR_CAT_DONG, "email").verdict == "exact"
+
+
+def test_noi_dong_KHONG_lam_lot_gia_tri_bia_dat():
+    """Lop bao ve chinh: chi them bang chung tu chu OCR that doc duoc."""
+    for bia in ("https://www.gia-mao.com", "https://www.example.vn"):
+        assert ground(bia, OCR_CAT_DONG, "url").verdict == "unverified", bia
+    assert ground("hanako@example.co.jp", OCR_CAT_DONG, "email").verdict == "unverified"
+
+
+def test_van_khong_nhan_phan_duoi_cua_chuoi_that():
+    """Bay cu tu Ngay 2: chuoi bia la phan duoi cua chuoi that.
+
+    Noi dong chi tao ra chuoi GHEP, khong tao ra phan duoi - nen lop bao ve
+    nay khong he bi dong toi.
+    """
+    assert ground("yamada@example.co.jp", OCR_CAT_DONG, "email").verdict == "unverified"
+
+
+def test_so_dien_thoai_KHONG_duoc_noi_dong():
+    """Hai so that canh nhau khong duoc ghep thanh mot so khong ton tai.
+
+    Dien thoai so bang chuoi chu so nen noi dong sinh ra so hoan toan moi -
+    khac han email va URL, noi lai chi ra chuoi ghep vo nghia.
+    """
+    raw = "03-1234-5678\n090-1234-5678"
+    assert ground("03-1234-5678", raw, "phone").verdict == "exact"
+    assert ground("090-1234-5678", raw, "phone").verdict == "exact"
+    assert ground("031234567809012345678", raw, "phone").verdict == "unverified"
