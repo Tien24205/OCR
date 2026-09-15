@@ -208,5 +208,33 @@ nhận ra ngay nếu bạn đoán.
 | Backend chết | Sidebar báo đỏ ngay; khởi động lại terminal 1, dữ liệu không mất |
 | Hết hạn mức Gemini trong ngày | Đổi `EXTRACTOR=heuristic`, nói rõ đang chạy chế độ không cần mạng |
 
-Chuẩn bị sẵn `EXTRACTOR=heuristic` là đường lui rẻ nhất — đổi một dòng trong
-`backend/.env` và khởi động lại, không cần mạng.
+### Biết trước đường lui `heuristic` làm được gì — đo ngày 15/09
+
+Đổi một dòng trong `backend/.env` và khởi động lại, không cần mạng, không cần
+khóa. **Nhưng đừng dùng nó mà không biết trước nó hỏng ở đâu:**
+
+| Trường | Heuristic đọc được? |
+| --- | --- |
+| Công ty, chức danh, phòng ban | ✅ 100% |
+| Email, điện thoại, website | ✅ 100% |
+| **Họ tên** | ❌ **0%** |
+| **Địa chỉ** | ❌ **0%** |
+
+Lý do: regex bắt được email, số điện thoại, URL, và tên công ty Nhật nhờ dấu
+hiệu `株式会社`. Nhưng **tên người Nhật không có dấu hiệu nào để nhận ra** —
+`山田 太郎` trông y hệt mọi cụm Kanji khác trên thẻ. Địa chỉ cũng vậy.
+
+Nghĩa là nếu bạn chuyển sang heuristic giữa buổi demo, **ô họ tên sẽ trống** —
+đúng cái trường người xem nhìn vào đầu tiên. Nói trước một câu sẽ tốt hơn là
+để họ tự nhận ra:
+
+> "Tôi đang chuyển sang bộ trích xuất không cần mạng. Nó dùng regex nên đọc
+> được email, điện thoại và tên công ty, nhưng **không đọc được tên người** —
+> tên người không có dấu hiệu nào để một biểu thức chính quy nhận ra. Đó
+> chính là lý do hệ thống cần một model cho việc này."
+
+Một tính chất đáng khen của nó: **tự sinh 0**. Nó bỏ sót chứ không bịa. Với
+một đường lui thì đó đúng là thứ mình muốn — thà trống còn hơn sai.
+
+*(Số đo trên 4 thẻ tiếng Nhật của bộ chạy khô, văn bản OCR sạch tuyệt đối.
+Trên ảnh chụp thật con số sẽ thấp hơn.)*
