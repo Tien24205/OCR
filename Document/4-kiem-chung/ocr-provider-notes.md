@@ -213,17 +213,39 @@ Câu hỏi phải trả lời được sau khi chạy:
 
 ---
 
-## D. Giới hạn và chi phí cần theo dõi — **cần điền**
+## D. Giới hạn và chi phí — **đã đo một phần 14–15/09**
+
+Chỉ ghi những gì **thật sự đo được từ phản hồi của dịch vụ**. Những dòng chưa
+đo thì để trống và nói rõ là chưa đo — một con số tra trên mạng rồi chép vào
+đây sẽ được đọc như một con số đã kiểm.
 
 | Mục | Giá trị | Nguồn |
 | --- | --- | --- |
-| Vision — giá mỗi 1000 ảnh | *(điền)* | bảng giá Google Cloud |
-| Vision — hạn mức miễn phí mỗi tháng | *(điền)* | |
-| Vision — quota request/phút | *(điền)* | |
-| Gemini — giá vào/ra mỗi 1M token | *(điền)* | bảng giá Gemini API |
-| Gemini — hạn mức miễn phí | *(điền)* | |
-| Ước tính chi phí cho 40 ảnh mẫu | *(điền)* | |
-| Ngân sách tự đặt cho cả dự án | *(điền)* | |
+| Gemini — hạn mức miễn phí `gemini-3.5-flash` | **20 lượt/ngày** | Đo trực tiếp: phản hồi 429 ghi `quotaValue: 20`, `quotaId: ...PerDayPerProjectPerModel-FreeTier` (14/09) |
+| Gemini — hạn mức `gemini-3.5-flash-lite` | Chưa đụng trần sau ~15 lượt/ngày | Quan sát 15/09, **chưa phải giới hạn đã xác định** |
+| Gemini — số lượt cho một lần đo 40 thẻ | **40 lượt** (1 lượt/thẻ, chưa tính thử lại) | Suy ra từ đường đo |
+| Vision — giá và hạn mức | *(chưa đo — chưa bật được billing)* | |
+| Tesseract — chi phí | **0**, không giới hạn số lần | Chạy cục bộ |
+
+### Bài học đã trả giá
+
+Hạn mức 20 lượt/ngày làm hỏng lần chạy đo đầu tiên theo một cách không ai
+lường: bộ đo coi **mọi** lỗi 429 là "thử lại được", nên nó thử lại 3 lần cho
+từng thẻ — tiêu **60 lượt gọi vào hạn mức 20** và không thu được kết quả nào.
+
+Hai loại 429 đòi hỏi cách xử lý ngược nhau:
+
+| Loại | `quotaId` chứa | Xử lý đúng |
+| --- | --- | --- |
+| Gọi quá nhanh trong một phút | `PerMinute` | Chờ vài giây rồi thử lại |
+| Hết hạn mức cả ngày | `PerDay` | **Không thử lại**, dừng hẳn lần chạy |
+
+Đã sửa trong `gemini.py` và `evaluate.py`, có test khóa lại.
+
+**Vì sao phải ghi:** mỗi ảnh đi qua **hai** dịch vụ tính tiền, và bộ mẫu 40 ảnh
+sẽ chạy nhiều lần trong quá trình phát triển chứ không phải một lần. Biết
+trước con số giúp phát hiện sớm nếu có gì đó gọi API trong vòng lặp — đúng
+điều đã xảy ra ở trên.
 
 **Vì sao phải ghi:** mỗi ảnh đi qua **hai** dịch vụ tính tiền. Bộ mẫu 40 ảnh sẽ chạy nhiều lần trong quá trình phát triển, không phải một lần. Biết trước con số giúp phát hiện sớm nếu có gì đó gọi API trong vòng lặp.
 
@@ -231,15 +253,29 @@ Câu hỏi phải trả lời được sau khi chạy:
 
 ## E. Đường lui nếu không lấy được quyền truy cập
 
-Các phương án dự phòng: mock và heuristic đã có mã; phương án Gemini làm cả OCR lẫn trích xuất **chưa được triển khai**, cần adapter mới và kiểm thử, không chỉ đổi biến cấu hình.
+**Cập nhật 15/09:** mục này viết trước khi có `OCR_PROVIDER=tesseract`. Đường
+lui hàng đầu nay đã khác hẳn, và khác theo hướng tốt hơn nhiều.
 
 | Tình huống | Đường lui | Hạn chế |
 | --- | --- | --- |
-| Không có Google Cloud project | Dùng Gemini API key đơn thuần (không cần GCP) làm cả OCR lẫn trích xuất | Mất `raw_text` độc lập, nên **grounding yếu đi đáng kể** — cả hai tầng cùng một model thì không còn bằng chứng độc lập để đối chiếu |
-| Không có Gemini | `EXTRACTOR=heuristic` — bộ regex có sẵn | Bắt tốt email/điện thoại/website; kém với tên người và chức danh |
+| **Không bật được billing Google Cloud** | **`OCR_PROVIDER=tesseract`** — OCR cục bộ | Đọc Kanji kém hơn Vision rõ rệt. **Grounding vẫn đúng nguyên vẹn** vì vẫn là hai nguồn độc lập |
+| Không có Gemini | `EXTRACTOR=heuristic` — bộ regex có sẵn | Đo thật 15/09: email/điện thoại/website/công ty **100%**, nhưng **họ tên 0%** và **địa chỉ 0%** |
 | Không có gì | `OCR_PROVIDER=mock` — chạy lại fixture đã lưu | Chỉ để phát triển giao diện, **không phải kết quả OCR** |
+| ~~Để Gemini làm cả OCR lẫn trích xuất~~ | **Đã loại bỏ khỏi danh sách** | Xem ngay dưới |
 
-Đường lui đầu tiên có một cái giá cần hiểu rõ: kiến trúc hiện tại mạnh vì Vision đọc chữ (bằng chứng từ điểm ảnh) còn Gemini gán trường (mô hình sinh), rồi đối chiếu hai bên. Nếu để Gemini làm cả hai việc, nó tự chấm điểm chính mình.
+### Vì sao "để Gemini làm cả hai" bị loại hẳn
+
+Bản đầu của tài liệu này xếp nó làm đường lui số một khi không có Google Cloud
+project. Nay nó bị loại, vì Tesseract giải quyết đúng tình huống đó mà **không
+phải trả cái giá này**:
+
+Kiến trúc mạnh ở chỗ OCR đọc chữ từ điểm ảnh còn Gemini gán trường, rồi đối
+chiếu hai bên. Để Gemini làm cả hai việc là để nó tự chấm điểm chính mình —
+grounding còn chạy nhưng không còn nghĩa gì. Đó là đánh đổi thứ đắt nhất trong
+cả hệ thống để lấy một sự tiện lợi mà nay đã có cách khác.
+
+Ghi trùng khớp ở [roadmap.md](../2-ke-hoach/roadmap.md) mục *"Việc không nằm
+trong lộ trình"*.
 
 ---
 
