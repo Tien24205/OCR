@@ -174,3 +174,30 @@ def test_khong_bao_an_toan_khi_quet_rong(monkeypatch, capsys):
 
     assert ma == 1, "quet rong phai tra ma thoat khac 0"
     assert "Khong tim thay khoa nao bi ro ri" not in ra
+
+
+def test_chay_duoc_ngoai_kho_git(tmp_path, monkeypatch, capsys):
+    """LOI DA SUA: ngoai kho git thi ca chuong trinh sap voi traceback Python.
+
+    Kich ban that: nguoi nhan ban giao giai nen ma nguon tu tep zip - khong co
+    thu muc .git - roi chay bo quet truoc khi commit. Git tra ma 128,
+    `check=True` nem CalledProcessError, va cong cu bao mat lai la thu duy
+    nhat trong du an tu no vo.
+
+    Phat hien khi kiem chung tu ban sao sach ngay 22/09 - dung buoc cuoi cung.
+    """
+    from scripts import check_secrets as cs
+
+    (tmp_path / "ma_nguon.py").write_text("x = 1", encoding="utf-8")
+    (tmp_path / ".venv").mkdir()
+    (tmp_path / ".venv" / "thu_vien.py").write_text("y = 2", encoding="utf-8")
+    monkeypatch.setattr(cs, "ROOT", tmp_path)
+
+    files = cs.tracked_files(True)          # khong duoc nem exception
+    ten = {f.name for f in files}
+
+    assert "ma_nguon.py" in ten
+    assert "thu_vien.py" not in ten, "khong duoc quet vao .venv"
+    # Phai noi ro dang chay che do nao, de khong ai nham mot lan quet thieu
+    # voi mot lan quet du.
+    assert "Khong dung duoc git" in capsys.readouterr().out

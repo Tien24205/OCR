@@ -96,13 +96,55 @@ def tracked_files(scan_all: bool) -> list[Path]:
     bo qua toan bo 167 file da theo doi. Kho sach thi no quet 0 file roi in
     "Khong tim thay khoa nao bi ro ri": mot den xanh khong kiem tra gi ca, va
     dung o che do nguoi ta chon vi tuong la ky hon.
+
+    LOI DA SUA (2): ham nay tung de `git ls-files` that bai lam sap ca chuong
+    trinh voi mot traceback cua Python. Kich ban gap phai: nguoi nhan ban giao
+    giai nen ma nguon tu tep zip - khong co thu muc .git - roi chay bo quet
+    truoc khi commit. Git tra ma 128, `check=True` nem CalledProcessError, va
+    cong cu bao mat lai la thu duy nhat trong du an tu no vo. Phat hien khi
+    kiem chung tu ban sao sach ngay 22/09.
+
+    Nay: khong co git thi duyet thu muc, va NOI RO dang chay che do nao de
+    khong ai nham mot lan quet thieu voi mot lan quet du.
     """
     command = ["git", "ls-files"]
     if scan_all:
         command += ["--cached", "--others", "--exclude-standard"]
-    output = subprocess.run(command, cwd=ROOT, capture_output=True, text=True,
-                            check=True).stdout
-    return [ROOT / line for line in output.splitlines() if line.strip()]
+    try:
+        run = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+    except (FileNotFoundError, OSError):
+        run = None
+
+    if run is not None and run.returncode == 0:
+        return [ROOT / line for line in run.stdout.splitlines() if line.strip()]
+
+    print("Khong dung duoc git de liet ke file (khong phai kho git, hoac chua")
+    print("cai git). Chuyen sang duyet thu muc - bo qua cac thu muc sinh ra.")
+    print("")
+    return _walk_files()
+
+
+# Thu muc khong chua ma nguon cua du an: bo qua de khong quet hang chuc nghin
+# file cua thu vien ben thu ba.
+_SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__",
+              ".pytest_cache", ".mypy_cache", ".ruff_cache", "dist", "build"}
+
+
+def _walk_files() -> list[Path]:
+    """Duyet cay thu muc khi khong co git.
+
+    CANH BAO co y de lai: cach nay KHONG biet .gitignore, nen no vua co the
+    quet thua (file tam) vua co the bo sot y nghia (no khong biet file nao se
+    that su bi commit). No la duong lui, khong phai duong chinh.
+    """
+    out: list[Path] = []
+    for path in ROOT.rglob("*"):
+        if not path.is_file():
+            continue
+        if any(part in _SKIP_DIRS for part in path.parts):
+            continue
+        out.append(path)
+    return out
 
 
 def _display(path: Path) -> Path:
