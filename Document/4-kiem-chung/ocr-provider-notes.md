@@ -79,11 +79,30 @@ Ghi lại kết quả tại đây:
 
 | Mục | Giá trị |
 | --- | --- |
-| Model đã chọn | `gemini-3.5-flash` |
+| **Model đang dùng** | **`gemini-3.5-flash-lite`** — chốt ngày 15/09 |
 | Giới hạn token vào / ra | 1 048 576 / 65 536 |
-| Lý do chọn model này | Bậc `flash` rẻ nhất trong thế hệ hiện tại còn đọc được ảnh; **bản chính thức, không phải `preview`** |
-| Ngày kiểm tra | 14/09/2026 |
-| **Hạn mức bậc miễn phí** | **20 lượt/ngày** — xem cảnh báo ngay dưới |
+| Lý do chọn | Bản chính thức (không phải `preview`), trả lời ổn định, đọc đúng chữ Nhật, chấp nhận schema `CardExtraction` |
+| Ngày kiểm tra | 15/09/2026 |
+
+### Đã thử những model nào — 15/09/2026
+
+Mỗi model đúng một lời gọi thật, trên cùng một ảnh tiếng Nhật:
+
+| Model | Kết quả |
+| --- | --- |
+| `gemini-2.5-flash` | **404 NOT_FOUND** — có trong `--list-models` nhưng gọi không được |
+| `gemini-2.5-flash-lite` | **404 NOT_FOUND** — như trên |
+| `gemini-3.5-flash-lite` | ✅ đọc đúng `山田 太郎` và `株式会社青葉テクノロジー` |
+| `gemini-3-flash-preview` | ✅ đúng, nhưng là bản `preview` nên không chọn |
+| `gemini-3.5-flash` | **503** liên tục hai ngày — "experiencing high demand" |
+
+**Bài học đáng ghi:** `--list-models` liệt kê model mà tài khoản *nhìn thấy*,
+không phải model *gọi được*. Hai model bậc 2.5 nằm trong danh sách nhưng trả
+404. Chỉ có gọi thật mới biết — đúng lý do `--check` tồn tại.
+
+`gemini-3.5-flash` bị bỏ vì hai lý do cộng lại: hạn mức 20 lượt/ngày (xem
+dưới) và 503 lặp lại. Một model đúng về lý thuyết mà không gọi được thì
+không dùng được.
 
 > ### ⚠ Model này KHÔNG đủ để đo 40 thẻ
 >
@@ -141,6 +160,30 @@ schema *hợp lệ về hình thức*, chưa chứng minh máy chủ *nhận*. N
 **Phần còn thiếu:** Google Cloud Vision vẫn chưa cấu hình (`OCR_PROVIDER=mock`,
 chưa có `backend/secrets/gcp-sa.json`), nên câu 1 và 2 còn bỏ ngỏ và `--check`
 vẫn kết luận *chưa sẵn sàng*. Đó là việc duy nhất chắn giữa dự án và số đo thật.
+
+---
+
+## B2. Đường đo đã chạy trọn vẹn — 15/09/2026
+
+Chạy khô trên `datasets/_dryrun` (ảnh số sắc nét, **không phải ảnh chụp**):
+
+```
+Ảnh có   : 10   ·   thiếu ảnh: 0
+NGÔN NGỮ    CÓ THẬT   ĐÚNG   SAI   SÓT  TỰ SINH   TỶ LỆ
+ja               78     78     0     0        0  100.0%
+```
+
+**Con số 100% này không nói gì về chất lượng hệ thống.** OCR đang là `mock`,
+tức phát lại văn bản tổng hợp hoàn hảo — không có nhiễu OCR nào để mà sai.
+Nó chỉ đo được một việc: Gemini có chép đúng các trường từ một đoạn văn bản
+sạch hay không.
+
+Cái nó **thật sự chứng minh** là công cụ đo chạy được từ đầu tới cuối: đọc
+nhãn chuẩn, gọi hai tầng, so sánh theo quy tắc đã chốt, sinh đủ ba tệp
+`.md` / `.csv` / `.json`. Trước hôm nay điều đó chưa từng được kiểm.
+
+Bản thân báo cáo sinh ra đã tự in hai cảnh báo "CHẠY KHÔ — số liệu này vô
+nghĩa để nghiệm thu" ngay đầu tệp, nên không ai đọc nhầm được.
 
 ---
 
