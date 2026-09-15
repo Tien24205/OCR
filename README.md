@@ -7,8 +7,13 @@
 ```
 Streamlit (giao diện)  →  FastAPI (backend)  →  SQLite
                                 ↓
-                   Google Vision (OCR)  +  Gemini (trích xuất trường)
+        Google Vision HOẶC Tesseract (OCR)  +  Gemini (trích xuất trường)
 ```
+
+Hai tầng AI được giữ **độc lập có chủ ý**: OCR đọc pixel, Gemini suy diễn. Mọi
+giá trị Gemini trả về phải tìm được trong văn bản OCR, không tìm được thì bị
+loại — nên nguồn này kiểm chứng được nguồn kia. Xem
+[kien-truc-agentic.md](Document/2-ke-hoach/kien-truc-agentic.md).
 
 Cả hai tầng đều là Python và dùng chung một môi trường ảo.
 
@@ -154,7 +159,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**449 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**460 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI
@@ -173,7 +178,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 
 ```text
 backend/app/          FastAPI
-  ├── services/ocr/       lớp trừu tượng OCR: Google Vision + mock
+  ├── services/ocr/       lớp trừu tượng OCR: Google Vision + Tesseract + mock
   ├── services/extract/   trích xuất trường + grounding chống bịa dữ liệu
   ├── services/enrich/    tra cứu doanh nghiệp có chặn SSRF
   └── pipeline.py         điều phối; agent_runner.py khi bật chế độ agentic
@@ -183,6 +188,47 @@ frontend/             streamlit_app.py + app_pages/ + lib/
 datasets/             ảnh mẫu (không commit) + labels.jsonl
 Document/             đề bài, kế hoạch, báo cáo, kiểm chứng
 ```
+
+---
+
+## Kết quả đo chất lượng
+
+**Chưa có số đo trên ảnh chụp thật.** Công cụ đo đã xong và đã chạy trọn
+đường, nhưng còn thiếu bước in, cắt và chụp 40 tấm thẻ mẫu.
+
+| Hạng mục | Trạng thái |
+| --- | --- |
+| Công cụ đo (`evaluate.py`) | Xong, đã chạy trọn đường 15/09 |
+| Quy tắc so sánh | Chốt trong mã nguồn, khóa bằng 22 test **trước khi đo** |
+| Số đo trên ảnh chụp thật | **Chưa có** — 0/40 ảnh |
+| Nghiệm thu tiếng Hàn, tiếng Trung | Mã nguồn hỗ trợ, chưa có bộ mẫu |
+
+Báo cáo sinh ra ở `reports/evaluation.md` và tự in cảnh báo khi đang chạy ở
+chế độ khô, nên không thể đọc nhầm số liệu thử thành số liệu nghiệm thu.
+
+Bảng đo tách **bốn cột**: Đúng / Sai / Bỏ sót / **Tự sinh**. Cột cuối đếm giá
+trị hệ thống trả về trong khi thẻ *không hề có* trường đó — bịa ra dữ liệu và
+đọc nhầm là hai loại lỗi khác hẳn nhau về mức nguy hiểm, nên không gộp.
+
+Lấy số đo thật:
+
+```powershell
+.\.venv\Scripts\python.exe backend\scripts\make_card_sheets.py   # in 4 trang A4
+# cắt, chụp từng thẻ, lưu vào datasets/<split>/<lang>/NNN.jpg
+.\.venv\Scripts\python.exe backend\scripts\check_labels.py
+.\.venv\Scripts\python.exe backend\scripts\evaluate.py --split dev
+```
+
+---
+
+## Kiến trúc và lộ trình
+
+| Tài liệu | Nội dung |
+| --- | --- |
+| [kien-truc-agentic.md](Document/2-ke-hoach/kien-truc-agentic.md) | Vì sao chia thành nhiều tác tử, mô hình ba hành động, grounding như lớp an toàn, sơ đồ Mermaid |
+| [roadmap.md](Document/2-ke-hoach/roadmap.md) | v1.0 → v4.0, kèm **điều kiện bắt đầu** từng mốc |
+| [ngay-21-demo.md](Document/3-bao-cao/ngay-21-demo.md) | Kịch bản demo 7–10 phút |
+| [Document/4-kiem-chung/](Document/4-kiem-chung/) | Cái gì đã thật sự chạy, cái gì mới chỉ viết xong |
 
 ---
 
