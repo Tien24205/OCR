@@ -25,7 +25,7 @@ bắt đầu** — vì phần lớn việc phía sau không chặn ở công s�
 - Tra cứu doanh nghiệp có dẫn nguồn, chặn SSRF ở mọi lần chuyển hướng
 - Lưu hồ sơ, tìm kiếm, phát hiện trùng, xuất JSON/CSV/vCard
 - Trang tổng quan, màn hình duyệt, 24 endpoint có mô tả OpenAPI
-- 479 test tự động
+- 500 test tự động
 
 **Còn thiếu để gọi là v1.0 thật:**
 
@@ -63,15 +63,23 @@ bộ nhãn chuẩn mới phải làm tay. Gộp vào sẽ khiến v1.0 không ba
 
 **Điều kiện bắt đầu:** chất lượng đã đo và chấp nhận được.
 
-- Xác thực API bằng khóa. **Hiện tại API không có xác thực** — đây là lý do
-  webhook mặc định tắt
-- Giới hạn tần suất theo từng khóa
+- ~~Xác thực API bằng khóa~~ — **đã làm 15/09**, sớm hơn mốc này
+- ~~Giới hạn tần suất theo từng khóa~~ — **đã làm 15/09**
 - Webhook bật mặc định sau khi đã có xác thực
 - Nhập hàng loạt từ thư mục, không chỉ qua giao diện
 - Xuất thẳng sang định dạng danh bạ phổ biến
 
 **Vì sao xác thực đứng trước mọi thứ khác ở mốc này:** mở API mà không có xác
 thực nghĩa là ai biết địa chỉ cũng đọc được toàn bộ hồ sơ đối tác.
+
+> **Đã kéo lên làm sớm (15/09).** Lộ trình này đặt xác thực sau khi đo xong
+> chất lượng, và xét thuần kỹ thuật thì thứ tự đó đúng. Nhưng nó được kéo lên
+> vì một lý do khác: xác thực không đụng gì tới tầng AI, nên làm sớm không
+> làm hỏng số đo sau này — trong khi để API mở thì mọi câu nói về "mở cho hệ
+> thống khác dùng" đều không đứng vững.
+>
+> Hai phần còn lại của mốc này (băm khóa khi lưu, bộ đếm tần suất dùng chung
+> giữa nhiều bản sao) vẫn chờ, và vẫn nên chờ.
 
 ---
 

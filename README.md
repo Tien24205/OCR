@@ -81,6 +81,8 @@ Toàn bộ nằm ở `backend/.env` (đã bị `.gitignore` chặn). Xem `backen
 | `OCR_PROVIDER` | `google`, `tesseract` (cục bộ, miễn phí) hoặc `mock` (phát lại bản ghi, offline) | `mock` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Đường dẫn JSON service account; tương đối thì tính từ `backend/` | — |
 | `TESSERACT_CMD` | Đường dẫn file chạy Tesseract — chỉ cần khi nó không nằm trong `PATH` | — |
+| `API_KEYS` | Khóa API, ngăn cách bằng dấu phẩy. **Để trống = API mở** | — |
+| `RATE_LIMIT_PER_MINUTE` | Số lời gọi mỗi phút cho mỗi khóa (0 = không giới hạn) | `60` |
 | `EXTRACTOR` | `gemini` hoặc `heuristic` (regex, không cần mạng) | `heuristic` |
 | `GEMINI_API_KEY` | Khóa từ Google AI Studio | — |
 | `GEMINI_MODEL` | Tên model — **đừng đoán**, xem lệnh bên dưới | — |
@@ -159,7 +161,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**479 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**500 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI
@@ -191,6 +193,49 @@ frontend/             streamlit_app.py + app_pages/ + lib/
 datasets/             ảnh mẫu (không commit) + labels.jsonl
 Document/             đề bài, kế hoạch, báo cáo, kiểm chứng
 ```
+
+---
+
+## Xác thực API
+
+**Mặc định API không có xác thực** — bất kỳ ai gọi được cổng 8000 đều đọc được
+toàn bộ hồ sơ. Chấp nhận được khi chỉ chạy trên máy cá nhân; **không** chấp
+nhận được ở bất cứ nơi nào khác.
+
+Bật lên:
+
+```powershell
+# 1. Sinh khóa
+.\.venv\Scripts\python.exe -c "import secrets; print('ocr_' + secrets.token_urlsafe(32))"
+
+# 2. Dán vào backend\.env
+#    API_KEYS=ocr_...
+
+# 3. Giao diện cũng cần khóa đó (Streamlit chạy phía máy chủ nên trình duyệt
+#    không bao giờ thấy nó)
+$env:API_KEY = "ocr_..."
+```
+
+Gọi API kèm khóa theo một trong hai cách:
+
+```bash
+curl -H "X-API-Key: ocr_..."          http://localhost:8000/api/contacts
+curl -H "Authorization: Bearer ocr_..." http://localhost:8000/api/contacts
+```
+
+`GET /api/health` **luôn mở** để hệ thống giám sát biết dịch vụ còn sống — nó
+chỉ trả về cờ true/false, không bao giờ trả về giá trị khóa nào. Trường
+`auth_enabled` trong phản hồi cho biết API đang mở hay đóng.
+
+**Đổi `API_KEYS` phải khởi động lại backend.** `--reload` chỉ theo dõi tệp
+`.py`, không theo dõi `.env`.
+
+### Hai giới hạn đã biết
+
+| Giới hạn | Nghĩa là |
+| --- | --- |
+| Bộ đếm tần suất nằm **trong bộ nhớ một tiến trình** | Chạy nhiều bản sao thì mỗi bản đếm riêng; khởi động lại là mất bộ đếm |
+| Khóa lưu dạng **văn bản thường** trong `.env` | Giống khóa Gemini. Đủ cho một máy; môi trường nhiều người dùng cần lưu dạng băm — xem [roadmap.md](Document/2-ke-hoach/roadmap.md) mốc v2.0 |
 
 ---
 
