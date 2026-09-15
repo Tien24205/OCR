@@ -30,7 +30,26 @@ TIMEOUT_S = 30.0
 # VI SAO KHOA NAM O DAY LA AN TOAN: Streamlit chay PHIA MAY CHU. Trinh duyet
 # chi nhan HTML da dung san, khong bao gio thay bien moi truong nay - dung
 # nhu cach khoa Gemini khong bao gio roi khoi backend.
-API_KEY = os.environ.get("API_KEY", "").strip()
+def _doc_khoa() -> str:
+    """Khoa API, neu backend co bat xac thuc.
+
+    Nhan CA HAI ten bien vi hai cach chay dat ten khac nhau:
+
+      API_KEY   - chay tay: nguoi dung dat rieng cho giao dien
+      API_KEYS  - chay bang Docker Compose: giao dien doc chung
+                  `backend/.env` voi backend, va o do bien ten la API_KEYS
+
+    Lay khoa DAU TIEN khi co nhieu khoa. Cac khoa con lai danh cho he thong
+    tich hop ben ngoai, de thu hoi rieng tung cai ma khong lam hong giao dien.
+    """
+    khoa = os.environ.get("API_KEY", "").strip()
+    if khoa:
+        return khoa
+    nhieu = os.environ.get("API_KEYS", "")
+    return next((k.strip() for k in nhieu.split(",") if k.strip()), "")
+
+
+API_KEY = _doc_khoa()
 
 
 class ApiError(Exception):

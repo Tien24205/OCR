@@ -1,0 +1,74 @@
+# Dung ca he thong bang mot lenh:
+#
+#     docker compose up --build
+#
+# Roi mo http://localhost:8501
+#
+# Khoa va cau hinh doc tu `backend/.env` - tep do KHONG nam trong image (xem
+# .dockerignore), no duoc nap luc chay. Nghia la image day len registry cung
+# khong mang theo khoa nao.
+
+services:
+  backend:
+    build:
+      context: .
+      target: backend
+    env_file:
+      - backend/.env
+    environment:
+      # Ghi de vai gia tri chi dung cho may Windows cua nguoi phat trien.
+      #
+      # TESSERACT_CMD: trong .env tren Windows la "C:\Program Files\..." -
+      # duong dan do khong ton tai trong Linux. De trong thi ung dung tim
+      # `tesseract` trong PATH, va trong image thi no co san.
+      TESSERACT_CMD: ""
+      OCR_PROVIDER: "${OCR_PROVIDER:-tesseract}"
+      # Giao dien goi backend qua ten dich vu trong mang noi bo cua compose,
+      # khong qua localhost - trong container thi localhost la chinh no.
+      CORS_ORIGINS: "http://localhost:8501"
+    volumes:
+      # CSDL va anh phai song lau hon container. Khong co dong nay thi moi lan
+      # `docker compose down` la mat sach ho so da luu.
+      - ocr-data:/app/backend/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      # Dung chinh endpoint ma he thong giam sat dung. No luon mo, khong doi
+      # khoa API, nen healthcheck khong can biet khoa.
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Lan khoi dong dau con phai tao bang CSDL, nen cho san mot khoang.
+      start_period: 20s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+    env_file:
+      # BAY DA TRANH: `${API_KEYS}` trong compose doc tu shell hoac tu `.env`
+      # o GOC du an, khong doc tu `backend/.env`. Neu dung cach do thi giao
+      # dien se khong co khoa va moi loi goi deu tra 401 - ma thong bao loi
+      # lai tro sang huong khac.
+      #
+      # Cho giao dien doc thang cung tep cau hinh voi backend. Giao dien la
+      # thanh phan phia may chu duoc tin cay, dung chung ranh gioi tin cay
+      # voi backend trong cung mot lan trien khai.
+      - backend/.env
+    environment:
+      API_BASE_URL: "http://backend:8000"
+    depends_on:
+      backend:
+        # `service_started` la khong du: giao dien se goi /api/health ngay khi
+        # len va bao "backend khong chay" trong vai giay dau, lam nguoi dung
+        # tuong he thong hong.
+        condition: service_healthy
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+
+volumes:
+  ocr-data:

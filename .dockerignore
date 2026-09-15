@@ -1,0 +1,33 @@
+# Thu gi lot vao day se nam trong image va di theo image di khap noi.
+#
+# HAI MUC DAU LA QUAN TRONG NHAT:
+#   .venv     - vai tram MB, va la venv cua Windows nen trong Linux vo dung
+#   **/.env   - CHUA KHOA THAT. Image thuong duoc day len registry, va mot
+#               khoa nam trong lop image thi xoa tep di cung khong go duoc,
+#               y het nhu commit khoa vao Git.
+.venv/
+venv/
+**/.env
+
+# Du lieu chay - phai nam o volume, khong nam trong image. Nhoi vao day se
+# lam moi ban dung deu bat dau voi CSDL cu cua may nguoi build.
+backend/data/
+reports/
+datasets/
+!datasets/labels.jsonl
+
+# Rac
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.git/
+.gitignore
+node_modules/
+
+# Khong can de chay
+Document/
+*.md
+!README.md
