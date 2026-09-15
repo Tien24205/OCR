@@ -235,11 +235,30 @@ def preflight(settings) -> int:
 
     print("")
     print(SEP)
-    if ready and settings.ocr_provider == "google" and settings.extractor == "gemini":
+    # LOI DA SUA: dong nay tung kiem cung `ocr_provider == "google"`, nen cau
+    # hinh tesseract chay tot van bi bao "CHUA SAN SANG" - va te hon, ham van
+    # tra ma thoat 0. Thong bao va ma thoat noi nguoc nhau, nen dung trong CI
+    # se cho ket qua sai ma khong ai doc ra.
+    #
+    # Ba trang thai thuc su khac nhau, phai noi ro tung cai:
+    ocr_that = settings.ocr_provider in ("google", "tesseract")
+    trich_xuat_that = settings.extractor == "gemini"
+
+    if ready and ocr_that and trich_xuat_that:
         print("SAN SANG. Buoc tiep theo:")
         print("  1. In 4 trang trong datasets/print/, cat, chup lai 40 the")
         print("  2. python backend/scripts/try_ocr.py datasets/dev/ja/001.jpg")
         print("  3. python backend/scripts/evaluate.py --split dev")
+    elif ready:
+        # Khong co loi nao, nhung dang chay o che do gia lap. Khong duoc goi
+        # la "san sang": so do lay tu day khong co y nghia nghiem thu.
+        print("CHAY DUOC, nhung day KHONG phai cau hinh de do chat luong.")
+        if not ocr_that:
+            print("  OCR_PROVIDER dang la '" + settings.ocr_provider
+                  + "' - dat 'tesseract' (mien phi) hoac 'google'.")
+        if not trich_xuat_that:
+            print("  EXTRACTOR dang la '" + settings.extractor
+                  + "' - dat 'gemini'.")
     else:
         print("CHUA SAN SANG. Sua cac loi o tren roi chay lai lenh nay.")
     print(SEP)
