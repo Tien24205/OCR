@@ -196,6 +196,60 @@ Document/             đề bài, kế hoạch, báo cáo, kiểm chứng
 
 ---
 
+## Chạy bằng Docker
+
+Một lệnh, không cần cài Python hay Tesseract trên máy:
+
+```bash
+cp backend/.env.example backend/.env   # điền khóa Gemini nếu có
+docker compose up --build
+```
+
+Rồi mở **http://localhost:8501**.
+
+| Điều | Cách làm |
+| --- | --- |
+| Dừng | `docker compose down` |
+| Dừng **và xoá dữ liệu** | `docker compose down -v` |
+| Xem log | `docker compose logs -f backend` |
+| Chạy lại sau khi sửa mã | `docker compose up --build` |
+
+**Dữ liệu sống lâu hơn container.** Hồ sơ và ảnh nằm trong volume `ocr-data`,
+nên `docker compose down` rồi `up` lại vẫn còn nguyên. Chỉ `down -v` mới xoá.
+
+**Khóa không nằm trong image.** `backend/.env` bị `.dockerignore` chặn và chỉ
+được nạp lúc chạy — nên image đẩy lên registry cũng không mang theo khóa nào.
+Một khóa lọt vào lớp image thì xoá tệp đi cũng không gỡ được, y hệt như commit
+khóa vào Git.
+
+### Một khác biệt cần biết trước
+
+Gói Tesseract của Debian dùng bộ `tessdata` tiêu chuẩn, còn số đo **85,9%**
+ngày 15/09 chạy trên `tessdata_best` cài tay trên Windows. `tessdata_best`
+chính xác hơn nhưng chậm hơn.
+
+Nghĩa là **kết quả trong container có thể khác con số trong báo cáo** — chênh
+lệch đến từ dữ liệu model, không phải từ mã nguồn.
+
+Đã quan sát thật trên cùng một tấm thẻ:
+
+| | Máy thật (`tessdata_best`) | Container (tessdata Debian) |
+| --- | --- | --- |
+| Website | `https://www.example.co.` + `Jp` | `https://www.example.co` + `Jp` |
+| Phòng ban | `営業 本 部 BES` | `営業 本 部 ss ah`, `=]`, `Al`, `Ail` |
+
+Container **mất dấu chấm** trước `jp`, nên hệ thống nối dòng lại được
+`example.cojp` chứ không phải `example.co.jp` — và grounding loại website đó.
+
+**Đó là hành vi đúng.** Ký tự ấy thật sự không có trong văn bản OCR đọc ra;
+chấp nhận nó nghĩa là bịa thêm một ký tự không ai nhìn thấy. Kết quả: trên
+thẻ này container đọc được 5 trường, máy thật đọc được 6.
+
+Muốn số đo khớp với báo cáo thì gắn `tessdata_best` vào bằng volume và đặt
+`TESSDATA_PREFIX`.
+
+---
+
 ## Xác thực API
 
 **Mặc định API không có xác thực** — bất kỳ ai gọi được cổng 8000 đều đọc được

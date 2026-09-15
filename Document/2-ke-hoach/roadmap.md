@@ -89,6 +89,7 @@ thực nghĩa là ai biết địa chỉ cũng đọc được toàn bộ hồ s
 
 - Bảng `users`, gắn `scans` và `contacts` với người tạo
 - Phân quyền theo vai trò: quản trị / người dùng
+- ~~Đóng gói bằng Docker~~ — **đã làm 15/09**: `docker compose up --build`
 - Triển khai lên máy chủ, chuyển từ SQLite sang PostgreSQL
 - Nhật ký thao tác: ai sửa trường nào, lúc nào
 
