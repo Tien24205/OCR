@@ -158,7 +158,8 @@ def run_one(row: dict, ocr, extractor, image_root: Path) -> dict:
         "image": row["image"],
         "lang": row["lang"],
         "per_field": compare_card(row, fields),
-        "grounding": grounding_quality(row, grounded["report"]),
+        "grounding": grounding_quality(row, grounded["report"],
+                                       ocr_result.raw_text),
         "ms_ocr": ms_ocr,
         "ms_extract": ms_extract,
         "raw_chars": len(ocr_result.raw_text),
@@ -316,19 +317,39 @@ def build_report(cards: list[dict], missing: list[str], settings, split: str,
     # --- Chat luong cua chinh chot chan grounding ---
     rejected = sum(c["grounding"]["rejected"] for c in cards)
     wrongly = sum(c["grounding"]["rejected_but_correct"] for c in cards)
+    do_ocr = sum(c["grounding"].get("ocr_khong_doc_ra", 0) for c in cards)
+    do_nguong = sum(c["grounding"].get("nguong_qua_chat", 0) for c in cards)
     out += [
         "## Chốt chặn chống bịa dữ liệu",
         "",
         f"- Giá trị bị grounding loại: **{rejected}**",
-        f"- Trong đó **loại nhầm** (giá trị có thật trên thẻ): **{wrongly}**",
+        f"- Trong đó giá trị có thật trên thẻ: **{wrongly}**",
+        "",
+        "Con số thứ hai **không phải** thước đo của grounding, vì nó gộp hai "
+        "nguyên nhân đòi hỏi hai phản ứng ngược nhau:",
+        "",
+        "| Nguyên nhân | Số lượng | Nghĩa là |",
+        "| --- | ---: | --- |",
+        f"| OCR không đọc ra giá trị | {do_ocr} | **Grounding làm đúng** — nó từ "
+        "chối thứ không có bằng chứng. Muốn cải thiện thì cải thiện OCR |",
+        f"| OCR đọc ra nhưng vẫn bị loại | {do_nguong} | **Đây mới là loại nhầm "
+        "thật** — do ngưỡng `_FUZZY_THRESHOLD` quá chặt |",
         "",
     ]
     if rejected:
         out.append(
-            f"Tỷ lệ loại nhầm: **{wrongly / rejected * 100:.1f}%**. "
-            "Con số này đo chính ngưỡng `_FUZZY_THRESHOLD` — cao thì ngưỡng đang "
-            "quá chặt và đang vứt đi dữ liệu đúng."
+            f"Tỷ lệ loại nhầm thật: **{do_nguong / rejected * 100:.1f}%** "
+            f"({do_nguong}/{rejected}). Chỉ con số này mới đo ngưỡng; "
+            "cao thì ngưỡng đang vứt đi dữ liệu mà OCR đã đọc được."
         )
+        if do_ocr and not do_nguong:
+            out.append("")
+            out.append(
+                "**Mọi lần loại đều do OCR đọc sót, không lần nào do ngưỡng.** "
+                "Nới lỏng ngưỡng ở đây sẽ không cứu được giá trị nào — vì giá "
+                "trị đó không hề có trong văn bản OCR để mà đối chiếu — nhưng "
+                "sẽ làm yếu cơ chế chống bịa đặt."
+            )
     else:
         out.append("Không có giá trị nào bị loại trong lần đo này.")
     out.append("")

@@ -148,20 +148,52 @@ def test_moi_gia_tri_chi_khop_mot_lan():
 
 def test_grounding_loai_dung_du_lieu_bia():
     report = {"emails": [{"value": "info@example.co.jp", "verdict": "unverified"}]}
-    assert grounding_quality(LABEL_JA, report) == {
-        "rejected": 1, "rejected_but_correct": 0
-    }
+    ket = grounding_quality(LABEL_JA, report)
+    assert (ket["rejected"], ket["rejected_but_correct"]) == (1, 0)
 
 
 def test_grounding_loai_nham_gia_tri_dung_duoc_ghi_nhan():
-    """Grounding loai mot gia tri CO THAT tren the - day la loi cua grounding,
-    khong phai cua OCR. Phai do duoc, neu khong se khong biet nguong
-    _FUZZY_THRESHOLD dat sai."""
+    """Grounding loai mot gia tri CO THAT tren the. Phai dem duoc."""
     report = {"emails": [{"value": "taro.yamada@example.co.jp",
                           "verdict": "unverified"}]}
-    assert grounding_quality(LABEL_JA, report) == {
-        "rejected": 1, "rejected_but_correct": 1
-    }
+    ket = grounding_quality(LABEL_JA, report)
+    assert (ket["rejected"], ket["rejected_but_correct"]) == (1, 1)
+
+
+def test_tach_duoc_loi_OCR_khoi_loi_NGUONG():
+    """LOI DA SUA: chi so nay tung danh dong hai thu khac han nhau.
+
+    Mot gia tri co that bi loai den tu hai nguyen nhan doi hoi hai phan ung
+    NGUOC NHAU:
+      (a) OCR khong doc ra  -> grounding lam DUNG, phai cai thien OCR
+      (b) OCR doc ra ma van loai -> nguong qua chat, day moi la loai nham
+
+    Do that 15/09 voi Tesseract: 10/10 deu thuoc (a). Bao cao cu gop chung va
+    in "Ty le loai nham: 100%" - ai doc cung se di noi long nguong, tuc lam
+    yeu co che chong bia dat MA KHONG CUU DUOC GIA TRI NAO, vi gia tri do
+    khong he co trong van ban OCR de ma doi chieu.
+    """
+    report = {"emails": [{"value": "taro.yamada@example.co.jp",
+                          "verdict": "unverified"}]}
+
+    # OCR khong he doc ra email -> loi cua OCR, khong phai cua nguong
+    ket = grounding_quality(LABEL_JA, report, raw_text="株式会社青葉テクノロジー")
+    assert (ket["ocr_khong_doc_ra"], ket["nguong_qua_chat"]) == (1, 0)
+
+    # OCR CO doc ra ma grounding van loai -> nguong qua chat
+    ket = grounding_quality(LABEL_JA, report,
+                            raw_text="mail: taro.yamada@example.co.jp")
+    assert (ket["ocr_khong_doc_ra"], ket["nguong_qua_chat"]) == (0, 1)
+
+
+def test_khong_truyen_raw_text_thi_khong_doan_bua():
+    """Thieu van ban OCR thi khong tach duoc nguyen nhan - phai de 0, khong
+    duoc doan sang mot ben."""
+    report = {"emails": [{"value": "taro.yamada@example.co.jp",
+                          "verdict": "unverified"}]}
+    ket = grounding_quality(LABEL_JA, report)
+    assert ket["rejected_but_correct"] == 1
+    assert (ket["ocr_khong_doc_ra"], ket["nguong_qua_chat"]) == (0, 0)
 
 
 # --- Xuat CSV va chon vi du (Ngay 9) --------------------------------------

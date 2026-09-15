@@ -198,14 +198,40 @@ def aggregate(cards: list[tuple[str, dict[str, FieldResult]]]) -> dict:
     return by_lang_field
 
 
-def grounding_quality(label: dict, report: dict) -> dict:
+def grounding_quality(label: dict, report: dict, raw_text: str = "") -> dict:
     """Do chinh chot chan grounding: no loai bo dung hay loai nham?
 
     `report` la `grounding["report"]` - moi gia tri kem verdict, ke ca gia tri
     da bi loai. Day la ly do bao cao phai giu lai ca phan bi loai.
+
+    LOI DA SUA - CHI SO NAY TUNG DANH DONG HAI THU KHAC HAN NHAU:
+
+    Mot gia tri bi loai ma lai co that tren the co the den tu HAI nguyen nhan
+    doi hoi hai phan ung nguoc nhau:
+
+      (a) OCR khong doc ra gia tri do. Grounding LAM DUNG - no tu choi thu
+          khong co bang chung. Loi nam o OCR, khong nam o nguong.
+      (b) OCR CO doc ra, nhung grounding van loai. Day moi la loai nham that
+          su, va no do chinh nguong `_FUZZY_THRESHOLD` gay ra.
+
+    Do that ngay 15/09 voi Tesseract: 10/10 gia tri bi loai deu thuoc loai (a).
+    Bao cao cu gop chung lai va in "Ty le loai nham: 100%" - ai doc cung se
+    ket luan nguong bi hong roi di noi long no, tuc lam yeu chinh co che chong
+    bia dat MA KHONG CO LY DO. Mot chi so gay hieu nham o day nguy hiem hon la
+    khong co chi so nao.
+
+    `raw_text` la van ban OCR that. Khong truyen vao thi khong tach duoc hai
+    nguyen nhan, va ca hai deu bi dem vao `rejected_but_correct` nhu truoc.
     """
     rejected = 0
     rejected_but_correct = 0
+    ocr_khong_doc_ra = 0
+    nguong_qua_chat = 0
+    # Dung `_nfkc` cua chinh tang do, KHONG muon `norm_for_match` cua
+    # grounding: quy tac so sanh cua tang do phai doc lap voi thu no dang
+    # cham diem, neu khong thi no cham diem bang chinh thuoc do cua bi cao.
+    bang_chung = _nfkc(raw_text) if raw_text else ""
+
     for field, items in (report or {}).items():
         if field not in FIELD_MAP:
             continue
@@ -215,6 +241,24 @@ def grounding_quality(label: dict, report: dict) -> dict:
             if item.get("verdict") != "unverified":
                 continue
             rejected += 1
-            if any(same(field, e, item.get("value", "")) for e in truth):
-                rejected_but_correct += 1
-    return {"rejected": rejected, "rejected_but_correct": rejected_but_correct}
+            gia_tri = item.get("value", "")
+            if not any(same(field, e, gia_tri) for e in truth):
+                continue
+            rejected_but_correct += 1
+            if not bang_chung:
+                continue
+            # Gia tri co nam trong van ban OCR khong? Co thi nguong qua chat;
+            # khong thi OCR da doc sot va grounding tu choi la dung.
+            chuan = _nfkc(gia_tri)
+            if chuan and chuan in bang_chung:
+                nguong_qua_chat += 1
+            else:
+                ocr_khong_doc_ra += 1
+
+    return {
+        "rejected": rejected,
+        "rejected_but_correct": rejected_but_correct,
+        # Hai cot duoi day tach nguyen nhan. Chi co nghia khi truyen raw_text.
+        "ocr_khong_doc_ra": ocr_khong_doc_ra,
+        "nguong_qua_chat": nguong_qua_chat,
+    }
