@@ -56,6 +56,7 @@ Mỗi báo cáo trả lời bốn câu: **làm gì → mục đích → cách l�
 | [ngay-21-demo.md](3-bao-cao/ngay-21-demo.md) | **Kịch bản demo 7–10 phút** — bản đang dùng, kèm câu trả lời khi bị hỏi |
 | [moc-15-09.md](3-bao-cao/moc-15-09.md) | Giảm rủi ro cho lần chạy OCR thật đầu tiên |
 | [moc-16-19-09.md](3-bao-cao/moc-16-19-09.md) | Mở rộng ra 4 ngôn ngữ, test trọn hành trình, UX |
+| [moc-20-22-09.md](3-bao-cao/moc-20-22-09.md) | Tài liệu kiến trúc, kịch bản demo, kiểm chứng bàn giao từ bản sạch |
 
 Ngày 9 và 10 đã có báo cáo. Ngày 9 **chưa đạt Định nghĩa hoàn thành** — công cụ xong, thiếu số thật.
 
@@ -78,7 +79,7 @@ Số liệu dưới đây lấy trực tiếp từ mã nguồn, không chép l�
 
 | Chỉ số | Giá trị |
 | --- | --- |
-| Test | 460 pass (53 giây) |
+| Test | 461 pass (55 giây) |
 | Endpoint API | 24 (20 đường dẫn), tất cả có mô tả OpenAPI |
 | Bảng cơ sở dữ liệu | 10 |
 | Nhãn chuẩn sẵn sàng | 40 (20 Anh + 20 Nhật) |
@@ -119,7 +120,7 @@ Chạy thử toàn bộ đường đo mà chưa cần ảnh chụp:
 
 **Toàn bộ Ngày 3–7 được xây trên hai fixture tổng hợp.** Hai file trong `backend/tests/fixtures/ocr/` mang nhãn `provider: "synthetic"` — sinh từ văn bản viết tay ở Ngày 2, không phải kết quả OCR.
 
-460 test xanh chứng minh mã nguồn tự nhất quán. Nó **không** chứng minh OCR đọc được danh thiếp tiếng Nhật.
+461 test xanh chứng minh mã nguồn tự nhất quán. Nó **không** chứng minh OCR đọc được danh thiếp tiếng Nhật.
 
 **Ngày 14/09 đã gạch được một gạch đầu dòng:** schema `CardExtraction` *đã* được Gemini chấp nhận — `gemini-3.5-flash`, gọi thật, trả về đúng `山田 太郎` và email. Đây là lần đầu dự án chạm tới một dịch vụ thật. Chi tiết ở [4-kiem-chung/ocr-provider-notes.md](4-kiem-chung/ocr-provider-notes.md) mục B.
 
