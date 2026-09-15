@@ -75,6 +75,26 @@ A4 = (int(210 * MM), int(297 * MM))  # 2480 x 3508
 CARD = (int(91 * MM), int(55 * MM))  # 1075 x 650 - kich thuoc danh thiep Nhat
 COLS, ROWS = 2, 5
 
+# CANH BAO CHO AI THEM THE TIENG HAN HOAC TIENG TRUNG:
+#
+# Bang nay chi dung duoc cho tieng Nhat va tieng Anh. YuGothic KHONG co glyph
+# Hangul, cung khong co cac chu Han gian the rieng cua tieng Trung. Thieu glyph
+# thi Pillow ve o .notdef - MOT O VUONG - chu khong bao loi gi ca.
+#
+# Nguy hiem o cho: nguoi khong doc duoc tieng Han se nhin trang in thay "co
+# chu" va tuong da xong, roi dem di chup 20 tam the toan o vuong.
+#
+# Do that bang cach so anh ve voi anh cua U+E000 (vung dung rieng, khong font
+# nao co glyph, nen no chinh la o .notdef cua font do):
+#
+#     YuGothic   山=CO  김=THIEU  준=THIEU  这=THIEU  团=THIEU
+#     Malgun     山=CO  김=CO     준=CO     这=THIEU  团=THIEU
+#     YaHei      山=CO  김=THIEU  준=THIEU  这=CO     团=CO
+#
+# Muon them tieng Han / tieng Trung thi phai chon font THEO NGON NGU:
+#     ko -> C:/Windows/Fonts/malgunbd.ttf, malgun.ttf, malgunsl.ttf
+#     zh -> C:/Windows/Fonts/msyhbd.ttc,   msyh.ttc,   msyhl.ttc
+# va kiem lai bang phep so o tren TRUOC KHI in.
 FONTS = {
     "bold": "C:/Windows/Fonts/YuGothB.ttc",
     "medium": "C:/Windows/Fonts/YuGothM.ttc",
