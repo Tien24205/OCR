@@ -187,7 +187,57 @@ nghĩa để nghiệm thu" ngay đầu tệp, nên không ai đọc nhầm đư�
 
 ---
 
-## C. Kết quả chạy thật — **cần điền**
+## C0. Số đo chất lượng thật đầu tiên — 15/09/2026
+
+Tesseract 5.4.0 (`tessdata_best`) + `gemini-3.5-flash-lite`, 10 thẻ tiếng Nhật.
+
+> **Vẫn là ảnh số, chưa phải ảnh chụp.** Ảnh lấy từ `datasets/_dryrun` — thẻ
+> dựng bằng máy, sắc nét tuyệt đối. Nhưng **tầng OCR đã là thật**, nên đây là
+> lần đầu dự án có số đo mà OCR không phải đồ giả lập.
+
+| Trường | Có trên thẻ | Đúng | Sai | Bỏ sót | Tự sinh | Tỷ lệ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Công ty | 10 | 10 | 0 | 0 | 0 | 100% |
+| Email | 9 | 9 | 0 | 0 | 0 | 100% |
+| Điện thoại | 14 | 14 | 0 | 0 | 0 | 100% |
+| Họ tên | 10 | 8 | 0 | 2 | 0 | 80% |
+| Phòng ban | 9 | 7 | 0 | 2 | 0 | 77,8% |
+| Địa chỉ | 9 | 7 | 0 | 2 | 0 | 77,8% |
+| Website | 7 | 6 | 0 | 1 | 0 | 85,7% |
+| Chức danh | 10 | 6 | 0 | 4 | 0 | 60% |
+| **Tổng** | **78** | **67** | **0** | **11** | **0** | **85,9%** |
+
+### Điều đáng chú ý nhất: cột "Sai" và "Tự sinh" đều bằng 0
+
+Hệ thống **chưa từng đọc nhầm thành một giá trị khác, cũng chưa từng bịa**.
+Mọi lỗi đều là **bỏ sót**. Đó là kiểu hỏng an toàn nhất: một ô trống buộc
+người duyệt phải điền, còn một giá trị sai thì trôi thẳng vào hồ sơ đối tác.
+
+Đây chính là grounding làm đúng việc của nó — Tesseract đọc sai `部長` thành
+`部`, model có muốn đoán bù cũng không có bằng chứng để qua cửa.
+
+### Tesseract yếu ở đâu
+
+Chức danh Nhật (60%) và tên người là chỗ kém nhất — đều là cụm 2–3 chữ Kanji
+ngắn. `部長` bị đọc thành `部`, `営業本部 第一営業部` thành `営業 本 部 BES`.
+Ngược lại email, điện thoại và tên công ty đạt 100%: chúng dài hơn, có cấu
+trúc rõ, và công ty Nhật luôn kèm `株式会社`.
+
+### Hai lỗi lộ ra nhờ lần đo này
+
+| Lỗi | Sửa thế nào |
+| --- | --- |
+| OCR cắt URL làm đôi giữa dòng, grounding loại nhầm website có thật | Nối hai dòng liền nhau khi tách token email/URL — không áp dụng cho điện thoại |
+| Chỉ số "tỷ lệ loại nhầm" in ra **100%**, gộp lỗi OCR với lỗi ngưỡng | Tách hai nguyên nhân; con số thật là **0%** |
+
+Lỗi thứ hai nguy hiểm hơn lỗi thứ nhất: nó khiến người đọc kết luận ngưỡng
+`_FUZZY_THRESHOLD` bị hỏng và đi nới lỏng nó — làm yếu cơ chế chống bịa đặt
+mà không cứu được giá trị nào, vì những giá trị ấy không hề có trong văn bản
+OCR để mà đối chiếu.
+
+---
+
+## C. Kết quả chạy thật trên ảnh CHỤP — **cần điền**
 
 Chạy trên ít nhất 2 ảnh tiếng Anh và 2 ảnh tiếng Nhật:
 
