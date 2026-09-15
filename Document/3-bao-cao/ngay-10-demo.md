@@ -1,5 +1,14 @@
 # Kịch bản demo 5–7 phút
 
+> **⚠ BẢN CŨ — đừng dùng để demo.**
+> Viết khi dự án mới xong Ngày 10. Con số "313 test" trong tài liệu này là của
+> thời điểm đó và nay đã sai. Từ Ngày 10 tới nay có thêm điều phối agentic,
+> điểm tin cậy, trang tổng quan, tải hàng loạt, webhook và OCR cục bộ — demo
+> theo bản này sẽ bỏ sót đúng những phần đáng xem nhất.
+>
+> **Bản đang dùng: [ngay-21-demo.md](ngay-21-demo.md)** (7–10 phút).
+> Giữ tệp này lại chỉ để đối chiếu lịch sử.
+
 Chuẩn bị trước, đừng làm trong lúc demo:
 
 ```powershell
