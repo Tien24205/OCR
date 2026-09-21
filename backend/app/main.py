@@ -22,6 +22,7 @@ from app.models import Scan
 from app.pipeline import run_batch, run_scan
 from app.services.images import ImageInputError, prepare_image, store_image
 from app.services.drafts import DraftUpdate, apply_edit, current_draft
+from app.services.extract.unclaimed import split_text
 from app.models import utcnow
 from app.models import Organization, Enrichment, EnrichmentJob, norm_key
 from app.services.enrich.worker import run_enrichment, job_result
@@ -302,9 +303,14 @@ def get_scan(scan_id: str, db: Session = Depends(get_db)) -> dict:
     selected_text = agent_work["ocr_attempts"][selected]["raw_text"] if selected is not None else None
     research = db.scalar(select(EnrichmentJob).where(EnrichmentJob.scan_id == scan_id,
                         EnrichmentJob.draft_revision == grounding.get("draft_revision", 0)))
+    draft = current_draft(grounding)
     return {
         "id": scan.id, "status": scan.status, "contact_id": scan.contact_id, "image_ref": scan.image_ref,
-        "raw_text": scan.raw_text, "draft": current_draft(grounding),
+        "raw_text": scan.raw_text, "draft": draft,
+        # Phan OCR doc duoc ma khong thuoc truong nao. Tinh luc doc chu khong
+        # luu vao DB: no la phep tru tu `raw_text` va ban nhap hien tai, nen
+        # luu lai chi tao them mot ban sao co the lech voi hai nguon do.
+        "other_text": split_text(selected_text or scan.raw_text, draft),
         "ocr_text_for_draft": selected_text,
         "draft_revision": grounding.get("draft_revision", 0),
         "draft_saved_at": grounding.get("draft_saved_at"),
