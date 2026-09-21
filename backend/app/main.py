@@ -85,8 +85,27 @@ def health(config: Settings = Depends(get_settings)) -> dict:
     """Kiem tra ung dung song va cau hinh da san sang chua.
 
     `readiness()` chi tra ve True/False - khong bao gio lo gia tri khoa.
+
+    `verified` la ket qua lan XAC MINH THAT gan nhat, hoac None neu chua chay
+    lan nao. Doc tu bo nho, khong goi dich vu - endpoint nay bi healthcheck goi
+    10 giay mot lan.
     """
-    return {"status": "ok", "env": config.app_env, "config": config.readiness()}
+    from app.services import readiness
+
+    return {"status": "ok", "env": config.app_env, "config": config.readiness(),
+            "verified": readiness.last_result()}
+
+
+@app.post("/api/readiness/verify")
+def verify_readiness(config: Settings = Depends(get_settings)) -> dict:
+    """Xac minh dich vu bang loi goi that. TON HAN MUC: toi da hai lan goi.
+
+    Tach khoi /api/health vi health chay 10 giay mot lan; goi Gemini o do se
+    dot han muc va tien ma khong ai yeu cau.
+    """
+    from app.services import readiness
+
+    return readiness.verify(config)
 
 @app.get("/api/stats")
 def get_stats(db: Session = Depends(get_db)) -> dict:

@@ -7,6 +7,8 @@ True/False chu khong tra ve gia tri.
 
 from __future__ import annotations
 
+import importlib.util
+import shutil
 from functools import lru_cache
 from pathlib import Path
 
@@ -45,7 +47,7 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 60
 
     # --- OCR ---
-    ocr_provider: str = "mock"          # google | tesseract | mock
+    ocr_provider: str = "mock"          # google | tesseract | rapidocr | mock
     google_application_credentials: str | None = None
     # Chi can khi Tesseract khong nam trong PATH (hay gap tren Windows).
     tesseract_cmd: str | None = None
@@ -91,6 +93,40 @@ class Settings(BaseSettings):
         return path if path.is_absolute() else (BACKEND_DIR / path).resolve()
 
     @property
+    def ocr_configured(self) -> bool:
+        """Provider DANG CHON da du cau hinh chua - hoi rieng tung provider.
+
+        LOI DA SUA (ra-soat-ngay-1-2.md, D1-02): giao dien lay
+        `ocr_credentials_present` - tuc credentials Google - lam thuoc do cho
+        MOI provider. Chay `tesseract`, thu khong dung credentials Google chut
+        nao, van bi bao "chua du cau hinh" trong khi no dang doc anh binh thuong.
+
+        Van chi la phep kiem SU CO MAT, khong phai lam that. Goi
+        `get_tesseract_version()` o day se them mot tien trinh con vao MOI lan
+        /api/health, ma healthcheck cua Docker goi 10 giay mot lan.
+        """
+        if self.ocr_provider == "mock":
+            return True
+        if self.ocr_provider == "tesseract":
+            if self.tesseract_cmd:
+                return Path(self.tesseract_cmd).is_file()
+            # De trong nghia la "tim trong PATH" - trong image Docker thi co san.
+            return shutil.which("tesseract") is not None
+        if self.ocr_provider == "rapidocr":
+            # Chay hoan toan trong Python, khong co phan mem he thong nao de
+            # tim: cau hoi duy nhat la goi da duoc cai chua. `find_spec` khong
+            # import goi nen khong keo theo vai giay nap ONNX Runtime vao moi
+            # lan /api/health.
+            return importlib.util.find_spec("rapidocr") is not None
+        # google: tro toi mot file thi file do phai ton tai; de trong la ADC
+        # (`gcloud auth application-default login`), mot cach cau hinh hop le
+        # khong the xac minh tu cau hinh.
+        if self.google_application_credentials:
+            creds = self.credentials_path
+            return bool(creds and creds.is_file())
+        return True
+
+    @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
@@ -111,6 +147,10 @@ class Settings(BaseSettings):
             # Credentials. Do khong phai loi cau hinh, nen bao rieng thay vi
             # gop chung voi "thieu credentials".
             "ocr_credentials_present": bool(creds and creds.is_file()),
+            # Chi muc nay moi tra loi dung cau hoi "chay duoc chua" - xem
+            # `ocr_configured`. Giu `ocr_credentials_present` vi no van la su
+            # that rieng ve credentials Google.
+            "ocr_configured": self.ocr_configured,
             "ocr_auth_mode": ("service_account_file" if creds
                               else "application_default"),
             "extractor": self.extractor,

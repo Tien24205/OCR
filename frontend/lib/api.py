@@ -107,6 +107,12 @@ def health() -> dict[str, Any]:
     return _request("GET", "/api/health")
 
 
+def verify_readiness() -> dict[str, Any]:
+    """Xac minh dich vu bang loi goi that. TON HAN MUC - chi goi khi nguoi
+    dung bam nut, khong bao gio goi tu dong theo moi lan ve lai giao dien."""
+    return _request("POST", "/api/readiness/verify")
+
+
 def create_scan(filename: str, data: bytes, mime: str) -> dict[str, Any]:
     """Ngay 3: POST /api/scans."""
     return _request(

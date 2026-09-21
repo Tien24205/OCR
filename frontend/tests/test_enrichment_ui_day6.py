@@ -9,7 +9,8 @@ from lib import api
 
 def app(monkeypatch):
     monkeypatch.setattr(api, "health", lambda: {"env": "test", "config": {
-        "ocr_provider": "mock", "ocr_credentials_present": False, "gemini_key_present": False,
+        "ocr_provider": "mock", "ocr_credentials_present": False, "ocr_configured": True,
+        "gemini_key_present": False,
         "gemini_model_set": False, "extractor": "heuristic", "enrich_enabled": True}})
     monkeypatch.setattr(api, "get_image", lambda ref: b"bad-image")
     at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "streamlit_app.py"), default_timeout=15)

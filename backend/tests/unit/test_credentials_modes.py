@@ -107,6 +107,29 @@ def test_readiness_phan_biet_hai_che_do(tmp_path):
     assert with_file["ocr_credentials_present"] is True
 
 
+def test_readiness_do_dung_provider_dang_chon(tmp_path):
+    """LOI DA SUA (D1-02): sidebar bao "chua du cau hinh" cho tesseract chi vi
+    khong co credentials Google, trong khi tesseract khong dung credentials."""
+    binary = tmp_path / "tesseract.exe"
+    binary.write_text("", encoding="utf-8")
+
+    tess = config(ocr_provider="tesseract", google_application_credentials=None,
+                  tesseract_cmd=str(binary)).readiness()
+    assert tess["ocr_credentials_present"] is False   # su that ve Google
+    assert tess["ocr_configured"] is True             # nhung tesseract van chay duoc
+
+    thieu = config(ocr_provider="tesseract",
+                   tesseract_cmd=str(tmp_path / "khong-ton-tai.exe")).readiness()
+    assert thieu["ocr_configured"] is False
+
+    assert config(ocr_provider="mock").readiness()["ocr_configured"] is True
+
+    # google: ADC hop le; tro toi file khong ton tai thi khong.
+    assert config(google_application_credentials=None).readiness()["ocr_configured"] is True
+    assert config(google_application_credentials=str(tmp_path / "vang.json")
+                  ).readiness()["ocr_configured"] is False
+
+
 def test_readiness_khong_bao_gio_lo_duong_dan_hay_gia_tri_khoa(tmp_path):
     target = tmp_path / "secret-sa.json"
     target.write_text("{}", encoding="utf-8")
