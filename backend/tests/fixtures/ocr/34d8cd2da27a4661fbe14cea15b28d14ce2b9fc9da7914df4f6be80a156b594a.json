@@ -1,0 +1,13 @@
+{
+  "source_file": "005.jpg",
+  "raw_text": "사단법인 대한첨단소재기술연구협회\n연구개발센터\n책임연구원\n정우진\n(34141) 대전광역시 유성구 대학로 291\nTEL: 042-350-1000\nw.jung@example.or.kr\nhttps://www.example.or.kr",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source_file": "005.jpg",
+  "raw_text": "世宗电子元件有限公司\n质量管理部\n部长\n罗宪宇\n江西省南昌市红谷滩区赣江北大道1号\n电话: 0791-8650-1100\n传真: 0791-8650-1101\nxy.luo@example.com.cn",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

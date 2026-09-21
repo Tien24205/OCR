@@ -1,0 +1,13 @@
+{
+  "source_file": "001.jpg",
+  "raw_text": "주식회사 북강정밀기계\n생산기술부\n차장\n오세훈\n(52725) 경상남도 진주시 동진로 155\nTEL: 055-751-8800\n휴대폰: 010-5555-1212\ns.oh@example.co.kr\nhttps://bukgang.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

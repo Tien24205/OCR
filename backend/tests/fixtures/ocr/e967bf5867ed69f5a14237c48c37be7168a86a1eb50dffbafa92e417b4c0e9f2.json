@@ -1,0 +1,13 @@
+{
+  "source_file": "001.jpg",
+  "raw_text": "北陆精密机械有限公司\n生产技术部\n副经理\n冯涛\n辽宁省大连市中山区人民路25号\n电话: 0411-8263-8800\n手机: 135-5555-1212\nt.feng@example.com.cn\nhttps://beilu-jixie.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

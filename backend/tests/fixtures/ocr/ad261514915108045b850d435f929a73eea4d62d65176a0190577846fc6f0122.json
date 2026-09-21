@@ -1,0 +1,13 @@
+{
+  "source_file": "004.jpg",
+  "raw_text": "주식회사 벚꽃식품공업\n품질보증부\n계장\n최수아\n(21984) 인천광역시 연수구 송도과학로 32\nTEL: 032-850-4400（내선 205）\nsua.choi@example.co.kr\nhttps://beotkkot-foods.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

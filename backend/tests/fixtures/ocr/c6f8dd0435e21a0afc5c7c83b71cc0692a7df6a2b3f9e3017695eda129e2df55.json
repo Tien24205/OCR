@@ -1,0 +1,13 @@
+{
+  "source_file": "001.jpg",
+  "raw_text": "주식회사 한울테크놀로지\n영업본부 제1영업팀\n부장\n김민준\n(06236) 서울특별시 강남구 테헤란로 123 한울빌딩 7층\nTEL: 02-3456-7890\n휴대폰: 010-1234-5678\nminjun.kim@example.co.kr\nhttps://www.example.co.kr",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

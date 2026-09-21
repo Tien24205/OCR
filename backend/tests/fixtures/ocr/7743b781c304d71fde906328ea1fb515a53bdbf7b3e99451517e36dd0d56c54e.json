@@ -1,0 +1,13 @@
+{
+  "source_file": "004.jpg",
+  "raw_text": "樱花食品工业有限公司\n质量保证部\n组长\n陈美玲\n四川省成都市武侯区人民南路四段19号\n电话: 028-8551-3300（分机 205）\nml.chen@example.com.cn\nhttps://yinghua-foods.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

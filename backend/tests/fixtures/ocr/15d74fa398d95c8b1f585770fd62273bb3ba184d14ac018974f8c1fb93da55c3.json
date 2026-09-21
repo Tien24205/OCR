@@ -1,0 +1,13 @@
+{
+  "source_file": "005.jpg",
+  "raw_text": "中国先进材料技术研究协会\n研发中心\n主任研究员\n刘诚\n北京市海淀区中关村南大街5号\n电话: 010-6842-2000\nc.liu@example.org.cn\nhttps://www.example.org.cn",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source_file": "001.jpg",
+  "raw_text": "青叶科技有限公司\n销售本部 第一销售部\n部长\n王伟\n上海市浦东新区世纪大道100号青叶大厦7层\n电话: 021-5432-1098\n手机: 138-1234-5678\nwei.wang@example.com.cn\nhttps://www.example.com.cn",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

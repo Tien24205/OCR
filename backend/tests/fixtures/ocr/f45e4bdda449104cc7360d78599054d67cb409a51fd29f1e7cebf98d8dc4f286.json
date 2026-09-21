@@ -1,0 +1,13 @@
+{
+  "source_file": "005.jpg",
+  "raw_text": "주식회사 세종전자부품\n품질관리부\n부장\n노현우\n(30121) 세종특별자치시 한누리대로 2130\nTEL: 044-850-1100\nFAX: 044-850-1101\nh.noh@example.co.kr",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

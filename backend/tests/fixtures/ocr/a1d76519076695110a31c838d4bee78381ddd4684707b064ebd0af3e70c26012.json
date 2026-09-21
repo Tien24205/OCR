@@ -1,0 +1,13 @@
+{
+  "source_file": "008.jpg",
+  "raw_text": "주식회사 제주바람에너지\n신재생사업본부\n본부장\n고지훈\n(63122) 제주특별자치도 제주시 첨단로 213\nTEL: 064-720-5000（내선 33）\n휴대폰: 010-2468-1357\nj.ko@example.co.kr\nhttps://jejubaram.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

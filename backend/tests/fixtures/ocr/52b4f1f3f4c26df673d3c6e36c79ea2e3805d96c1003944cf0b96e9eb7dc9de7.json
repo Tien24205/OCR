@@ -1,0 +1,13 @@
+{
+  "source_file": "007.jpg",
+  "raw_text": "汉光医疗器械有限公司\n营销二部\n主任\n郭敏\n陕西省西安市雁塔区科技路48号\n电话: 029-8860-2500\nm.guo@example.com.cn\nhttps://hanguang-med.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

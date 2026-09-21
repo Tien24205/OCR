@@ -1,0 +1,13 @@
+{
+  "source_file": "002.jpg",
+  "raw_text": "미래인쇄 유한회사\n제조부\n주임\n이서연\n(48058) 부산광역시 해운대구 센텀중앙로 55\nTEL: 051-742-3100\nhttps://mirae-print.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

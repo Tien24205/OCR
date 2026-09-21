@@ -1,0 +1,13 @@
+{
+  "source_file": "003.jpg",
+  "raw_text": "东海水产贸易有限公司\n流通事业部\n组长\n韩启明\n山东省青岛市市南区香港中路18号\n电话: 0532-8577-3000（分机 117）\nqm.han@example.com.cn\nhttps://donghai-sc.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source_file": "010.jpg",
+  "raw_text": "주식회사 별빛소프트\n대표이사\n천서윤\n(13487) 경기도 성남시 분당구 대왕판교로 670\nseoyun.chun@example.co.kr\nhttps://byeolbit.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

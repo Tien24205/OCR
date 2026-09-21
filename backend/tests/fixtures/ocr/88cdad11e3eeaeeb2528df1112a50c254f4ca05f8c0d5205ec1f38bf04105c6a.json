@@ -1,0 +1,13 @@
+{
+  "source_file": "002.jpg",
+  "raw_text": "绿野印刷有限公司\n制造部\n主管\n李静\n广东省深圳市南山区科技南路55号\n电话: 0755-8642-3100\nhttps://lvye-print.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

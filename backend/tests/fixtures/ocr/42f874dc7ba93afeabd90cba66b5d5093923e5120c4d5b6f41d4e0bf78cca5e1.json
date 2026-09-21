@@ -1,0 +1,13 @@
+{
+  "source_file": "009.jpg",
+  "raw_text": "대성물산 주식회사\n무역부\n과장\n표지원\n(48400) 부산광역시 남구 문현금융로 40\nTEL: 051-640-9900\nFAX: 051-640-9901\n휴대폰: 010-1357-2468\nj.pyo@example.co.kr",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

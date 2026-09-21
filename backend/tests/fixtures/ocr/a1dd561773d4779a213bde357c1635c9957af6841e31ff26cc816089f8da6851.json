@@ -1,0 +1,13 @@
+{
+  "source_file": "006.jpg",
+  "raw_text": "诺瓦系统有限公司\nNOVA SYSTEMS CO., LTD.\n海外事业部\n经理\n黄雅文\nYawen Huang\n浙江省杭州市西湖区文三路258号\n电话: 0571-8822-8800\n手机: 139-9876-5432\nyawen.huang@example.com.cn\nhttps://www.novasystems.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

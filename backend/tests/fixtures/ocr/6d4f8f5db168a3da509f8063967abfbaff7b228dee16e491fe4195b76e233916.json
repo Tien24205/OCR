@@ -1,0 +1,13 @@
+{
+  "source_file": "002.jpg",
+  "raw_text": "푸른뜰원예 유한회사\n점장\n문경숙\n(57906) 전라남도 순천시 중앙로 30\nTEL: 061-745-2200",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

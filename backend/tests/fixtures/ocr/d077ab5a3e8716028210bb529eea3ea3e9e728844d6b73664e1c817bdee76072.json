@@ -1,0 +1,13 @@
+{
+  "source_file": "004.jpg",
+  "raw_text": "재단법인 한국해양환경연구원\n해양정책센터\n선임연구위원\n신유진\n(49111) 부산광역시 영도구 해양로 385\nTEL: 051-400-7700\ny.shin@example.or.kr\nhttps://www.example.or.kr",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

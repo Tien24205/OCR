@@ -1,0 +1,13 @@
+{
+  "source_file": "003.jpg",
+  "raw_text": "주식회사 동해수산\n유통사업부\n팀장\n배기영\n(25440) 강원특별자치도 강릉시 임영로 131\nTEL: 033-640-3000（내선 117）\nk.bae@example.co.kr\nhttps://donghae-susan.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

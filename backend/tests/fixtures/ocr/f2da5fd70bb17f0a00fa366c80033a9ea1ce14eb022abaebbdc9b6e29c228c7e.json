@@ -1,0 +1,13 @@
+{
+  "source_file": "008.jpg",
+  "raw_text": "석진디자인연구소\n대표\n석진우\nTEL: 070-4321-1200\nseokjin@example.co.kr",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

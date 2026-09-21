@@ -1,0 +1,13 @@
+{
+  "source_file": "003.jpg",
+  "raw_text": "光华物流股份有限公司\n配送管理科\n经理\n张建国\n江苏省南京市鼓楼区中山北路189号\n电话: 025-8361-1111\n传真: 025-8361-1112\njg.zhang@example.com.cn",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

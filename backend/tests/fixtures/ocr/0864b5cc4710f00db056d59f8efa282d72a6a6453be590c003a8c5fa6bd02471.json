@@ -1,0 +1,13 @@
+{
+  "source_file": "010.jpg",
+  "raw_text": "梦想未来教育科技有限公司\n企划部\n专员\n孙彩\n湖北省武汉市洪山区珞喻路152号\nc.sun@example.com.cn\nhttps://mengxiang.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

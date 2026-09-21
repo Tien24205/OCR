@@ -1,0 +1,13 @@
+{
+  "source_file": "002.jpg",
+  "raw_text": "蓝天园艺有限公司\n店长\n郑久美\n云南省昆明市五华区东风西路6号\n电话: 0871-6390-2200",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

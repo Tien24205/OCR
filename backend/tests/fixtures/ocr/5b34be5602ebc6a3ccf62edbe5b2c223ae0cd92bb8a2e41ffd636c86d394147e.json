@@ -1,0 +1,13 @@
+{
+  "source_file": "007.jpg",
+  "raw_text": "한빛의료기기 주식회사\n영업2팀\n주임\n곽민서\n(35233) 대전광역시 서구 둔산로 100\nTEL: 042-600-2500\nm.kwak@example.co.kr\nhttps://hanbit-med.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

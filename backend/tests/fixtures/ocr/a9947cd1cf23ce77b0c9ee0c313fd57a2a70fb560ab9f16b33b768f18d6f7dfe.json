@@ -1,0 +1,13 @@
+{
+  "source_file": "008.jpg",
+  "raw_text": "海风新能源科技有限公司\n新能源事业本部\n本部长\n高志华\n海南省海口市美兰区国兴大道9号\n电话: 0898-6672-5000（分机 33）\n手机: 133-2468-1357\nzh.gao@example.com.cn\nhttps://haifeng.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "source_file": "003.jpg",
+  "raw_text": "빛누리물류 주식회사\n배송관리팀\n과장\n박지훈\n(41260) 대구광역시 동구 동대구로 489\nTEL: 053-741-2200\nFAX: 053-741-2201\nj.park@example.co.kr",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

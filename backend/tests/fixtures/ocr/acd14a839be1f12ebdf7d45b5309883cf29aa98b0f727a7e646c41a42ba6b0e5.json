@@ -1,0 +1,13 @@
+{
+  "source_file": "009.jpg",
+  "raw_text": "北京数据工场科技有限公司\n数字化转型推进室\n高级解决方案架构师\n吴翔\n北京市朝阳区建国路93号\n电话: 010-8455-7700\nx.wu@example.com.cn\nhttps://bdw.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

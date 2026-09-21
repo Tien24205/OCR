@@ -1,0 +1,13 @@
+{
+  "source_file": "009.jpg",
+  "raw_text": "주식회사 서울데이터웍스\n디지털트랜스포메이션추진실\n시니어솔루션아키텍트\n윤성호\n(03925) 서울특별시 마포구 월드컵북로 396\nTEL: 02-6455-7700\nsungho.yoon@example.co.kr\nhttps://sdw.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

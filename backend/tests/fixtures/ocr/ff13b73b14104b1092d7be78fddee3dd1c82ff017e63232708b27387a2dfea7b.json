@@ -1,0 +1,13 @@
+{
+  "source_file": "010.jpg",
+  "raw_text": "星光软件有限公司\n董事长\n田书云\n安徽省合肥市蜀山区黄山路602号\nsy.tian@example.com.cn\nhttps://xingguang.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

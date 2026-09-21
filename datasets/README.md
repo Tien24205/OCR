@@ -6,8 +6,12 @@
 datasets/
 ├── dev/en/    10 ảnh tiếng Anh   — dùng khi phát triển, được nhìn thoải mái
 ├── dev/ja/    10 ảnh tiếng Nhật  — dùng khi phát triển
+├── dev/ko/    10 ảnh tiếng Hàn   — dùng khi phát triển
+├── dev/zh/    10 ảnh tiếng Trung — dùng khi phát triển
 ├── eval/en/   10 ảnh tiếng Anh   — GIỮ RIÊNG, chỉ chạy ở Ngày 9
 ├── eval/ja/   10 ảnh tiếng Nhật  — GIỮ RIÊNG
+├── eval/ko/   10 ảnh tiếng Hàn   — GIỮ RIÊNG
+├── eval/zh/   10 ảnh tiếng Trung — GIỮ RIÊNG
 └── labels.jsonl                  — nhãn chuẩn, mỗi dòng một ảnh
 ```
 
@@ -25,20 +29,25 @@ Thư mục ảnh đã bị `.gitignore` chặn. Chỉ commit `labels.jsonl` nế
 
 ## Độ đa dạng cần có
 
-Phân bổ 40 ảnh sao cho phủ được các tình huống kiểm thử ở Ngày 8:
+Phân bổ 80 ảnh (bốn ngôn ngữ của đề gốc) sao cho phủ được các tình huống
+kiểm thử ở Ngày 8:
 
 | Đặc điểm | Số ảnh tối thiểu |
 | --- | --- |
-| Rõ nét, chụp thẳng, đủ sáng | 20 |
-| Nghiêng hoặc chụp bằng điện thoại cầm tay | 8 |
-| Mờ hoặc chói/lóa | 4 |
-| Thiếu email | 4 |
-| Thiếu số điện thoại | 3 |
-| Có nhiều hơn một số điện thoại (tel + fax + mobile) | 6 |
-| Có số máy lẻ (`内線`, `ext.`) | 3 |
-| Tên công ty dài | 3 |
-| Song ngữ Nhật–Anh trên cùng một mặt | 4 |
-| Không có website trên thẻ (để thử nhánh `not_found` ở Ngày 6) | 4 |
+| Rõ nét, chụp thẳng, đủ sáng | 40 |
+| Nghiêng hoặc chụp bằng điện thoại cầm tay | 16 |
+| Mờ hoặc chói/lóa | 8 |
+| Thiếu email | 8 |
+| Thiếu số điện thoại | 6 |
+| Có nhiều hơn một số điện thoại (tel + fax + mobile) | 12 |
+| Có số máy lẻ (`内線`, `내선`, `分机`, `ext.`) | 6 |
+| Tên công ty dài | 6 |
+| Song ngữ bản địa–Anh trên cùng một mặt | 8 |
+| Không có website trên thẻ (để thử nhánh `not_found` ở Ngày 6) | 8 |
+
+`make_card_sheets.py` đã sinh sẵn đúng phân bổ này: mỗi ngôn ngữ 10 thẻ dev +
+10 thẻ eval, lặp lại cùng một bộ 10 tình huống. Việc còn lại là in, cắt và
+chụp — phần xuống cấp ảnh (nghiêng, mờ, chói) chỉ có thể tạo ra khi chụp.
 
 ## Cách gán nhãn
 

@@ -1,0 +1,13 @@
+{
+  "source_file": "008.jpg",
+  "raw_text": "石川设计工作室\n主理人\n石川\n电话: 0755-8321-1200\nshichuan@example.com.cn",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

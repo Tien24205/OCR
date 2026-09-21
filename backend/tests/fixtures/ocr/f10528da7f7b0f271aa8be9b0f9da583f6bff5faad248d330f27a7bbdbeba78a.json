@@ -1,0 +1,13 @@
+{
+  "source_file": "006.jpg",
+  "raw_text": "주식회사 아리랑푸드시스템\nARIRANG FOOD SYSTEM INC.\n수출팀\n대리\n송하늘\nHaneul Song\n(16489) 경기도 수원시 영통구 광교로 145\nTEL: 031-888-4400\n휴대폰: 010-7788-9900\nhaneul.song@example.co.kr\nhttps://arirang.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

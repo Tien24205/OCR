@@ -1,9 +1,10 @@
-"""Sinh 4 trang A4 chua 40 danh thiep HU CAU de in, cat va chup lai.
+"""Sinh 8 trang A4 chua 80 danh thiep HU CAU de in, cat va chup lai.
 
 VI SAO CAN CONG CU NAY
 
-Khong co bo du lieu danh thiep cong khai nao kem san nhan van ban, ca tieng
-Anh lan tieng Nhat. Phan tieng Nhat bat buoc phai tu tao.
+Khong co bo du lieu danh thiep cong khai nao kem san nhan van ban, cho bat ky
+ngon ngu nao trong bon ngon ngu cua de goc (Anh, Nhat, Han, Trung). Cac bo cong
+khai chi co khung bao quanh vung chu, khong co dap an theo tung truong.
 
 Cai kho khi danh gia OCR khong phai la co duoc chu, ma la co duoc ANH XUONG
 CAP DUNG KIEU THUC TE: nghieng, mo, choi den, bong tay, van giay. File PNG
@@ -23,7 +24,14 @@ Ket qua:
     datasets/print/sheet-ja-eval.png    10 the tieng Nhat  -> eval/ja/001..010
     datasets/print/sheet-en-dev.png     10 the tieng Anh   -> dev/en/001..010
     datasets/print/sheet-en-eval.png    10 the tieng Anh   -> eval/en/001..010
-    datasets/labels.jsonl               nhan chuan cho ca 40 the
+    datasets/print/sheet-ko-dev.png     10 the tieng Han   -> dev/ko/001..010
+    datasets/print/sheet-ko-eval.png    10 the tieng Han   -> eval/ko/001..010
+    datasets/print/sheet-zh-dev.png     10 the tieng Trung -> dev/zh/001..010
+    datasets/print/sheet-zh-eval.png    10 the tieng Trung -> eval/zh/001..010
+    datasets/labels.jsonl               nhan chuan cho ca 80 the
+
+Moi ngon ngu dung font rieng - xem FONT_SETS. `assert_glyphs()` chan ngay tu
+dau neu font thieu glyph, vi thieu glyph thi Pillow ve o vuong ma khong bao loi.
 
 MOI TRANG LA MOT SPLIT. Bo dev va bo eval khong dung chung the nao, nen khong
 co ro ri du lieu giua hai bo.
@@ -75,11 +83,11 @@ A4 = (int(210 * MM), int(297 * MM))  # 2480 x 3508
 CARD = (int(91 * MM), int(55 * MM))  # 1075 x 650 - kich thuoc danh thiep Nhat
 COLS, ROWS = 2, 5
 
-# CANH BAO CHO AI THEM THE TIENG HAN HOAC TIENG TRUNG:
+# FONT PHAI CHON THEO NGON NGU. Khong co font nao phu ca bon.
 #
-# Bang nay chi dung duoc cho tieng Nhat va tieng Anh. YuGothic KHONG co glyph
-# Hangul, cung khong co cac chu Han gian the rieng cua tieng Trung. Thieu glyph
-# thi Pillow ve o .notdef - MOT O VUONG - chu khong bao loi gi ca.
+# YuGothic KHONG co glyph Hangul, cung khong co cac chu Han gian the rieng cua
+# tieng Trung. Thieu glyph thi Pillow ve o .notdef - MOT O VUONG - chu khong
+# bao loi gi ca.
 #
 # Nguy hiem o cho: nguoi khong doc duoc tieng Han se nhin trang in thay "co
 # chu" va tuong da xong, roi dem di chup 20 tam the toan o vuong.
@@ -91,27 +99,49 @@ COLS, ROWS = 2, 5
 #     Malgun     山=CO  김=CO     준=CO     这=THIEU  团=THIEU
 #     YaHei      山=CO  김=THIEU  준=THIEU  这=CO     团=CO
 #
-# Muon them tieng Han / tieng Trung thi phai chon font THEO NGON NGU:
-#     ko -> C:/Windows/Fonts/malgunbd.ttf, malgun.ttf, malgunsl.ttf
-#     zh -> C:/Windows/Fonts/msyhbd.ttc,   msyh.ttc,   msyhl.ttc
-# va kiem lai bang phep so o tren TRUOC KHI in.
-FONTS = {
+# Phep so do khong con la viec nho tay nua: `assert_glyphs()` chay no cho tung
+# ky tu that cua tung trang, TRUOC khi ghi bat ky file nao.
+_YU = {
     "bold": "C:/Windows/Fonts/YuGothB.ttc",
     "medium": "C:/Windows/Fonts/YuGothM.ttc",
     "regular": "C:/Windows/Fonts/YuGothR.ttc",
     "light": "C:/Windows/Fonts/YuGothL.ttc",
-    # YuGothic KHONG co glyph cho dau tieng Viet (ỷ, ệ...) - chu se thanh o
-    # vuong. Tieu de trang dung font rieng co ho tro Latin mo rong.
-    "latin": "C:/Windows/Fonts/segoeui.ttf",
 }
-_font_cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
+FONT_SETS = {
+    # Tieng Anh dung chung font voi tieng Nhat: YuGothic phu du Latin co ban,
+    # va giu nguyen dien mao cua bo the cu.
+    "ja": _YU,
+    "en": _YU,
+    "ko": {
+        "bold": "C:/Windows/Fonts/malgunbd.ttf",
+        "medium": "C:/Windows/Fonts/malgun.ttf",
+        "regular": "C:/Windows/Fonts/malgun.ttf",
+        "light": "C:/Windows/Fonts/malgunsl.ttf",
+    },
+    "zh": {
+        "bold": "C:/Windows/Fonts/msyhbd.ttc",
+        "medium": "C:/Windows/Fonts/msyh.ttc",
+        "regular": "C:/Windows/Fonts/msyh.ttc",
+        "light": "C:/Windows/Fonts/msyhl.ttc",
+    },
+}
+# YuGothic KHONG co glyph cho dau tieng Viet (ỷ, ệ...) - chu se thanh o vuong.
+# Tieu de trang va ma the dung font rieng co ho tro Latin mo rong; ca hai deu
+# khong nam tren the nen khong phu thuoc ngon ngu the.
+LATIN_FONT = "C:/Windows/Fonts/segoeui.ttf"
+
+_font_cache: dict[tuple[str, str, int], ImageFont.FreeTypeFont] = {}
 
 
-def font(weight: str, pt: float) -> ImageFont.FreeTypeFont:
+def font(weight: str, pt: float, lang: str = "ja") -> ImageFont.FreeTypeFont:
     px = int(pt * DPI / 72)
-    key = (weight, px)
+    key = (lang, weight, px)
     if key not in _font_cache:
-        path = FONTS.get(weight, FONTS["regular"])
+        if weight == "latin":
+            path = LATIN_FONT
+        else:
+            faces = FONT_SETS.get(lang, _YU)
+            path = faces.get(weight, faces["regular"])
         if Path(path).is_file():
             _font_cache[key] = ImageFont.truetype(path, px)
         else:
@@ -343,11 +373,236 @@ EN_EVAL = [
          phones=[], email="o.radcliffe@example.com", website="https://bluewater-press.example.com"),
 ]
 
+KO_DEV = [
+    # 1. Day du moi truong
+    dict(layout="classic", company="주식회사 한울테크놀로지", dept="영업본부 제1영업팀",
+         title="부장", name="김민준",
+         address="(06236) 서울특별시 강남구 테헤란로 123 한울빌딩 7층",
+         phones=[("02-3456-7890", "tel", ""), ("010-1234-5678", "mobile", "")],
+         email="minjun.kim@example.co.kr", website="https://www.example.co.kr"),
+    # 2. Khong co email
+    dict(layout="centered", company="미래인쇄 유한회사", dept="제조부",
+         title="주임", name="이서연",
+         address="(48058) 부산광역시 해운대구 센텀중앙로 55",
+         phones=[("051-742-3100", "tel", "")],
+         email=None, website="https://mirae-print.example.com"),
+    # 3. Khong co website
+    dict(layout="split", company="빛누리물류 주식회사", dept="배송관리팀",
+         title="과장", name="박지훈",
+         address="(41260) 대구광역시 동구 동대구로 489",
+         phones=[("053-741-2200", "tel", ""), ("053-741-2201", "fax", "")],
+         email="j.park@example.co.kr", website=None),
+    # 4. Co so may le
+    dict(layout="classic", company="주식회사 벚꽃식품공업", dept="품질보증부",
+         title="계장", name="최수아",
+         address="(21984) 인천광역시 연수구 송도과학로 32",
+         phones=[("032-850-4400", "tel", "205")],
+         email="sua.choi@example.co.kr", website="https://beotkkot-foods.example.com"),
+    # 5. Ten cong ty dai
+    dict(layout="modern", company="사단법인 대한첨단소재기술연구협회",
+         dept="연구개발센터", title="책임연구원", name="정우진",
+         address="(34141) 대전광역시 유성구 대학로 291",
+         phones=[("042-350-1000", "tel", "")],
+         email="w.jung@example.or.kr", website="https://www.example.or.kr"),
+    # 6. Song ngu Han - Anh
+    dict(layout="classic", company="주식회사 노바시스템즈",
+         company_alt="NOVA SYSTEMS CO., LTD.", dept="해외사업부",
+         title="매니저", name="강유미", name_alt="Yumi Kang",
+         address="(13529) 경기도 성남시 분당구 판교역로 235",
+         phones=[("031-600-8800", "tel", ""), ("010-9876-5432", "mobile", "")],
+         email="yumi.kang@example.co.kr", website="https://www.novasystems.example.com"),
+    # 7. Ba so dien thoai
+    dict(layout="split", company="주식회사 대양건설", dept="공사부",
+         title="현장소장", name="임대현",
+         address="(61949) 광주광역시 서구 상무중앙로 58",
+         phones=[("062-350-4000", "tel", "12"), ("062-350-4001", "fax", ""),
+                 ("010-3344-5566", "mobile", "")],
+         email="d.lim@example.co.kr", website=None),
+    # 8. Toi thieu
+    dict(layout="centered", company="석진디자인연구소", dept=None,
+         title="대표", name="석진우",
+         address=None, phones=[("070-4321-1200", "tel", "")],
+         email="seokjin@example.co.kr", website=None),
+    # 9. Chuc danh dai
+    dict(layout="modern", company="주식회사 서울데이터웍스",
+         dept="디지털트랜스포메이션추진실", title="시니어솔루션아키텍트", name="윤성호",
+         address="(03925) 서울특별시 마포구 월드컵북로 396",
+         phones=[("02-6455-7700", "tel", "")],
+         email="sungho.yoon@example.co.kr", website="https://sdw.example.com"),
+    # 10. Khong co dien thoai
+    dict(layout="classic", company="주식회사 꿈미래교육", dept="기획부",
+         title="주사", name="한소영",
+         address="(24341) 강원특별자치도 춘천시 중앙로 1",
+         phones=[], email="soyoung.han@example.co.kr",
+         website="https://kkummirae.example.com"),
+]
+
+KO_EVAL = [
+    dict(layout="split", company="주식회사 북강정밀기계", dept="생산기술부",
+         title="차장", name="오세훈", address="(52725) 경상남도 진주시 동진로 155",
+         phones=[("055-751-8800", "tel", ""), ("010-5555-1212", "mobile", "")],
+         email="s.oh@example.co.kr", website="https://bukgang.example.com"),
+    dict(layout="classic", company="푸른뜰원예 유한회사", dept=None,
+         title="점장", name="문경숙", address="(57906) 전라남도 순천시 중앙로 30",
+         phones=[("061-745-2200", "tel", "")], email=None, website=None),
+    dict(layout="centered", company="주식회사 동해수산", dept="유통사업부",
+         title="팀장", name="배기영", address="(25440) 강원특별자치도 강릉시 임영로 131",
+         phones=[("033-640-3000", "tel", "117")],
+         email="k.bae@example.co.kr", website="https://donghae-susan.example.com"),
+    dict(layout="modern", company="재단법인 한국해양환경연구원", dept="해양정책센터",
+         title="선임연구위원", name="신유진",
+         address="(49111) 부산광역시 영도구 해양로 385",
+         phones=[("051-400-7700", "tel", "")],
+         email="y.shin@example.or.kr", website="https://www.example.or.kr"),
+    dict(layout="split", company="주식회사 세종전자부품", dept="품질관리부",
+         title="부장", name="노현우", address="(30121) 세종특별자치시 한누리대로 2130",
+         phones=[("044-850-1100", "tel", ""), ("044-850-1101", "fax", "")],
+         email="h.noh@example.co.kr", website=None),
+    dict(layout="classic", company="주식회사 아리랑푸드시스템",
+         company_alt="ARIRANG FOOD SYSTEM INC.", dept="수출팀",
+         title="대리", name="송하늘", name_alt="Haneul Song",
+         address="(16489) 경기도 수원시 영통구 광교로 145",
+         phones=[("031-888-4400", "tel", ""), ("010-7788-9900", "mobile", "")],
+         email="haneul.song@example.co.kr", website="https://arirang.example.com"),
+    dict(layout="centered", company="한빛의료기기 주식회사", dept="영업2팀",
+         title="주임", name="곽민서", address="(35233) 대전광역시 서구 둔산로 100",
+         phones=[("042-600-2500", "tel", "")],
+         email="m.kwak@example.co.kr", website="https://hanbit-med.example.com"),
+    dict(layout="modern", company="주식회사 제주바람에너지", dept="신재생사업본부",
+         title="본부장", name="고지훈", address="(63122) 제주특별자치도 제주시 첨단로 213",
+         phones=[("064-720-5000", "tel", "33"), ("010-2468-1357", "mobile", "")],
+         email="j.ko@example.co.kr", website="https://jejubaram.example.com"),
+    dict(layout="classic", company="대성물산 주식회사", dept="무역부",
+         title="과장", name="표지원", address="(48400) 부산광역시 남구 문현금융로 40",
+         phones=[("051-640-9900", "tel", ""), ("051-640-9901", "fax", ""),
+                 ("010-1357-2468", "mobile", "")],
+         email="j.pyo@example.co.kr", website=None),
+    dict(layout="split", company="주식회사 별빛소프트", dept=None,
+         title="대표이사", name="천서윤",
+         address="(13487) 경기도 성남시 분당구 대왕판교로 670",
+         phones=[], email="seoyun.chun@example.co.kr",
+         website="https://byeolbit.example.com"),
+]
+
+ZH_DEV = [
+    # 1. Day du moi truong
+    dict(layout="classic", company="青叶科技有限公司", dept="销售本部 第一销售部",
+         title="部长", name="王伟",
+         address="上海市浦东新区世纪大道100号青叶大厦7层",
+         phones=[("021-5432-1098", "tel", ""), ("138-1234-5678", "mobile", "")],
+         email="wei.wang@example.com.cn", website="https://www.example.com.cn"),
+    # 2. Khong co email
+    dict(layout="centered", company="绿野印刷有限公司", dept="制造部",
+         title="主管", name="李静",
+         address="广东省深圳市南山区科技南路55号",
+         phones=[("0755-8642-3100", "tel", "")],
+         email=None, website="https://lvye-print.example.com"),
+    # 3. Khong co website
+    dict(layout="split", company="光华物流股份有限公司", dept="配送管理科",
+         title="经理", name="张建国",
+         address="江苏省南京市鼓楼区中山北路189号",
+         phones=[("025-8361-1111", "tel", ""), ("025-8361-1112", "fax", "")],
+         email="jg.zhang@example.com.cn", website=None),
+    # 4. Co so may le
+    dict(layout="classic", company="樱花食品工业有限公司", dept="质量保证部",
+         title="组长", name="陈美玲",
+         address="四川省成都市武侯区人民南路四段19号",
+         phones=[("028-8551-3300", "tel", "205")],
+         email="ml.chen@example.com.cn", website="https://yinghua-foods.example.com"),
+    # 5. Ten cong ty dai
+    dict(layout="modern", company="中国先进材料技术研究协会", dept="研发中心",
+         title="主任研究员", name="刘诚",
+         address="北京市海淀区中关村南大街5号",
+         phones=[("010-6842-2000", "tel", "")],
+         email="c.liu@example.org.cn", website="https://www.example.org.cn"),
+    # 6. Song ngu Trung - Anh
+    dict(layout="classic", company="诺瓦系统有限公司",
+         company_alt="NOVA SYSTEMS CO., LTD.", dept="海外事业部",
+         title="经理", name="黄雅文", name_alt="Yawen Huang",
+         address="浙江省杭州市西湖区文三路258号",
+         phones=[("0571-8822-8800", "tel", ""), ("139-9876-5432", "mobile", "")],
+         email="yawen.huang@example.com.cn",
+         website="https://www.novasystems.example.com"),
+    # 7. Ba so dien thoai
+    dict(layout="split", company="大和建设集团有限公司", dept="工程部",
+         title="项目经理", name="赵大伟",
+         address="天津市和平区南京路201号",
+         phones=[("022-2368-4000", "tel", "12"), ("022-2368-4001", "fax", ""),
+                 ("137-3344-5566", "mobile", "")],
+         email="dw.zhao@example.com.cn", website=None),
+    # 8. Toi thieu
+    dict(layout="centered", company="石川设计工作室", dept=None,
+         title="主理人", name="石川", address=None,
+         phones=[("0755-8321-1200", "tel", "")],
+         email="shichuan@example.com.cn", website=None),
+    # 9. Chuc danh dai
+    dict(layout="modern", company="北京数据工场科技有限公司", dept="数字化转型推进室",
+         title="高级解决方案架构师", name="吴翔",
+         address="北京市朝阳区建国路93号",
+         phones=[("010-8455-7700", "tel", "")],
+         email="x.wu@example.com.cn", website="https://bdw.example.com"),
+    # 10. Khong co dien thoai
+    dict(layout="classic", company="梦想未来教育科技有限公司", dept="企划部",
+         title="专员", name="孙彩",
+         address="湖北省武汉市洪山区珞喻路152号",
+         phones=[], email="c.sun@example.com.cn",
+         website="https://mengxiang.example.com"),
+]
+
+ZH_EVAL = [
+    dict(layout="split", company="北陆精密机械有限公司", dept="生产技术部",
+         title="副经理", name="冯涛", address="辽宁省大连市中山区人民路25号",
+         phones=[("0411-8263-8800", "tel", ""), ("135-5555-1212", "mobile", "")],
+         email="t.feng@example.com.cn", website="https://beilu-jixie.example.com"),
+    dict(layout="classic", company="蓝天园艺有限公司", dept=None,
+         title="店长", name="郑久美", address="云南省昆明市五华区东风西路6号",
+         phones=[("0871-6390-2200", "tel", "")], email=None, website=None),
+    dict(layout="centered", company="东海水产贸易有限公司", dept="流通事业部",
+         title="组长", name="韩启明", address="山东省青岛市市南区香港中路18号",
+         phones=[("0532-8577-3000", "tel", "117")],
+         email="qm.han@example.com.cn", website="https://donghai-sc.example.com"),
+    dict(layout="modern", company="中国海洋环境研究院", dept="海洋政策中心",
+         title="资深研究员", name="沈玉珍", address="福建省厦门市思明区环岛南路1888号",
+         phones=[("0592-2183-7700", "tel", "")],
+         email="yz.shen@example.org.cn", website="https://www.example.org.cn"),
+    dict(layout="split", company="世宗电子元件有限公司", dept="质量管理部",
+         title="部长", name="罗宪宇", address="江西省南昌市红谷滩区赣江北大道1号",
+         phones=[("0791-8650-1100", "tel", ""), ("0791-8650-1101", "fax", "")],
+         email="xy.luo@example.com.cn", website=None),
+    dict(layout="classic", company="金穗食品系统股份有限公司",
+         company_alt="GOLDEN GRAIN FOOD SYSTEM INC.", dept="出口部",
+         title="主办", name="宋天", name_alt="Tian Song",
+         address="河南省郑州市金水区农业路85号",
+         phones=[("0371-6588-4400", "tel", ""), ("136-7788-9900", "mobile", "")],
+         email="tian.song@example.com.cn", website="https://goldengrain.example.com"),
+    dict(layout="centered", company="汉光医疗器械有限公司", dept="营销二部",
+         title="主任", name="郭敏", address="陕西省西安市雁塔区科技路48号",
+         phones=[("029-8860-2500", "tel", "")],
+         email="m.guo@example.com.cn", website="https://hanguang-med.example.com"),
+    dict(layout="modern", company="海风新能源科技有限公司", dept="新能源事业本部",
+         title="本部长", name="高志华", address="海南省海口市美兰区国兴大道9号",
+         phones=[("0898-6672-5000", "tel", "33"), ("133-2468-1357", "mobile", "")],
+         email="zh.gao@example.com.cn", website="https://haifeng.example.com"),
+    dict(layout="classic", company="大成物产股份有限公司", dept="贸易部",
+         title="科长", name="彭志远", address="重庆市渝中区民族路188号",
+         phones=[("023-6380-9900", "tel", ""), ("023-6380-9901", "fax", ""),
+                 ("131-1357-2468", "mobile", "")],
+         email="zy.peng@example.com.cn", website=None),
+    dict(layout="split", company="星光软件有限公司", dept=None,
+         title="董事长", name="田书云", address="安徽省合肥市蜀山区黄山路602号",
+         phones=[], email="sy.tian@example.com.cn",
+         website="https://xingguang.example.com"),
+]
+
 SHEETS = [
     ("sheet-ja-dev", JA_DEV, "ja", "dev", "JA-D"),
     ("sheet-ja-eval", JA_EVAL, "ja", "eval", "JA-E"),
     ("sheet-en-dev", EN_DEV, "en", "dev", "EN-D"),
     ("sheet-en-eval", EN_EVAL, "en", "eval", "EN-E"),
+    ("sheet-ko-dev", KO_DEV, "ko", "dev", "KO-D"),
+    ("sheet-ko-eval", KO_EVAL, "ko", "eval", "KO-E"),
+    ("sheet-zh-dev", ZH_DEV, "zh", "dev", "ZH-D"),
+    ("sheet-zh-eval", ZH_EVAL, "zh", "eval", "ZH-E"),
 ]
 
 INK = (25, 25, 28)
@@ -390,7 +645,8 @@ def wrap(text: str, f: ImageFont.FreeTypeFont, max_w: int) -> list[str]:
 
 
 def fit_font(text: str, weight: str, max_w: int,
-             start_pt: float, min_pt: float) -> ImageFont.FreeTypeFont:
+             start_pt: float, min_pt: float,
+             lang: str = "ja") -> ImageFont.FreeTypeFont:
     """Chon co chu lon nhat ma van vua mot dong.
 
     Ngat "合同会社ひかり物流" thanh "合同会社ひかり物" + "流" vua xau vua khong
@@ -399,15 +655,16 @@ def fit_font(text: str, weight: str, max_w: int,
     """
     pt = start_pt
     while pt > min_pt:
-        f = font(weight, pt)
+        f = font(weight, pt, lang)
         if _measure.textlength(text, font=f) <= max_w:
             return f
         pt -= 0.5
-    return font(weight, min_pt)
+    return font(weight, min_pt, lang)
 
 
 def fit_block(lines: list[str], weight: str, max_w: int, avail_h: int,
-              start_pt: float, min_pt: float, gap: float = 1.45):
+              start_pt: float, min_pt: float, gap: float = 1.45,
+              lang: str = "ja"):
     """Chon co chu lon nhat ma ca khoi van vua chieu cao con lai.
 
     VI SAO BAT BUOC: ten cong ty dai xuong hai dong lam khoi phia tren cao
@@ -417,7 +674,7 @@ def fit_block(lines: list[str], weight: str, max_w: int, avail_h: int,
     """
     pt = start_pt
     while True:
-        f = font(weight, pt)
+        f = font(weight, pt, lang)
         wrapped = [part for line in lines for part in wrap(line, f, max_w)]
         height = int(len(wrapped) * f.size * gap)
         if height <= avail_h or pt <= min_pt:
@@ -425,11 +682,22 @@ def fit_block(lines: list[str], weight: str, max_w: int, avail_h: int,
         pt -= 0.5
 
 
+# Nhan dong dien thoai theo tung ngon ngu. Viet dung kieu the that cua nuoc
+# do: the Han hay ghi "휴대폰", the Trung ghi "手机" - dich may thanh "Mobile"
+# se lam bo mau khong con giong thu ma OCR se gap.
+PHONE_WORDS = {
+    "en": {"tel": "TEL", "fax": "FAX", "mobile": "Mobile", "ext": "  ext. {}"},
+    "ja": {"tel": "TEL", "fax": "FAX", "mobile": "携帯", "ext": "（内線 {}）"},
+    "ko": {"tel": "TEL", "fax": "FAX", "mobile": "휴대폰", "ext": "（내선 {}）"},
+    "zh": {"tel": "电话", "fax": "传真", "mobile": "手机", "ext": "（分机 {}）"},
+}
+
+
 def phone_line(value: str, label: str, ext: str, lang: str) -> str:
-    prefix = {"tel": "TEL", "fax": "FAX", "mobile": "携帯" if lang == "ja" else "Mobile"}
-    line = prefix.get(label, "TEL") + ": " + value
+    words = PHONE_WORDS.get(lang, PHONE_WORDS["en"])
+    line = words.get(label, words["tel"]) + ": " + value
     if ext:
-        line += ("（内線 " + ext + "）") if lang == "ja" else ("  ext. " + ext)
+        line += words["ext"].format(ext)
     return line
 
 
@@ -455,13 +723,12 @@ def render_card(card: dict, lang: str) -> Image.Image:
     pad = int(6 * MM)
 
     body = contact_lines(card, lang)
-    f_company = font("bold", 10.5)
-    f_alt = font("light", 7)
-    f_dept = font("regular", 7.5)
-    f_title = font("regular", 8)
-    f_name = font("bold", 15)
-    f_name_alt = font("light", 7.5)
-    f_body = font("regular", 7.5)
+    f_company = font("bold", 10.5, lang)
+    f_alt = font("light", 7, lang)
+    f_dept = font("regular", 7.5, lang)
+    f_title = font("regular", 8, lang)
+    f_name = font("bold", 15, lang)
+    f_name_alt = font("light", 7.5, lang)
 
     def block(x: int, y: int, lines: list[str], f, fill=INK, gap: float = 1.45,
               max_w: int | None = None) -> int:
@@ -493,7 +760,7 @@ def render_card(card: dict, lang: str) -> Image.Image:
         d.line([(w * 0.32, y), (w * 0.68, y)], fill=RULE, width=2)
         y += int(3 * MM)
         f_b, wrapped, _ = fit_block(body, "regular", w - 2 * pad, h - pad - y,
-                                    7.5, 5.5)
+                                    7.5, 5.5, lang=lang)
         for part in wrapped:
             tw = d.textlength(part, font=f_b)
             d.text(((w - tw) / 2, y), part, font=f_b, fill=INK)
@@ -510,7 +777,7 @@ def render_card(card: dict, lang: str) -> Image.Image:
         d.line([(split_x, pad), (split_x, h - pad)], fill=RULE, width=2)
         y = pad + int(3 * MM)
         y = block(pad, y, [card["company"]],
-                  fit_font(card["company"], "bold", left_w, 10.5, 7.5),
+                  fit_font(card["company"], "bold", left_w, 10.5, 7.5, lang),
                   max_w=left_w)
         if card.get("dept"):
             y = block(pad, y + 4, [card["dept"]], f_dept, GREY, max_w=left_w)
@@ -520,7 +787,7 @@ def render_card(card: dict, lang: str) -> Image.Image:
         block(pad, y + 4, [card["name"]], f_name, max_w=left_w)
         right_top = pad + int(4 * MM)
         f_b, wrapped, _ = fit_block(body, "regular", right_w,
-                                    h - pad - right_top, 7.0, 5.5)
+                                    h - pad - right_top, 7.0, 5.5, lang=lang)
         block(right_x, right_top, wrapped, f_b, max_w=right_w)
 
     elif layout == "modern":
@@ -534,20 +801,21 @@ def render_card(card: dict, lang: str) -> Image.Image:
         y += int(3 * MM)
         y = block(pad, y,
                   [card["company"]],
-                  fit_font(card["company"], "bold", w - 2 * pad, 10.5, 8.0))
+                  fit_font(card["company"], "bold", w - 2 * pad, 10.5, 8.0, lang))
         if card.get("dept"):
             y = block(pad, y, [card["dept"]], f_dept, GREY)
         # Khoi tren da ve xong tai y. Phan con lai la tat ca cho khoi lien he
         # duoc phep chiem - tinh tu day thay vi gia dinh mot chieu cao co dinh.
         avail = h - pad - y - int(2 * MM)
-        f_b, wrapped, height = fit_block(body, "regular", w - 2 * pad, avail, 7.5, 5.5)
+        f_b, wrapped, height = fit_block(body, "regular", w - 2 * pad, avail, 7.5, 5.5,
+                                         lang=lang)
         start = max(y + int(2 * MM), h - pad - height)
         block(pad, start, wrapped, f_b)
 
     else:  # classic
         y = pad + int(2 * MM)
         y = block(pad, y, [card["company"]],
-                  fit_font(card["company"], "bold", w - 2 * pad, 10.5, 8.0))
+                  fit_font(card["company"], "bold", w - 2 * pad, 10.5, 8.0, lang))
         if card.get("company_alt"):
             y = block(pad, y, [card["company_alt"]], f_alt, GREY)
         if card.get("dept"):
@@ -562,7 +830,7 @@ def render_card(card: dict, lang: str) -> Image.Image:
         d.line([(pad, y), (w - pad, y)], fill=RULE, width=2)
         top = y + int(2.5 * MM)
         f_b, wrapped, _ = fit_block(body, "regular", w - 2 * pad,
-                                    h - pad - top, 7.5, 5.5)
+                                    h - pad - top, 7.5, 5.5, lang=lang)
         block(pad, top, wrapped, f_b)
 
     return img
@@ -573,7 +841,7 @@ def render_sheet(cards: list[dict], lang: str, code: str, out: Path) -> None:
     d = ImageDraw.Draw(sheet)
     grid_w, grid_h = COLS * CARD[0], ROWS * CARD[1]
     x0, y0 = (A4[0] - grid_w) // 2, (A4[1] - grid_h) // 2
-    f_id = font("regular", 7)
+    f_id = font("latin", 7)
 
     for index, card in enumerate(cards):
         col, row = index % COLS, index // COLS
@@ -597,6 +865,42 @@ def render_sheet(cards: list[dict], lang: str, code: str, out: Path) -> None:
 
     out.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(out, dpi=(DPI, DPI))
+
+
+def _glyph_bytes(f: ImageFont.FreeTypeFont, ch: str) -> bytes:
+    """Anh den trang cua mot ky tu - de so sanh voi o .notdef."""
+    box = Image.new("L", (int(f.size * 2), int(f.size * 2)), 0)
+    ImageDraw.Draw(box).text((0, 0), ch, font=f, fill=255)
+    return box.tobytes()
+
+
+# Vung dung rieng (Private Use Area): khong font thuong nao dinh nghia ky tu
+# nay, nen anh cua no CHINH LA o .notdef cua font do.
+NOTDEF_PROBE = "\ue000"
+
+
+def assert_glyphs(cards: list[dict], lang: str) -> None:
+    """Chan truoc khi in: font cua ngon ngu nay co ve duoc MOI ky tu khong.
+
+    Thieu glyph thi Pillow khong bao loi - no ve o .notdef, mot O VUONG. Trang
+    in ra trong nhu co chu, va sai lam chi lo ra sau khi da cat va chup 20 tam.
+    """
+    missing: dict[str, set[str]] = {}
+    for weight in ("bold", "medium", "regular", "light"):
+        f = font(weight, 10, lang)
+        notdef = _glyph_bytes(f, NOTDEF_PROBE)
+        for card in cards:
+            for ch in set(ocr_text(card, lang)):
+                if ch.isspace():
+                    continue
+                if _glyph_bytes(f, ch) == notdef:
+                    missing.setdefault(FONT_SETS[lang][weight], set()).add(ch)
+    if missing:
+        lines = [f"Font cho '{lang}' thieu glyph - trang in se co O VUONG:"]
+        for path, chars in missing.items():
+            lines.append(f"  {path}: {' '.join(sorted(chars))}")
+        lines.append("Doi font trong FONT_SETS roi chay lai. Chua ghi file nao.")
+        raise SystemExit("\n".join(lines))
 
 
 def ocr_text(card: dict, lang: str) -> str:
@@ -681,11 +985,18 @@ def main() -> int:
                              "để chạy thử evaluate.py khi chưa có ảnh chụp")
     args = parser.parse_args()
 
-    missing_fonts = [p for p in FONTS.values() if not Path(p).is_file()]
+    wanted = {p for faces in FONT_SETS.values() for p in faces.values()}
+    wanted.add(LATIN_FONT)
+    missing_fonts = sorted(p for p in wanted if not Path(p).is_file())
     if missing_fonts:
-        print("Canh bao: thieu font, chu Nhat co the khong hien dung:")
+        print("Canh bao: thieu font, chu co the khong hien dung:")
         for p in missing_fonts:
             print("  ", p)
+
+    # Kiem glyph cho TAT CA cac trang truoc khi ghi bat ky file nao. Phat hien
+    # o vuong sau khi da ghi 4 trang dau la phat hien qua muon.
+    for name, cards, lang, _split, _code in SHEETS:
+        assert_glyphs(cards, lang)
 
     rows: list[dict] = []
     for name, cards, lang, split, code in SHEETS:
@@ -713,10 +1024,10 @@ def main() -> int:
     print(f"Đã ghi {len(rows)} nhãn chuẩn: {LABELS.relative_to(ROOT)}")
 
     print("\nTiếp theo:")
-    print("  1. In 4 file PNG ở tỷ lệ 100% (Actual size), KHÔNG chọn Fit to page")
+    print(f"  1. In {len(SHEETS)} file PNG ở tỷ lệ 100% (Actual size), KHÔNG chọn Fit to page")
     print("  2. Cắt theo đường viền mờ; mã thẻ ở lề sẽ bị cắt bỏ")
     print("  3. Chụp từng thẻ theo đúng thứ tự trái→phải, trên→dưới")
-    print("  4. Lưu vào datasets/dev/ja/001.jpg ... datasets/eval/en/010.jpg")
+    print("  4. Lưu vào datasets/dev/ja/001.jpg ... datasets/eval/zh/010.jpg")
     print("  5. Kiểm tra: python backend/scripts/check_labels.py")
     print("\nCố ý chụp đa dạng: 4 tấm nghiêng, 2 tấm mờ, 2 tấm chói đèn.")
     if args.crop:

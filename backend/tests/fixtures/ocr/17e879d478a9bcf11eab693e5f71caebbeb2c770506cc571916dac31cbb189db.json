@@ -1,0 +1,13 @@
+{
+  "source_file": "004.jpg",
+  "raw_text": "中国海洋环境研究院\n海洋政策中心\n资深研究员\n沈玉珍\n福建省厦门市思明区环岛南路1888号\n电话: 0592-2183-7700\nyz.shen@example.org.cn\nhttps://www.example.org.cn",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

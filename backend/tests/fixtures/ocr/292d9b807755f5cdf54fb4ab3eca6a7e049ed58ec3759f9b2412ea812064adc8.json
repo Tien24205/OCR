@@ -1,0 +1,13 @@
+{
+  "source_file": "006.jpg",
+  "raw_text": "주식회사 노바시스템즈\nNOVA SYSTEMS CO., LTD.\n해외사업부\n매니저\n강유미\nYumi Kang\n(13529) 경기도 성남시 분당구 판교역로 235\nTEL: 031-600-8800\n휴대폰: 010-9876-5432\nyumi.kang@example.co.kr\nhttps://www.novasystems.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

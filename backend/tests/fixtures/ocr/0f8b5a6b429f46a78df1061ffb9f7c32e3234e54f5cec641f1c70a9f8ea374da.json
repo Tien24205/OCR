@@ -1,0 +1,13 @@
+{
+  "source_file": "009.jpg",
+  "raw_text": "大成物产股份有限公司\n贸易部\n科长\n彭志远\n重庆市渝中区民族路188号\n电话: 023-6380-9900\n传真: 023-6380-9901\n手机: 131-1357-2468\nzy.peng@example.com.cn",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

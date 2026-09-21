@@ -75,6 +75,13 @@ FIELD_VI = {
     "addresses": "Địa chỉ",
 }
 
+LANG_VI = {
+    "en": "tiếng Anh",
+    "ja": "tiếng Nhật",
+    "ko": "tiếng Hàn",
+    "zh": "tiếng Trung",
+}
+
 
 def load_labels(split: str, limit: int | None,
                 image_root: Path) -> tuple[list[dict], list[str]]:
@@ -309,8 +316,7 @@ def build_report(cards: list[dict], missing: list[str], settings, split: str,
 
     for lang in langs:
         n = sum(1 for c in cards if c["lang"] == lang)
-        out += [f"## Kết quả — {'tiếng Nhật' if lang == 'ja' else 'tiếng Anh'} "
-                f"({n} thẻ)", ""]
+        out += [f"## Kết quả — {LANG_VI.get(lang, lang)} ({n} thẻ)", ""]
         out += render_table(agg, lang)
         out.append("")
 

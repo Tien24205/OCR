@@ -1,0 +1,13 @@
+{
+  "source_file": "006.jpg",
+  "raw_text": "金穗食品系统股份有限公司\nGOLDEN GRAIN FOOD SYSTEM INC.\n出口部\n主办\n宋天\nTian Song\n河南省郑州市金水区农业路85号\n电话: 0371-6588-4400\n手机: 136-7788-9900\ntian.song@example.com.cn\nhttps://goldengrain.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

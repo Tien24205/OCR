@@ -27,6 +27,9 @@ KNOWN_FIELDS = {
     "full_name_alt", "company_name_alt",
 }
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
+# Bon ngon ngu cua de goc. Them ngon ngu moi thi sua o day va o
+# make_card_sheets.FONT_SETS - khong con cho nao khac ghi danh sach nay.
+LANGS = ("en", "ja", "ko", "zh")
 
 
 def main() -> int:
@@ -60,8 +63,9 @@ def main() -> int:
             errors.append(f"dong {lineno}: anh '{image}' bi gan nhan hai lan")
         labelled.add(image)
 
-        if row.get("lang") not in {"en", "ja"}:
-            errors.append(f"dong {lineno}: lang phai la 'en' hoac 'ja'")
+        if row.get("lang") not in set(LANGS):
+            errors.append(f"dong {lineno}: lang phai la mot trong "
+                          f"{'/'.join(LANGS)}")
 
         for unknown in set(row) - KNOWN_FIELDS:
             warnings.append(f"dong {lineno}: truong la '{unknown}'")
@@ -77,7 +81,8 @@ def main() -> int:
         if len(parts) == 3 and parts[0] in {"dev", "eval"}:
             split_lang[(parts[0], parts[1])] += 1
         else:
-            errors.append(f"dong {lineno}: 'image' phai co dang dev|eval/en|ja/ten.jpg")
+            errors.append(f"dong {lineno}: 'image' phai co dang "
+                          f"dev|eval/{'|'.join(LANGS)}/ten.jpg")
 
         if not (DATASETS / image).is_file():
             warnings.append(f"dong {lineno}: chua co file anh '{image}'")
@@ -92,7 +97,7 @@ def main() -> int:
 
     print(f"Da doc {len(labelled)} nhan.")
     for split in ("dev", "eval"):
-        for lang in ("en", "ja"):
+        for lang in LANGS:
             n = split_lang[(split, lang)]
             mark = "OK " if n >= 10 else "-- "
             print(f"  {mark}{split}/{lang}: {n}/10")

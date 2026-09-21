@@ -1,0 +1,13 @@
+{
+  "source_file": "007.jpg",
+  "raw_text": "大和建设集团有限公司\n工程部\n项目经理\n赵大伟\n天津市和平区南京路201号\n电话: 022-2368-4000（分机 12）\n传真: 022-2368-4001\n手机: 137-3344-5566\ndw.zhao@example.com.cn",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "zh"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

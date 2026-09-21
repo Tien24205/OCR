@@ -1,0 +1,13 @@
+{
+  "source_file": "007.jpg",
+  "raw_text": "주식회사 대양건설\n공사부\n현장소장\n임대현\n(61949) 광주광역시 서구 상무중앙로 58\nTEL: 062-350-4000（내선 12）\nFAX: 062-350-4001\n휴대폰: 010-3344-5566\nd.lim@example.co.kr",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}

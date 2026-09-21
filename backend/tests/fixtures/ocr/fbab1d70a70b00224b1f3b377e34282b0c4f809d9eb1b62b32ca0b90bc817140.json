@@ -1,0 +1,13 @@
+{
+  "source_file": "010.jpg",
+  "raw_text": "주식회사 꿈미래교육\n기획부\n주사\n한소영\n(24341) 강원특별자치도 춘천시 중앙로 1\nsoyoung.han@example.co.kr\nhttps://kkummirae.example.com",
+  "provider": "synthetic",
+  "provider_version": "make_card_sheets --crop",
+  "detected_languages": [
+    "ko"
+  ],
+  "blocks": [],
+  "payload": {
+    "note": "van ban da biet, khong qua OCR"
+  }
+}
