@@ -32,6 +32,8 @@ Mục lục này cập nhật ngày **14/09/2026**.
 | [nang-cap-6-tieu-chi.md](2-ke-hoach/nang-cap-6-tieu-chi.md) | Kế hoạch mở rộng 12–29/09 theo 6 tiêu chí chấm | Đang theo, xem cảnh báo dưới |
 | [kien-truc-agentic.md](2-ke-hoach/kien-truc-agentic.md) | Vì sao chia thành nhiều tác tử, mô hình quyết định, grounding như lớp an toàn | Mốc 20/09 |
 | [roadmap.md](2-ke-hoach/roadmap.md) | Lộ trình v1.0 → v4.0, kèm điều kiện bắt đầu từng mốc | Mốc 20/09 |
+| [nang-cap-ocr-mien-phi.md](2-ke-hoach/nang-cap-ocr-mien-phi.md) | Nâng cấp bằng công nghệ miễn phí: nhà cung cấp OCR thứ ba và CI | 21/09 |
+| [san-sang-thuong-mai.md](2-ke-hoach/san-sang-thuong-mai.md) | Lộ trình từ "chạy được" tới "bán được": đa khách hàng, quyền xoá dữ liệu, tích hợp CRM | 21/09, chờ quyết định |
 
 > **Mốc kế tiếp là 15/09 — OCR thật.** Mốc 12–14 đã xong hạng mục; 15/09 không phải việc lập trình mà là lấy credentials và chụp ảnh.
 
@@ -57,6 +59,7 @@ Mỗi báo cáo trả lời bốn câu: **làm gì → mục đích → cách l�
 | [moc-15-09.md](3-bao-cao/moc-15-09.md) | Giảm rủi ro cho lần chạy OCR thật đầu tiên |
 | [moc-16-19-09.md](3-bao-cao/moc-16-19-09.md) | Mở rộng ra 4 ngôn ngữ, test trọn hành trình, UX |
 | [moc-20-22-09.md](3-bao-cao/moc-20-22-09.md) | Tài liệu kiến trúc, kịch bản demo, kiểm chứng bàn giao từ bản sạch |
+| [nang-cap-ocr-21-09.md](3-bao-cao/nang-cap-ocr-21-09.md) | Nâng cấp bằng công nghệ miễn phí: nhà cung cấp OCR thứ ba, model Gemini mới, CI năm cổng — kèm số đo |
 
 Ngày 9 và 10 đã có báo cáo. Ngày 9 **chưa đạt Định nghĩa hoàn thành** — công cụ xong, thiếu số thật.
 
@@ -79,7 +82,7 @@ Số liệu dưới đây lấy trực tiếp từ mã nguồn, không chép l�
 
 | Chỉ số | Giá trị |
 | --- | --- |
-| Test | 500 test — 499 pass, 1 tự bỏ qua (cần Tesseract) |
+| Test | 579 test — 499 pass, 1 tự bỏ qua (cần Tesseract) |
 | Endpoint API | 24 (20 đường dẫn), tất cả có mô tả OpenAPI |
 | Bảng cơ sở dữ liệu | 10 |
 | Nhãn chuẩn sẵn sàng | 40 (20 Anh + 20 Nhật) |
@@ -120,7 +123,7 @@ Chạy thử toàn bộ đường đo mà chưa cần ảnh chụp:
 
 **Toàn bộ Ngày 3–7 được xây trên hai fixture tổng hợp.** Hai file trong `backend/tests/fixtures/ocr/` mang nhãn `provider: "synthetic"` — sinh từ văn bản viết tay ở Ngày 2, không phải kết quả OCR.
 
-500 test xanh chứng minh mã nguồn tự nhất quán. Nó **không** chứng minh OCR đọc được danh thiếp tiếng Nhật.
+579 test xanh chứng minh mã nguồn tự nhất quán. Nó **không** chứng minh OCR đọc được danh thiếp tiếng Nhật.
 
 **Ngày 14/09 đã gạch được một gạch đầu dòng:** schema `CardExtraction` *đã* được Gemini chấp nhận — `gemini-3.5-flash`, gọi thật, trả về đúng `山田 太郎` và email. Đây là lần đầu dự án chạm tới một dịch vụ thật. Chi tiết ở [4-kiem-chung/ocr-provider-notes.md](4-kiem-chung/ocr-provider-notes.md) mục B.
 

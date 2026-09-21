@@ -52,7 +52,7 @@ Cần **hai terminal**, cả hai chạy **từ thư mục gốc dự án**:
 .\.venv\Scripts\streamlit.exe run frontend\streamlit_app.py
 ```
 
-Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 24 endpoint, bảng mã lỗi và lưu ý khi tích hợp
+Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 27 endpoint, bảng mã lỗi và lưu ý khi tích hợp
 
 > **Phải chạy từ gốc dự án.** Streamlit đọc `.streamlit/config.toml` theo thư mục đang chạy, không theo vị trí file ứng dụng. Chạy từ chỗ khác thì giới hạn dung lượng tải lên 8 MB sẽ không được áp dụng.
 
@@ -78,7 +78,7 @@ Toàn bộ nằm ở `backend/.env` (đã bị `.gitignore` chặn). Xem `backen
 
 | Biến | Ý nghĩa | Mặc định |
 | --- | --- | --- |
-| `OCR_PROVIDER` | `google`, `tesseract` (cục bộ, miễn phí) hoặc `mock` (phát lại bản ghi, offline) | `mock` |
+| `OCR_PROVIDER` | `google`, `tesseract` (cục bộ, miễn phí), `rapidocr` (cục bộ, miễn phí, cần `pip install rapidocr onnxruntime`) hoặc `mock` (phát lại bản ghi, offline) | `mock` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Đường dẫn JSON service account; tương đối thì tính từ `backend/` | — |
 | `TESSERACT_CMD` | Đường dẫn file chạy Tesseract — chỉ cần khi nó không nằm trong `PATH` | — |
 | `API_KEYS` | Khóa API, ngăn cách bằng dấu phẩy. **Để trống = API mở** | — |
@@ -106,15 +106,16 @@ Giao diện chỉ đọc **một** biến: `API_BASE_URL` (mặc định `http:/
 
 ### Bật OCR thật
 
-Có hai đường. **Grounding hoạt động như nhau ở cả hai** — nó chỉ đòi hỏi OCR
+Có ba đường. **Grounding hoạt động như nhau ở cả ba** — nó chỉ đòi hỏi OCR
 và Gemini là hai nguồn độc lập, chứ không đòi OCR phải là nhà cung cấp nào.
 
-| | `tesseract` | `google` |
-| --- | --- | --- |
-| Chi phí | Miễn phí, không giới hạn | Miễn phí trong 1 000 đơn vị/tháng |
-| Cần gắn thẻ | Không | **Có** — bắt buộc bật billing |
-| Cần mạng | Không | Có |
-| Chất lượng Kanji | Kém hơn rõ rệt | Tốt nhất |
+| | `tesseract` | `rapidocr` | `google` |
+| --- | --- | --- | --- |
+| Chi phí | Miễn phí, không giới hạn | Miễn phí, không giới hạn | Miễn phí trong 1 000 đơn vị/tháng |
+| Cần gắn thẻ | Không | Không | **Có** — bắt buộc bật billing |
+| Cần mạng | Không | Chỉ lần đầu (tải model) | Có |
+| Cài đặt | Phần mềm hệ thống | `pip install` | Tài khoản Google Cloud |
+| Đa ngôn ngữ một lần gọi | Có | **Không** — mỗi ngôn ngữ một model | Có |
 
 #### Đường A — Tesseract (miễn phí, chạy cục bộ)
 
@@ -130,7 +131,26 @@ Tesseract là phần mềm hệ thống, `pip install` không đủ:
 Rồi đặt `OCR_PROVIDER=tesseract` trong `backend\.env`. Nếu lệnh `tesseract`
 không nằm trong `PATH`, trỏ thẳng tới nó bằng `TESSERACT_CMD`.
 
-#### Đường B — Google Vision
+#### Đường B — RapidOCR (miễn phí, chạy cục bộ, không cần cài phần mềm hệ thống)
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install rapidocr onnxruntime
+```
+
+Rồi đặt `OCR_PROVIDER=rapidocr`. Ba điều phải biết trước khi chọn đường này:
+
+- **Model tải về ở lần chạy đầu** (~100–200 MB, vào `site-packages`). Máy không
+  có mạng ở lần chạy đầu sẽ báo lỗi `OCR_NOT_CONFIGURED` nói đúng nguyên nhân đó.
+- **Mỗi ngôn ngữ một model, chọn theo `OCR_LANGUAGE_HINTS`.** Khác hẳn Tesseract
+  vốn nhận `jpn+eng+kor+chi_sim` trong một lời gọi. Đặt `OCR_LANGUAGE_HINTS=ja,en`
+  rồi quét thẻ tiếng Hàn thì nó dùng model tiếng Nhật để đọc Hangul — không có
+  lỗi nào được báo, chỉ có kết quả sai. **Gợi ý ngôn ngữ phải khớp với thẻ.**
+- **Không nằm trong `requirements.txt` và không có trong image Docker**, cố ý:
+  phụ thuộc này nặng và chỉ đáng cài khi bạn thật sự cần nó.
+
+Số đo đối chiếu với Tesseract: xem [báo cáo nâng cấp 21/09](Document/3-bao-cao/nang-cap-ocr-21-09.md).
+
+#### Đường C — Google Vision
 
 Cần bật billing trên Google Cloud và bật Cloud Vision API, sau đó chọn **một**
 trong hai cách xác thực: trỏ `GOOGLE_APPLICATION_CREDENTIALS` tới file JSON
@@ -161,7 +181,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**500 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**579 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI
