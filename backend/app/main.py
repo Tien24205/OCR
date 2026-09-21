@@ -29,6 +29,17 @@ from app.services.enrich.worker import run_enrichment, job_result
 settings = get_settings()
 
 
+# Chan tren cho `GET /api/scans/status?ids=`: du rong cho mot lo lon nhat
+# (10 anh) va cho vai lo lien tiep, du hep de mot chuoi ids dai bat thuong
+# khong bien thanh mot truy van quet ca bang.
+MAX_STATUS_IDS = 50
+
+# Chan tren cho `GET /api/scans?limit=`: giao dien hien anh thu nho, moi anh
+# la mot loi goi rieng - de nguoi goi tu dat limit=1000 la tu bien trang
+# Kiem tra thanh mot tran 1000 lan tai anh.
+MAX_LIST_SCANS = 50
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
@@ -214,8 +225,74 @@ def create_batch_scans(
 
     return {"items": results, "queued": len(queued)}
 
+
+@app.get("/api/scans")
+def list_scans(limit: int = 12, db: Session = Depends(get_db)) -> dict:
+    """Cac ban quet gan day nhat, de nguoi dung quay lai mot ban quet cu.
+
+    VI SAO CAN: truoc endpoint nay, giao dien chi mo duoc dung ban quet vua
+    gui - ma `current_scan_id` song trong phien trinh duyet. Tai lai trang la
+    mat duong vao, va nhung ban quet da xu ly xong nam lai trong CSDL ma
+    khong co cach nao mo ra. Da tung co 9 ban quet `ocr_done` bi ket kieu do.
+
+    Kem `full_name`/`company_name` doc tu ban nhap de nguoi dung nhan ra the,
+    va `image_ref` de hien anh thu nho.
+    """
+    limit = max(1, min(limit, MAX_LIST_SCANS))
+    rows = db.scalars(select(Scan).order_by(Scan.created_at.desc()).limit(limit)).all()
+
+    items = []
+    for scan in rows:
+        draft = current_draft(scan.grounding_json or {}) or {}
+        fields = draft.get("fields") or {}
+
+        def dau_tien(ten_truong: str) -> str | None:
+            muc = fields.get(ten_truong) or []
+            return muc[0].get("value") if muc else None
+
+        items.append({
+            "id": scan.id,
+            "status": scan.status,
+            "image_ref": scan.image_ref,
+            "created_at": scan.created_at,
+            "contact_id": scan.contact_id,
+            "full_name": dau_tien("full_names"),
+            "company_name": dau_tien("company_names"),
+        })
+    return {"items": items}
+
+
+# Phai khai bao TRUOC `/api/scans/{scan_id}` - xem chu thich trong ham do.
+@app.get("/api/scans/status")
+def scans_status(ids: str, db: Session = Depends(get_db)) -> dict:
+    """Trang thai cua nhieu ban quet trong MOT loi goi.
+
+    VI SAO CAN: giao dien theo doi mot lo dang chay bang cach hoi lai vai giay
+    mot lan. Hoi tung ban quet mot thi so loi goi nhan len theo so anh - mot
+    lo 10 anh moi 2 giay la 300 loi goi mot phut, trong khi gioi han la 60.
+    Chinh tinh nang theo doi lai lam nguoi dung bi chan.
+
+    Endpoint nay tra loi cho ca lo bang mot loi goi, nen chi phi khong doi
+    theo so anh.
+    """
+    wanted = [x.strip() for x in ids.split(",") if x.strip()][:MAX_STATUS_IDS]
+    if not wanted:
+        return {"items": []}
+    rows = db.execute(select(Scan.id, Scan.status, Scan.error_code)
+                      .where(Scan.id.in_(wanted))).all()
+    found = {row[0]: {"id": row[0], "status": row[1], "error_code": row[2]}
+             for row in rows}
+    # Giu dung thu tu ma nguoi goi hoi, va bo qua ma khong ton tai thay vi bao
+    # loi ca lo: mot ma sai khong duoc lam mat trang thai cua chin ma con lai.
+    return {"items": [found[i] for i in wanted if i in found]}
+
+
 @app.get("/api/scans/{scan_id}")
 def get_scan(scan_id: str, db: Session = Depends(get_db)) -> dict:
+    # BAY THU TU ROUTE: khai bao nay phai nam SAU `/api/scans/status`.
+    # FastAPI khop route theo thu tu khai bao, nen neu `{scan_id}` dung truoc
+    # thi "status" se bi nuot thanh mot ma ban quet va endpoint kia khong bao
+    # gio chay - loi im lang, chi lo ra la 404 "khong tim thay ban quet".
     scan = db.get(Scan, scan_id)
     if scan is None:
         raise ApiError("SCAN_NOT_FOUND", "Không tìm thấy bản quét.", 404)

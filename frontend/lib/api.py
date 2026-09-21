@@ -193,6 +193,20 @@ def stats() -> dict[str, Any]:
     return _request("GET", "/api/stats")
 
 
+def list_scans(limit: int = 12) -> dict[str, Any]:
+    """Cac ban quet gan day - de trang Kiem tra mo lai mot the cu."""
+    return _request("GET", "/api/scans", params={"limit": limit})
+
+
+def scans_status(ids: list[str]) -> dict[str, Any]:
+    """Trang thai ca lo trong MOT loi goi.
+
+    Hoi tung ban quet mot se nhan so loi goi theo so anh va dung gioi han tan
+    suat (60/phut) - luc do chinh cai bang theo doi lam nguoi dung bi chan.
+    """
+    return _request("GET", "/api/scans/status", params={"ids": ",".join(ids)})
+
+
 def create_batch(items: list[tuple[str, bytes, str]]) -> dict[str, Any]:
     """Gui nhieu anh trong mot yeu cau.
 

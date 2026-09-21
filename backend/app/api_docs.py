@@ -168,7 +168,33 @@ ENDPOINTS: dict[tuple[str, str], dict] = {
         "summary": "Trạng thái ứng dụng và mức sẵn sàng của dịch vụ",
         "description":
             "Chỉ trả `true`/`false` cho từng mục cấu hình — **không bao giờ "
-            "tiết lộ giá trị khóa**.",
+            "tiết lộ giá trị khóa**. Khóa `verified` là kết quả lần xác minh "
+            "thật gần nhất (`null` nếu chưa chạy lần nào); đọc từ bộ nhớ, "
+            "không gọi dịch vụ.",
+    },
+    ("get", "/api/scans"): {
+        "summary": "Danh sách bản quét gần đây",
+        "description":
+            "`?limit=` (mặc định 12, tối đa 50). Kèm `full_name`, "
+            "`company_name` đọc từ bản nháp và `image_ref` để hiện ảnh thu "
+            "nhỏ — đủ để nhận ra thẻ mà không phải mở từng bản quét.",
+    },
+    ("get", "/api/scans/status"): {
+        "summary": "Trạng thái của nhiều bản quét trong một lời gọi",
+        "description":
+            "`?ids=a,b,c` — dùng để theo dõi một lô đang chạy. Hỏi từng bản "
+            "quét một sẽ nhân số lời gọi theo số ảnh và đụng giới hạn tần "
+            "suất; endpoint này có chi phí không đổi theo số ảnh.\n\n"
+            "Mã không tồn tại bị **bỏ qua** thay vì làm hỏng cả lô.",
+    },
+    ("post", "/api/readiness/verify"): {
+        "summary": "Xác minh dịch vụ bằng lời gọi thật",
+        "description":
+            "Phân biệt **đã cấu hình** với **chạy được**: gọi thật nhà cung "
+            "cấp OCR và bộ trích xuất đang bật, rồi nhớ kết quả cho "
+            "`GET /api/health`.\n\n"
+            "**Tốn hạn mức:** tối đa hai lời gọi dịch vụ mỗi lần. Tesseract "
+            "kiểm cục bộ nên không tốn gì; Google Vision và Gemini thì có.",
     },
     ("get", "/api/stats"): {
         "summary": "Số liệu tổng quan cho bảng điều khiển",
