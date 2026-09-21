@@ -181,9 +181,9 @@ def export_contacts(format: str) -> bytes:
     return _request("GET", "/api/export", params={"format": format}, raw=True)
 
 
-def get_image(image_ref: str) -> bytes:
+def get_image(scan_id: str) -> bytes:
     """Tai anh goc ve de hien thi. Anh khong duoc phuc vu truc tiep ra ngoai."""
-    res = _client().get(f"/api/images/{image_ref}")
+    res = _client().get(f"/api/scans/{scan_id}/image")
     res.raise_for_status()
     return res.content
 

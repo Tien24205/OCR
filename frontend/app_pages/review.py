@@ -14,15 +14,14 @@ TRANG_THAI_VI = {"pending": "đang chờ", "processing": "đang nhận diện",
 
 
 @st.cache_data(show_spinner=False, max_entries=64)
-def _anh(image_ref: str) -> bytes:
+def _anh(scan_id: str) -> bytes:
     """Anh nho de chon ban quet.
 
-    Cache duoc: anh luu theo SHA-256 cua noi dung nen mot `image_ref` LUON tro
-    toi dung mot anh, khong bao gio doi. Khong cache thi moi lan chay lai
-    script la mot loat loi goi tai anh - dung cai da tung dung gioi han tan
-    suat o trang Quet the.
+    Cache duoc: anh cua mot ban quet khong bao gio doi. Khong cache thi moi
+    lan chay lai script la mot loat loi goi tai anh - dung cai da tung dung
+    gioi han tan suat o trang Quet the.
     """
-    return api.get_image(image_ref)
+    return api.get_image(scan_id)
 
 
 def chon_ban_quet(dang_mo: str | None) -> None:
@@ -47,7 +46,7 @@ def chon_ban_quet(dang_mo: str | None) -> None:
             for cot, item in zip(st.columns(4), items[hang:hang + 4]):
                 with cot:
                     try:
-                        st.image(_anh(item["image_ref"]), width="stretch")
+                        st.image(_anh(item["id"]), width="stretch")
                     except Exception:
                         st.caption("(chưa tải được ảnh)")
                     nhan = (item.get("full_name") or item.get("company_name")
@@ -199,7 +198,7 @@ image_col, data_col = st.columns([1, 1])
 with image_col:
     st.subheader("Ảnh đầu vào OCR")
     try:
-        st.image(api.get_image(scan["image_ref"]), width="stretch")
+        st.image(api.get_image(scan_id), width="stretch")
     except Exception:
         st.caption("Chưa tải được ảnh. Văn bản và bản nháp bên cạnh vẫn được giữ.")
     with st.expander("Văn bản OCR thô"):

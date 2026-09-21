@@ -16,7 +16,7 @@
 
 Khách hàng thứ hai xuất hiện là dữ liệu hai khách nằm chung một rổ. Đây không phải tính năng gắn thêm ở rìa — mọi truy vấn trong `contact_routes.py` và `main.py` phải lọc theo chủ sở hữu.
 
-**Một lỗ hổng cụ thể đã thấy:** `GET /api/images/{image_ref}` tra ảnh theo mã băm nội dung. Bất kỳ ai có `image_ref` hợp lệ đều tải được ảnh, không cần liên quan gì tới bản quét đó. Khi có nhiều khách, đây là rò rỉ dữ liệu cá nhân xuyên khách hàng.
+**Một lỗ hổng cụ thể đã thấy — đã sửa:** `GET /api/images/{image_ref}` tra ảnh theo mã băm nội dung, nên bất kỳ ai có `image_ref` hợp lệ đều tải được ảnh mà không cần liên quan gì tới bản quét. Nay ảnh chỉ tải được qua `GET /api/scans/{scan_id}/image`; phép kiểm quyền theo `owner_id` sẽ có đúng một chỗ để đặt. Phần còn lại của C1 vẫn nguyên.
 
 ### C2 — Danh thiếp là dữ liệu cá nhân, mà không có đường xoá
 
@@ -55,7 +55,7 @@ Hai việc này phải đi cùng nhau: xoá dữ liệu mà chưa biết dữ li
 | Bảng `Tenant` + `owner_id` trên Contact, Scan, Organization, Enrichment, EnrichmentJob, ContactProfile | `models.py`, migration |
 | Ánh xạ khoá API → tenant (thay danh sách khoá phẳng) | `auth.py`, `config.py` |
 | Lọc theo `owner_id` ở **mọi** truy vấn | `contact_routes.py`, `main.py`, `stats.py`, `export` |
-| `GET /api/images/{ref}` phải kiểm quyền qua bản quét | `main.py` — lỗ hổng đã nêu ở C1 |
+| ~~`GET /api/images/{ref}` phải kiểm quyền qua bản quét~~ **đã làm trước** | `main.py` — nay là `GET /api/scans/{scan_id}/image` |
 | `DELETE /api/contacts/{id}` và `DELETE /api/scans/{id}` | Xoá lan theo email/phone/address/profile |
 | Xoá ảnh gốc khi không còn bản quét nào dùng | **Bẫy:** ảnh lưu theo SHA-256 nên hai bản quét có thể dùng chung một tệp. Xoá mù là mất ảnh của bản quét khác |
 | Thời hạn lưu trữ cấu hình được + tác vụ dọn | Cấu hình mới `RETENTION_DAYS` |

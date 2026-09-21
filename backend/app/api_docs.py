@@ -176,8 +176,9 @@ ENDPOINTS: dict[tuple[str, str], dict] = {
         "summary": "Danh sách bản quét gần đây",
         "description":
             "`?limit=` (mặc định 12, tối đa 50). Kèm `full_name`, "
-            "`company_name` đọc từ bản nháp và `image_ref` để hiện ảnh thu "
-            "nhỏ — đủ để nhận ra thẻ mà không phải mở từng bản quét.",
+            "`company_name` đọc từ bản nháp — đủ để nhận ra thẻ mà không phải "
+            "mở từng bản quét. Ảnh thu nhỏ lấy qua "
+            "`GET /api/scans/{scan_id}/image`.",
     },
     ("get", "/api/scans/status"): {
         "summary": "Trạng thái của nhiều bản quét trong một lời gọi",
@@ -227,12 +228,13 @@ ENDPOINTS: dict[tuple[str, str], dict] = {
             "Người dùng quyết định giữ hay bỏ từng thông tin bổ sung. Dữ liệu "
             "tra cứu **không bao giờ tự ghi đè** thông tin đọc từ thẻ.",
     },
-    ("get", "/api/images/{image_ref}"): {
+    ("get", "/api/scans/{scan_id}/image"): {
         "summary": "Tải ảnh gốc của một bản quét",
         "description":
-            "`image_ref` là SHA-256 của nội dung ảnh. Chỉ chấp nhận đúng 64 ký "
-            "tự hex — không ghép chuỗi đường dẫn từ tham số đầu vào, nên không "
-            "thể dùng để đọc file khác trên máy chủ.",
+            "Ảnh chỉ tải được **qua bản quét**, không qua mã băm nội dung. "
+            "Đường dẫn cũ `/api/images/{image_ref}` biến SHA-256 của ảnh thành "
+            "một giấy thông hành không hết hạn: ai cầm được mã là tải được "
+            "ảnh, kể cả khi không liên quan gì tới bản quét đó.",
     },
     ("get", "/api/organizations"): {
         "summary": "Danh sách doanh nghiệp để chọn khi lưu hồ sơ",

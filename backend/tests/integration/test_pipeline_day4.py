@@ -86,7 +86,7 @@ def test_pipeline_english_and_japanese_persists_grounded_draft(system, monkeypat
         assert system.client.get(f"/api/scans/{scan_id}").json() == result
     pipeline.run_scan(scan_id, system.config, system.factory)
     assert calls == {"ocr": 1, "extract": 1}
-    image = system.client.get(f"/api/images/{result['image_ref']}")
+    image = system.client.get(f"/api/scans/{scan_id}/image")
     assert image.status_code == 200 and image.content == system.image
     assert image.headers["content-type"] == "image/png"
 
@@ -172,8 +172,10 @@ def test_default_mock_rejects_unknown_image_explicitly(system):
 def test_missing_records_and_invalid_image_references(system):
     assert system.client.get("/api/scans/missing").status_code == 404
     assert system.client.post("/api/scans/missing/retry").status_code == 404
-    for reference in ("file.txt", "g" * 64, "a" * 64):
-        assert system.client.get(f"/api/images/{reference}").status_code == 404
+    assert system.client.get("/api/scans/missing/image").status_code == 404
+    # Duong dan cu tra anh theo ma bam noi dung: phai bien han, khong con la
+    # mot duong vong quanh phep kiem quyen qua ban quet (C1).
+    assert system.client.get(f"/api/images/{'a' * 64}").status_code == 404
 
 
 @pytest.mark.parametrize("name,company", [("Jane Doe", "Example Inc."), ("山田 太郎", "株式会社サンプル")])

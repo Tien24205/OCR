@@ -380,13 +380,30 @@ def retry_scan(scan_id: str, background_tasks: BackgroundTasks,
     return {"id": scan_id, "status": "pending"}
 
 
-@app.get("/api/images/{image_ref}")
-def get_image(image_ref: str, db: Session = Depends(get_db), config: Settings = Depends(get_settings)):
-    if not re.fullmatch(r"[a-f0-9]{64}", image_ref):
+@app.get("/api/scans/{scan_id}/image")
+def get_image(scan_id: str, db: Session = Depends(get_db), config: Settings = Depends(get_settings)):
+    """Anh goc CUA MOT BAN QUET - quyen di qua ban quet, khong qua ma bam.
+
+    LO HONG DA SUA (san-sang-thuong-mai.md, C1): duong dan cu la
+    `/api/images/{image_ref}`, tra anh theo SHA-256 cua NOI DUNG anh. Ma bam
+    do la mot giay thong hanh khong het han: ai cam duoc no la tai duoc anh,
+    du khong lien quan gi toi ban quet - va ai co san mot ban sao cua chinh
+    tam anh thi tu tinh ra ma bam, khong can he thong cap cho. Khi co nhieu
+    khach hang dung chung he thong, do la ro ri du lieu ca nhan xuyen khach.
+
+    Di qua ban quet thi phep kiem quyen sap toi (`owner_id`, Giai doan 2) chi
+    co MOT cho de dat, va la cho ma moi truy van ban quet khac deu di qua.
+    """
+    scan = db.get(Scan, scan_id)
+    if scan is None:
         raise ApiError("IMAGE_NOT_FOUND", "Không tìm thấy ảnh.", 404)
-    scan = db.scalar(select(Scan).where(Scan.image_ref == image_ref).limit(1))
-    path = config.image_path / image_ref
-    if scan is None or not path.is_file():
+    # `image_ref` den tu CSDL chu khong tu nguoi goi nua, nhung no van bi ghep
+    # vao duong dan tep - giu phep kiem de mot gia tri hong trong CSDL khong
+    # tro thanh duong doc file khac tren may chu.
+    if not re.fullmatch(r"[a-f0-9]{64}", scan.image_ref or ""):
+        raise ApiError("IMAGE_NOT_FOUND", "Không tìm thấy ảnh.", 404)
+    path = config.image_path / scan.image_ref
+    if not path.is_file():
         raise ApiError("IMAGE_NOT_FOUND", "Không tìm thấy ảnh.", 404)
     return FileResponse(path, media_type=scan.image_mime,
                         headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
