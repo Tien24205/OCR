@@ -8,12 +8,70 @@ from lib.fields import buffered_draft, edit_fields, FIELD_LABELS
 from lib.enrichment import render_enrichment
 from lib.contacts import render_save_contact
 
+TRANG_THAI_VI = {"pending": "đang chờ", "processing": "đang nhận diện",
+                 "ocr_done": "chờ kiểm tra", "committed": "đã lưu hồ sơ",
+                 "failed": "lỗi"}
+
+
+@st.cache_data(show_spinner=False, max_entries=64)
+def _anh(image_ref: str) -> bytes:
+    """Anh nho de chon ban quet.
+
+    Cache duoc: anh luu theo SHA-256 cua noi dung nen mot `image_ref` LUON tro
+    toi dung mot anh, khong bao gio doi. Khong cache thi moi lan chay lai
+    script la mot loat loi goi tai anh - dung cai da tung dung gioi han tan
+    suat o trang Quet the.
+    """
+    return api.get_image(image_ref)
+
+
+def chon_ban_quet(dang_mo: str | None) -> None:
+    """Luoi anh thu nho de mo lai mot ban quet cu.
+
+    VI SAO CAN: truoc day trang nay chi mo duoc ban quet vua gui, vi
+    `current_scan_id` song trong phien trinh duyet. Tai lai trang la mat duong
+    vao, va nhung ban quet da xu ly xong nam lai trong CSDL khong co cach nao
+    mo ra - da tung co 9 ban quet `ocr_done` bi ket kieu do.
+    """
+    try:
+        items = api.list_scans(limit=12)["items"]
+    except api.ApiError as exc:
+        st.caption(f"Chưa đọc được danh sách bản quét: {exc.message}")
+        return
+    if not items:
+        return
+
+    with st.expander(f"Chọn bản quét khác ({len(items)} gần đây)",
+                     expanded=dang_mo is None):
+        for hang in range(0, len(items), 4):
+            for cot, item in zip(st.columns(4), items[hang:hang + 4]):
+                with cot:
+                    try:
+                        st.image(_anh(item["image_ref"]), width="stretch")
+                    except Exception:
+                        st.caption("(chưa tải được ảnh)")
+                    nhan = (item.get("full_name") or item.get("company_name")
+                            or TRANG_THAI_VI.get(item["status"], item["status"]))
+                    st.caption(f"{nhan}\n\n{item['created_at'][11:16]} · "
+                               f"{TRANG_THAI_VI.get(item['status'], item['status'])}")
+                    if item["id"] == dang_mo:
+                        st.caption("**đang mở**")
+                    elif st.button("Mở", key=f"mo:{item['id']}", width="stretch"):
+                        st.session_state.current_scan_id = item["id"]
+                        st.session_state.pop("scan_result", None)
+                        st.session_state.pop("scan_poll", None)
+                        st.rerun()
+
+
 scan_id = st.session_state.get("current_scan_id")
 if not scan_id:
-    st.info("Chưa có bản quét nào. Sang trang **Quét thẻ** để chụp hoặc tải ảnh.")
+    st.info("Chưa có bản quét nào. Sang trang **Quét thẻ** để chụp hoặc tải ảnh, "
+            "hoặc chọn một bản quét cũ bên dưới.")
+    chon_ban_quet(None)
     st.stop()
 
 st.caption(f"Bản quét `{scan_id}`")
+chon_ban_quet(scan_id)
 poll = st.session_state.get("scan_poll")
 if not poll or poll["id"] != scan_id:
     st.session_state.scan_poll = {"id": scan_id, "started": time.monotonic(), "error": None}
@@ -149,6 +207,22 @@ with image_col:
         if scan.get("ocr_text_for_draft") and scan["ocr_text_for_draft"] != scan.get("raw_text"):
             st.caption("Văn bản từ lần OCR bổ sung được chọn để đối chiếu bản nháp:")
             st.text(scan["ocr_text_for_draft"])
+
+    # Phan thu hai cua ket qua quet: chu doc duoc nhung khong thuoc truong nao
+    # cua de bai. Truoc day no bi bo im lang, nen nguoi dung khong biet tren
+    # the con gi. Hien ra day KHONG phai de tu dong dua vao ho so - no la van
+    # ban tho theo dong, chua duoc gan nhan truong.
+    con_lai = scan.get("other_text") or []
+    if con_lai:
+        with st.expander(f"Phần quét được nhưng chưa thuộc trường nào "
+                         f"({len(con_lai)} dòng)"):
+            st.dataframe(
+                [{"Dòng": x["line"], "Nội dung": x["text"]} for x in con_lai],
+                width="stretch", hide_index=True,
+            )
+            st.caption("Khẩu hiệu, chi nhánh, mã số thuế, tài khoản mạng xã "
+                       "hội… — những thứ đề bài không yêu cầu. Chép tay sang "
+                       "ô Ghi chú nếu cần giữ lại.")
 
 with data_col:
     st.subheader("Bản nháp từ danh thiếp")
