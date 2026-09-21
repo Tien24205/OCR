@@ -49,3 +49,6 @@ datasets/print/
 # dau ra tho cua evaluate.py; ban bao cao chinh thuc nam o
 # Document/3-bao-cao/chat-luong.md
 reports/
+
+# Graphify knowledge graph (regenerate: /graphify . --update)
+graphify-out/

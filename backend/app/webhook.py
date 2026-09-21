@@ -30,7 +30,6 @@ import json
 import logging
 import secrets
 import time
-from typing import Literal
 
 import httpx
 from fastapi import APIRouter, Depends
@@ -113,7 +112,9 @@ def deliver(target: WebhookTarget, event: str, data: dict,
         # bo ke tu luc dang ky; chi kiem mot lan luc dang ky la khong du.
         try:
             normalized, host, port = validate_url(target.url)
-            address = resolve_public(host, port, config.webhook_timeout_s)
+            # Gia tri tra ve khong dung den; goi ham nay la de no NEM
+            # FetchError khi dia chi tro vao mang noi bo.
+            resolve_public(host, port, config.webhook_timeout_s)
         except FetchError as exc:
             return False, f"dia chi bi chan: {exc}"
 

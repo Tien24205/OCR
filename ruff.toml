@@ -1,0 +1,28 @@
+# Cau hinh linter - CO Y HEP.
+#
+# `ruff check` mac dinh bat rat nhieu nhom quy tac va bao 388 loi tren kho nay,
+# phan lon la van phong: dau ngoac, thu tu import, do dai dong. Bat het roi sua
+# het se tao mot ban dif khong lien quan den chuc nang nao, va lam moi lan
+# `git blame` sau nay kho doc hon.
+#
+# Chi giu hai nhom tra loi duoc cau "day co phai loi khong":
+#   E9 - loi cu phap, code khong chay duoc
+#   F  - pyflakes: bien khong dinh nghia, import thua, bien gan roi khong dung
+#
+# Kiem tra:  python -m ruff check backend frontend
+
+line-length = 100
+
+[lint]
+select = ["E9", "F"]
+
+[lint.per-file-ignores]
+# Cach khai bao fixture cua pytest: `from test_x import system` roi dung
+# `system` lam TEN THAM SO cua ham test. Ruff doc do la "dinh nghia lai bien
+# chua dung" va bao F811 59 lan, trong khi day la cach duy nhat dung fixture
+# tu file khac. Tat rieng trong thu muc test, khong tat toan cuc.
+# F401 cung vay: import mot fixture la cach DUY NHAT de dung no o file
+# khac, nhung ruff doc do la "import thua". Xoa theo goi y cua ruff la
+# hong ca tep test ma khong hieu vi sao.
+"backend/tests/**" = ["F811", "F401"]
+"frontend/tests/**" = ["F811", "F401"]

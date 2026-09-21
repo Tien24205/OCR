@@ -223,7 +223,7 @@ def test_05b_ocr_doc_thieu_thi_KHONG_duoc_bia_them_truong(system, monkeypatch):
 # --------------------------------------------------------------------------
 
 def test_06_ocr_loi_thi_ban_quet_that_bai_va_thu_lai_duoc(system, monkeypatch):
-    calls = stub_providers(monkeypatch, ocr_error={
+    stub_providers(monkeypatch, ocr_error={
         "code": "OCR_UNAVAILABLE", "message": "Mat ket noi", "times": 99,
         "retryable": True,
     })

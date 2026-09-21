@@ -13,7 +13,6 @@ Hai PRAGMA duoi day bat buoc phai bat cho SQLite:
 from __future__ import annotations
 
 from collections.abc import Iterator
-from pathlib import Path
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine

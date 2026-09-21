@@ -213,7 +213,7 @@ def create_batch_scans(
             results.append({"filename": file.filename, "id": scan.id, "status": scan.status})
         except ImageInputError as exc:
             results.append({"filename": file.filename, "error": exc.message})
-        except (OSError, SQLAlchemyError) as exc:
+        except (OSError, SQLAlchemyError):
             db.rollback()
             results.append({"filename": file.filename, "error": "Lỗi hệ thống khi lưu ảnh."})
         finally:
