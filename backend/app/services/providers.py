@@ -15,8 +15,11 @@ def build_ocr(config: Settings):
         from app.services.ocr.tesseract import TesseractProvider
         return TesseractProvider(config.language_hint_list, config.ocr_timeout_s,
                                  config.tesseract_cmd)
+    if config.ocr_provider == "rapidocr":
+        from app.services.ocr.rapid import RapidOcrProvider
+        return RapidOcrProvider(config.language_hint_list, config.ocr_timeout_s)
     raise OcrError("OCR_NOT_CONFIGURED",
-                   "OCR_PROVIDER phải là google, tesseract hoặc mock.")
+                   "OCR_PROVIDER phải là google, tesseract, rapidocr hoặc mock.")
 
 
 def build_extractor(config: Settings):
