@@ -25,7 +25,7 @@ bắt đầu** — vì phần lớn việc phía sau không chặn ở công s�
 - Tra cứu doanh nghiệp có dẫn nguồn, chặn SSRF ở mọi lần chuyển hướng
 - Lưu hồ sơ, tìm kiếm, phát hiện trùng, xuất JSON/CSV/vCard
 - Trang tổng quan, màn hình duyệt, 27 endpoint có mô tả OpenAPI
-- 579 test tự động
+- 586 test tự động
 
 **Còn thiếu để gọi là v1.0 thật:**
 

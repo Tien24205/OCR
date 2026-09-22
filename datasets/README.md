@@ -49,6 +49,30 @@ kiểm thử ở Ngày 8:
 10 thẻ eval, lặp lại cùng một bộ 10 tình huống. Việc còn lại là in, cắt và
 chụp — phần xuống cấp ảnh (nghiêng, mờ, chói) chỉ có thể tạo ra khi chụp.
 
+## In, cắt, chụp và đưa ảnh vào
+
+1. In **8 trang** trong `datasets/print/` ở tỷ lệ 100% (Actual size), **không**
+   dùng Fit to page. Mã thẻ (`EN-D-01`…) nằm ngoài viền, ở lề trang.
+2. **Cắt rời từng thẻ theo viền.** Mã thẻ bị cắt mất là đúng — nó ở đó để bạn
+   giữ thứ tự, không phải để OCR đọc. Chụp cả trang chưa cắt thì một ảnh có
+   chữ của hai ba thẻ, và cả đường ống được viết theo giao ước *một ảnh, một
+   thẻ, một mặt*.
+3. Chụp **một thẻ một ảnh**, đi lần lượt từ thẻ 01 đến thẻ 10 của từng trang.
+   Giữ khoảng cách đủ để máy lấy nét — thẻ chiếm gần hết khung là vừa, sát quá
+   thì ống kính điện thoại không nét được.
+4. Đổ ảnh của **một ngôn ngữ, một split** vào một thư mục rồi chạy:
+
+```
+python backend/scripts/import_photos.py --split dev --lang ja --from <thư mục>
+python backend/scripts/import_photos.py --split dev --lang ja --from <thư mục> --apply
+```
+
+Lần chạy đầu chỉ in kế hoạch và các lỗi; `--apply` mới thực sự chép vào
+`datasets/dev/ja/001.jpg`… theo đúng thứ tự bấm máy. Script chặn ba lỗi không
+lộ ra lúc chạy mà chỉ lộ ra ở báo cáo dưới dạng một con số xấu khó giải thích:
+ảnh quá nhỏ hoặc quá mờ, ảnh còn nhìn thấy mã thẻ (tức là trang chưa cắt), và
+ảnh không phải thẻ mà nhãn đang mô tả — chẳng hạn khi in nhầm bộ thẻ cũ.
+
 ## Cách gán nhãn
 
 **Gán nhãn từ ảnh, không phải từ đầu ra OCR.** Nếu bạn copy kết quả OCR làm đáp án, số đo Ngày 9 sẽ luôn là 100% và hoàn toàn vô nghĩa.
