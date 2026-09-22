@@ -184,11 +184,11 @@ login`.
 # 1. Xem tài khoản của bạn dùng được model Gemini nào
 .\.venv\Scripts\python.exe backend\scripts\try_ocr.py --list-models
 
-# 2. Điền backend\.env, rồi xác nhận cấu hình — chỉ tốn 2 lời gọi dịch vụ
-.\.venv\Scripts\python.exe backend\scripts\try_ocr.py --check
+# 2. Điền backend\.env, rồi bấm "Xác minh dịch vụ" trên sidebar của ứng dụng
+#    (hoặc gọi POST /api/readiness/verify) — chỉ tốn 2 lời gọi dịch vụ
 ```
 
-`--check` trả lời bốn câu tách bạch: OCR có chạy được không, nó có đọc ra chữ không, model Gemini có tồn tại không, và model có chấp nhận schema trích xuất không. Với `tesseract`, câu đầu kiểm cả việc đã cài gói ngôn ngữ chưa.
+Phép xác minh gọi **thật** nhà cung cấp OCR và bộ trích xuất đang bật, rồi nhớ kết quả cho `GET /api/health`. Nó phân biệt ba trạng thái mà trước đây bị gộp làm một: *đã điền cấu hình*, *đang chạy mock*, và *đã xác minh bằng lời gọi thật lúc HH:MM*.
 
 `GET /api/health` báo trạng thái sẵn sàng của từng dịch vụ **mà không tiết lộ giá trị khóa**. Sidebar của ứng dụng hiển thị đúng thông tin này.
 

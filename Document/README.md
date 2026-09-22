@@ -100,7 +100,7 @@ Ngày 1–7 của kế hoạch gốc: khung dự án, schema, tiếp nhận ản
 | `backend/scripts/make_card_sheets.py` | Sinh 4 trang A4 gồm 40 danh thiếp hư cấu + 40 nhãn chuẩn. In, cắt, chụp là có bộ mẫu |
 | `backend/scripts/evaluate.py` | Đo chất lượng theo từng trường và từng ngôn ngữ, xuất `reports/evaluation.md` |
 | `backend/app/services/evaluation.py` | Quy tắc so sánh, **chốt trước khi đo** và có 18 test khóa lại |
-| `try_ocr.py --check` | Kiểm tra credentials bằng đúng 2 lời gọi dịch vụ, trước khi chạy cả bộ |
+| `POST /api/readiness/verify` | Xác minh dịch vụ bằng đúng 2 lời gọi thật, kết quả nhớ lại cho `/api/health` |
 | `backend/scripts/check_secrets.py` | Quét rò rỉ khóa theo hình dạng, không theo từ khóa; dùng được trong CI |
 
 Chạy thử toàn bộ đường đo mà chưa cần ảnh chụp:

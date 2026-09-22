@@ -188,16 +188,6 @@ def compare_card(label: dict, fields: dict[str, list[str]]) -> dict[str, FieldRe
     return out
 
 
-def aggregate(cards: list[tuple[str, dict[str, FieldResult]]]) -> dict:
-    """Gop ket qua theo (ngon ngu, truong) va theo ngon ngu."""
-    by_lang_field: dict[tuple[str, str], FieldResult] = {}
-    for lang, per_field in cards:
-        for field, result in per_field.items():
-            key = (lang, field)
-            by_lang_field.setdefault(key, FieldResult()).add(result)
-    return by_lang_field
-
-
 def grounding_quality(label: dict, report: dict, raw_text: str = "") -> dict:
     """Do chinh chot chan grounding: no loai bo dung hay loai nham?
 
