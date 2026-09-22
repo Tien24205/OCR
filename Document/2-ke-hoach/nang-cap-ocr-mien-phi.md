@@ -1,6 +1,7 @@
 # Kế hoạch nâng cấp bằng công nghệ miễn phí — RapidOCR và CI
 
-**Ngày lập:** 21/09/2026. **Trạng thái:** đang thực hiện.
+**Ngày lập:** 21/09/2026. **Trạng thái:** đã làm xong 21/09, còn một khoản nợ đo lường ở mục 5.
+**Kết quả:** [3-bao-cao/nang-cap-ocr-21-09.md](../3-bao-cao/nang-cap-ocr-21-09.md).
 **Điều kiện bắt đầu:** đã có bộ 80 thẻ bốn ngôn ngữ kèm nhãn chuẩn và `evaluate.py` chạy được. Không có hai thứ đó thì mọi so sánh dưới đây chỉ là cảm tính.
 
 ## 1. Vì sao nâng cấp, và nâng cấp cái gì
@@ -58,7 +59,7 @@ Kết quả đọc thử (ảnh chạy khô, chữ in sắc nét — **không** 
 
 ## 4. Thiết kế
 
-**Nhà cung cấp mới** `backend/app/services/ocr/rapidocr.py`, cài đặt đúng `OcrProvider` Protocol đã có. Lớp trừu tượng này chính là thứ làm việc thêm nhà cung cấp trở nên rẻ: một file, cộng một nhánh trong `providers.py`.
+**Nhà cung cấp mới** `backend/app/services/ocr/rapid.py`, cài đặt đúng `OcrProvider` Protocol đã có. Lớp trừu tượng này chính là thứ làm việc thêm nhà cung cấp trở nên rẻ: một file, cộng một nhánh trong `providers.py`.
 
 - Chọn model **theo gợi ý ngôn ngữ** (`OCR_LANGUAGE_HINTS`): `ko` → KOREAN/v5, `ja` → JAPAN/v4, còn lại → mặc định.
 - Trả `OcrResult` với `blocks` kèm toạ độ thật (RapidOCR trả về hộp bốn điểm) — Ngày 5 cần toạ độ để tô sáng vùng chữ trên ảnh.
@@ -70,11 +71,11 @@ Kết quả đọc thử (ảnh chạy khô, chữ in sắc nét — **không** 
 
 ## 5. Định nghĩa hoàn thành
 
-- [ ] `OCR_PROVIDER=rapidocr` chạy được đầy đủ luồng, có test không cần cài RapidOCR (giả lập, như `test_ocr_tesseract.py` làm với Tesseract).
-- [ ] Chạy `evaluate.py` trên cùng bộ ảnh với hai nhà cung cấp, có bảng đối chiếu theo từng ngôn ngữ.
-- [ ] Kết luận ghi bằng **số**, kể cả khi số nói RapidOCR thua.
-- [ ] CI chạy được ba cổng kiểm.
-- [ ] `check_docs.py` sạch, `check_secrets.py` sạch, toàn bộ test xanh.
+- [x] `OCR_PROVIDER=rapidocr` chạy được đầy đủ luồng, có test không cần cài RapidOCR — [`rapid.py`](../../backend/app/services/ocr/rapid.py), [`test_ocr_rapid.py`](../../backend/tests/unit/test_ocr_rapid.py) (thư viện được nạp muộn nên bộ test chạy được trên máy CI không cài gì).
+- [ ] **Còn nợ:** bảng đối chiếu hai nhà cung cấp mới hợp lệ cho **tiếng Nhật**. Lần đo đầu đặt một gợi ý ngôn ngữ cho cả bốn thứ tiếng nên ba ngôn ngữ kia đo bằng sai model — xem mục 4 của báo cáo. Đo lại đòi chạy `evaluate.py` riêng cho từng ngôn ngữ, và việc đó chỉ đáng làm **trên ảnh chụp thật**: số của `_dryrun` không dùng để nghiệm thu, nên đo lại trên nó là tiêu hạn mức Gemini cho một con số sẽ bị thay thế.
+- [x] Kết luận ghi bằng **số**, kể cả khi số nói RapidOCR thua — kết luận là **không** dùng RapidOCR làm mặc định.
+- [x] CI chạy được ba cổng kiểm — thực tế **năm** cổng: pytest, ruff, `check_docs.py`, `check_secrets.py`, `pip-audit`.
+- [x] `check_docs.py` sạch, `check_secrets.py` sạch, toàn bộ test xanh — CI xanh trên `main`.
 
 ## 6. Rủi ro đã biết
 

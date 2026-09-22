@@ -38,11 +38,19 @@ Bốn giai đoạn, xếp theo *mở khoá được nhiều thứ nhất trên m
 
 | Việc | Ghi chú |
 | --- | --- |
-| In 8 trang `datasets/print/`, cắt, chụp 80 thẻ | Không phải việc lập trình |
+| In 8 trang `datasets/print/`, **cắt rời từng thẻ**, chụp 80 thẻ | Không phải việc lập trình |
+| `import_photos.py --split dev --lang ja --from <thư mục>` | Cổng kiểm ảnh trước khi vào bộ đo |
 | `check_labels.py` rồi `evaluate.py --split eval` | Bộ `eval` chỉ chạy **một lần** |
 | Ghi số vào `Document/3-bao-cao/` | Kể cả khi số xấu |
 
 **Hoàn thành khi:** có bảng chất lượng theo từng ngôn ngữ và từng trường, đo trên ảnh chụp thật, kèm thời gian xử lý trung bình mỗi thẻ.
+
+**Tình trạng 22/09 — đang chờ ảnh.** Lô 18 tấm đầu tiên bị loại, và lý do đáng ghi lại: đó là thẻ của **một bộ khác** (`Marcus Feld / Halbrook Logistics` — không tên nào có trong `labels.jsonl`, cũng không có trong lịch sử kho này), và tất cả đều chụp **cả trang chưa cắt** nên một ảnh có chữ của hai ba thẻ. Không cổng kiểm nào bắt được: cả hai lỗi chỉ lộ ra ở báo cáo, dưới dạng một con số xấu không ai giải thích được.
+
+Đã xử lý hai việc:
+
+- [`import_photos.py`](../../backend/scripts/import_photos.py) đối chiếu tên người/công ty đọc được với nhãn đang chờ, chặn ảnh còn nhìn thấy mã thẻ (tức là trang chưa cắt), chặn ảnh nhỏ hoặc mờ, và đặt tên `001..010` theo **thời điểm bấm máy**.
+- Xác minh bộ sheet trên đĩa đúng là bản khớp nhãn: chạy lại `make_card_sheets.py` cho ra `labels.jsonl` không đổi một byte.
 
 **Vì sao đứng đầu:** nó quyết định ba thứ mà mọi giai đoạn sau đều phụ thuộc — giá bán, thị trường nào (Nhật hay Việt), và có cần đổi nhà cung cấp OCR không.
 
