@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     # Webhook gui du lieu RA NGOAI toi URL do nguoi dung nhap. App chua
     # co xac thuc, nen mac dinh TAT - chi bat khi da co xac thuc hoac
     # chi chay trong mang noi bo.
+    # Thoi han luu tru ban quet, tinh bang ngay. 0 = GIU MAI MAI.
+    # Mac dinh 0 vi doi han luu tru la quyet dinh phap ly cua nguoi van hanh,
+    # khong phai mac dinh ky thuat - tu dong xoa du lieu cua ai do vi ho chua
+    # doc tai lieu thi te hon la giu lai. Xem `services/erasure.py`.
+    retention_days: int = 0
     webhook_enabled: bool = False
     webhook_timeout_s: int = 8
     webhook_max_attempts: int = 3
@@ -154,6 +159,7 @@ class Settings(BaseSettings):
             "ocr_auth_mode": ("service_account_file" if creds
                               else "application_default"),
             "extractor": self.extractor,
+            "retention_days": self.retention_days,
             "gemini_key_present": bool(self.gemini_api_key),
             "gemini_model_set": bool(self.gemini_model),
             "enrich_enabled": self.enrich_enabled,

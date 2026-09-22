@@ -228,6 +228,24 @@ ENDPOINTS: dict[tuple[str, str], dict] = {
             "Người dùng quyết định giữ hay bỏ từng thông tin bổ sung. Dữ liệu "
             "tra cứu **không bao giờ tự ghi đè** thông tin đọc từ thẻ.",
     },
+    ("delete", "/api/scans/{scan_id}"): {
+        "summary": "Xoá hẳn một bản quét và ảnh gốc",
+        "description":
+            "Ảnh lưu theo SHA-256 nên hai bản quét có thể dùng chung một tệp — "
+            "ảnh **chỉ** bị xoá khi không còn bản quét nào trỏ tới. Hồ sơ đã "
+            "lưu từ bản quét này không bị xoá theo.\n\n"
+            "Trả về số bản ghi và số tệp ảnh đã xoá.",
+    },
+    ("delete", "/api/contacts/{contact_id}"): {
+        "summary": "Xoá hẳn một hồ sơ, các bản quét và ảnh gốc của nó",
+        "description":
+            "Quyền xoá theo Nghị định 13/2023/NĐ-CP và GDPR. Xoá **hẳn**, "
+            "không đánh dấu ẩn: một bản ghi \"đã xoá\" vẫn là dữ liệu cá nhân "
+            "đang lưu.\n\n"
+            "Email, điện thoại, địa chỉ, hồ sơ mở rộng đi theo `ON DELETE "
+            "CASCADE`. Doanh nghiệp **không** bị xoá — nó dùng chung cho "
+            "nhiều hồ sơ và không phải dữ liệu cá nhân của ai.",
+    },
     ("get", "/api/scans/{scan_id}/image"): {
         "summary": "Tải ảnh gốc của một bản quét",
         "description":

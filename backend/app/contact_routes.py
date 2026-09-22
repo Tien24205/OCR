@@ -14,10 +14,12 @@ from sqlalchemy import select, update, or_, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.config import Settings, get_settings
 from app.db import get_db
 from app.errors import ApiError
 from app.models import (Contact, ContactEmail, ContactPhone, ContactProfile, Organization,
                         Scan, IdempotencyKey, norm_key, new_id)
+from app.services import erasure
 from app.services.drafts import DraftFields, apply_edit, current_draft
 from app.services.normalize import FIELDS, digits
 from app.services.dedupe import duplicate_candidates
@@ -180,6 +182,25 @@ def search_contacts(q: str = Query(default="", max_length=500), page: int = Quer
 @router.get("/contacts/{contact_id}")
 def get_contact(contact_id: str, db: Session = Depends(get_db)):
     return contact_result(db, contact_id)
+
+
+@router.delete("/contacts/{contact_id}")
+def delete_contact_route(contact_id: str, db: Session = Depends(get_db),
+                         config: Settings = Depends(get_settings)):
+    """Xoa han mot ho so: ban ghi, cac ban quet cua no, va anh goc.
+
+    Quyen xoa cua Nghi dinh 13/2023 va GDPR - xem `services/erasure.py`. Xoa
+    han, khong danh dau an: mot ban ghi "da xoa" van la du lieu ca nhan dang
+    luu, va cau tra loi cho "cac anh xoa du lieu cua toi chua" phai la co.
+
+    KHONG dung `require_contact`: ham do doi ho so co `ContactProfile`, nhung
+    mot ho so cu thieu profile thi cang phai xoa duoc.
+    """
+    contact = db.get(Contact, contact_id)
+    if contact is None:
+        raise ApiError("CONTACT_NOT_FOUND", "Không tìm thấy hồ sơ.", 404)
+    with transaction_errors(db):
+        return erasure.delete_contact(db, contact, config.image_path)
 
 
 @router.get("/contacts/{contact_id}/duplicates")

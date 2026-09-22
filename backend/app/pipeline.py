@@ -32,10 +32,17 @@ def _recognize(provider, image: bytes, mime: str):
 
 
 def run_scan(scan_id: str, config: Settings, session_factory) -> None:
-    if config.agent_enabled:
-        AgenticOrchestrator().run(scan_id, config, session_factory)
-        return
-    run_legacy_scan(scan_id, config, session_factory)
+    try:
+        if config.agent_enabled:
+            AgenticOrchestrator().run(scan_id, config, session_factory)
+            return
+        run_legacy_scan(scan_id, config, session_factory)
+    finally:
+        # Han luu tru chi co y nghia khi co du lieu chay qua, nen cho don o
+        # day: cham nhat mot lan moi gio, va ngoai duong yeu cau. Chay ca khi
+        # ban quet nay loi - anh van da duoc luu.
+        from app.services.erasure import maybe_purge
+        maybe_purge(config, session_factory)
 
 
 def run_legacy_scan(scan_id: str, config: Settings, session_factory) -> None:

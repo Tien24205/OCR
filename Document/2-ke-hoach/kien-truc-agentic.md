@@ -257,7 +257,7 @@ Phần này tồn tại để tài liệu không bị đọc quá lên.
 ngày 14/09/2026 với `gemini-3.5-flash`, xem
 [4-kiem-chung/ocr-provider-notes.md](../4-kiem-chung/ocr-provider-notes.md).
 
-586 test xanh chứng minh **mã nguồn tự nhất quán**. Nó không chứng minh hệ
+597 test xanh chứng minh **mã nguồn tự nhất quán**. Nó không chứng minh hệ
 thống đọc được danh thiếp thật. Hai điều đó khác nhau, và tài liệu này không
 được phép làm nhòe ranh giới ấy.
 

@@ -18,11 +18,13 @@ Khách hàng thứ hai xuất hiện là dữ liệu hai khách nằm chung mộ
 
 **Một lỗ hổng cụ thể đã thấy — đã sửa:** `GET /api/images/{image_ref}` tra ảnh theo mã băm nội dung, nên bất kỳ ai có `image_ref` hợp lệ đều tải được ảnh mà không cần liên quan gì tới bản quét. Nay ảnh chỉ tải được qua `GET /api/scans/{scan_id}/image`; phép kiểm quyền theo `owner_id` sẽ có đúng một chỗ để đặt. Phần còn lại của C1 vẫn nguyên.
 
-### C2 — Danh thiếp là dữ liệu cá nhân, mà không có đường xoá
+### C2 — Danh thiếp là dữ liệu cá nhân, mà không có đường xoá — **đã xử lý 22/09**
 
-Trong 27 endpoint, `DELETE` duy nhất dành cho webhook. Không có cách nào xoá một hồ sơ, một bản quét, hay ảnh gốc. Ảnh nằm vô thời hạn trong volume `ocr-data`.
+Trước đó: trong 27 endpoint, `DELETE` duy nhất dành cho webhook. Không có cách nào xoá một hồ sơ, một bản quét, hay ảnh gốc. Ảnh nằm vô thời hạn trong volume `ocr-data`.
 
 Nghị định 13/2023/NĐ-CP (Việt Nam) và GDPR đều đòi quyền xoá, quyền truy cập và thời hạn lưu trữ. Đây là rủi ro pháp lý, không phải thiếu tiện ích.
+
+Nay có `DELETE /api/scans/{id}`, `DELETE /api/contacts/{id}` và `RETENTION_DAYS` — xem [`erasure.py`](../../backend/app/services/erasure.py). **Còn thiếu hai thứ**, và cả hai đều chờ `owner_id`: quyền truy cập (xuất toàn bộ dữ liệu của một người) vẫn là `GET /api/export` cho *mọi* hồ sơ, và chưa có nút xoá trên giao diện — hiện phải gọi API.
 
 ### C3 — Chưa có số đo trên ảnh chụp thật
 
@@ -64,9 +66,9 @@ Hai việc này phải đi cùng nhau: xoá dữ liệu mà chưa biết dữ li
 | Ánh xạ khoá API → tenant (thay danh sách khoá phẳng) | `auth.py`, `config.py` |
 | Lọc theo `owner_id` ở **mọi** truy vấn | `contact_routes.py`, `main.py`, `stats.py`, `export` |
 | ~~`GET /api/images/{ref}` phải kiểm quyền qua bản quét~~ **đã làm trước** | `main.py` — nay là `GET /api/scans/{scan_id}/image` |
-| `DELETE /api/contacts/{id}` và `DELETE /api/scans/{id}` | Xoá lan theo email/phone/address/profile |
-| Xoá ảnh gốc khi không còn bản quét nào dùng | **Bẫy:** ảnh lưu theo SHA-256 nên hai bản quét có thể dùng chung một tệp. Xoá mù là mất ảnh của bản quét khác |
-| Thời hạn lưu trữ cấu hình được + tác vụ dọn | Cấu hình mới `RETENTION_DAYS` |
+| ~~`DELETE /api/contacts/{id}` và `DELETE /api/scans/{id}`~~ **đã làm 22/09** | [`erasure.py`](../../backend/app/services/erasure.py); xoá lan theo `ON DELETE CASCADE` đã khai trong `models.py` |
+| ~~Xoá ảnh gốc khi không còn bản quét nào dùng~~ **đã làm** | Bẫy đã có test riêng: xoá hồ sơ thì ảnh dùng chung của bản quét khác vẫn còn |
+| ~~Thời hạn lưu trữ cấu hình được + tác vụ dọn~~ **đã làm** | `RETENTION_DAYS`, mặc định `0` = giữ mãi mãi. Dọn chạy nền sau mỗi lần quét, nhiều nhất một lần mỗi giờ |
 | Alembic | Đổi schema trên dữ liệu thật mà không có migration là không quay lại được |
 
 **Hoàn thành khi:** một test chứng minh tenant A không đọc được bất kỳ dữ liệu nào của tenant B — gồm cả ảnh; và một test chứng minh xoá hồ sơ thì ảnh dùng chung của bản quét khác **vẫn còn**.

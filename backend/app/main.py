@@ -22,6 +22,7 @@ from app.models import Scan
 from app.pipeline import run_batch, run_scan
 from app.services.images import ImageInputError, prepare_image, store_image
 from app.services.drafts import DraftUpdate, apply_edit, current_draft
+from app.services import erasure
 from app.services.extract.unclaimed import split_text
 from app.models import utcnow
 from app.models import Organization, Enrichment, EnrichmentJob, norm_key
@@ -407,6 +408,23 @@ def get_image(scan_id: str, db: Session = Depends(get_db), config: Settings = De
         raise ApiError("IMAGE_NOT_FOUND", "Không tìm thấy ảnh.", 404)
     return FileResponse(path, media_type=scan.image_mime,
                         headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@app.delete("/api/scans/{scan_id}")
+def delete_scan_route(scan_id: str, db: Session = Depends(get_db),
+                      config: Settings = Depends(get_settings)):
+    """Xoa han mot ban quet va anh goc cua no.
+
+    Anh luu theo SHA-256 nen hai ban quet co the dung chung mot tep - anh chi
+    bi xoa khi khong con ban quet nao tro toi. Xem `services/erasure.py`.
+
+    Ho so da luu tu ban quet nay KHONG bi xoa theo: no la thu nguoi dung co y
+    giu lai. Muon xoa ca hai thi goi `DELETE /api/contacts/{id}`.
+    """
+    scan = db.get(Scan, scan_id)
+    if scan is None:
+        raise ApiError("SCAN_NOT_FOUND", "Không tìm thấy bản quét.", 404)
+    return erasure.delete_scan(db, scan, config.image_path)
 
 
 class ResearchRequest(BaseModel):

@@ -52,7 +52,7 @@ Cần **hai terminal**, cả hai chạy **từ thư mục gốc dự án**:
 .\.venv\Scripts\streamlit.exe run frontend\streamlit_app.py
 ```
 
-Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 27 endpoint, bảng mã lỗi và lưu ý khi tích hợp
+Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 29 endpoint, bảng mã lỗi và lưu ý khi tích hợp
 
 > **Phải chạy từ gốc dự án.** Streamlit đọc `.streamlit/config.toml` theo thư mục đang chạy, không theo vị trí file ứng dụng. Chạy từ chỗ khác thì giới hạn dung lượng tải lên 8 MB sẽ không được áp dụng.
 
@@ -90,7 +90,28 @@ Toàn bộ nằm ở `backend/.env` (đã bị `.gitignore` chặn). Xem `backen
 | `DATABASE_URL` · `IMAGE_DIR` | Vị trí lưu trữ | `backend/data/` |
 | `MAX_UPLOAD_BYTES` | Giới hạn dung lượng ảnh | 8 MB |
 | `BATCH_WORKERS` | Số ảnh xử lý đồng thời trong một lô | 3 |
+| `RETENTION_DAYS` | Thời hạn lưu bản quét và ảnh gốc; `0` = giữ mãi mãi | `0` |
 | `ENRICH_*` | Giới hạn của bước tra cứu doanh nghiệp | xem `.env.example` |
+
+### Xoá dữ liệu và thời hạn lưu trữ
+
+Danh thiếp là dữ liệu cá nhân, nên phải có đường xoá:
+
+| Lệnh | Xoá gì |
+| --- | --- |
+| `DELETE /api/scans/{id}` | Bản quét + ảnh gốc. Hồ sơ đã lưu **không** bị xoá theo |
+| `DELETE /api/contacts/{id}` | Hồ sơ, email/điện thoại/địa chỉ, các bản quét của nó và ảnh gốc |
+
+Xoá **hẳn**, không đánh dấu ẩn: một bản ghi "đã xoá" vẫn là dữ liệu cá nhân
+đang lưu. Doanh nghiệp không bị xoá theo — nó dùng chung cho nhiều hồ sơ.
+
+Ảnh lưu theo SHA-256 của nội dung nên hai bản quét có thể dùng chung một tệp;
+ảnh **chỉ** bị xoá khi không còn bản quét nào trỏ tới.
+
+`RETENTION_DAYS=30` thì bản quét quá 30 ngày bị dọn tự động (hồ sơ đã lưu giữ
+nguyên). Việc dọn chạy nền sau mỗi lần quét, nhiều nhất một lần mỗi giờ — máy
+không quét gì thì cũng không nhận thêm ảnh nào. Cần chắc chắn hơn thì gọi
+`purge_expired` từ cron.
 
 ### Xuất dữ liệu
 
@@ -181,7 +202,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**586 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**597 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI
