@@ -34,7 +34,12 @@ logger = logging.getLogger(__name__)
 
 # Khoang cach toi thieu giua hai lan don. Xem `maybe_purge`.
 GIAN_CACH_DON_S = 3600
-_lan_don_gan_nhat = 0.0
+# None = CHUA CHAY LAN NAO, khac han voi 0.0. `time.monotonic()` dem tu luc
+# may khoi dong, nen tren mot container vua len no chi vai tram giay: lay 0.0
+# lam moc "chua chay" thi phep tru ra so nho hon mot gio va lan don DAU TIEN
+# bi bo qua. CI bat duoc dieu nay, may phat trien thi khong - may do da chay
+# lien nhieu ngay.
+_lan_don_gan_nhat: float | None = None
 
 
 def _xoa_anh_neu_khong_ai_dung(db: Session, refs: set[str], image_dir: Path) -> int:
@@ -137,7 +142,7 @@ def maybe_purge(config, session_factory) -> None:
     if config.retention_days <= 0:
         return
     bay_gio = time.monotonic()
-    if bay_gio - _lan_don_gan_nhat < GIAN_CACH_DON_S:
+    if _lan_don_gan_nhat is not None and bay_gio - _lan_don_gan_nhat < GIAN_CACH_DON_S:
         return
     _lan_don_gan_nhat = bay_gio
     try:

@@ -185,8 +185,12 @@ def test_khong_dat_thoi_han_thi_khong_xoa_gi(system, monkeypatch):
 
 def test_don_theo_lich_chi_chay_lai_sau_mot_gio(system, monkeypatch):
     """Duong quet goi `maybe_purge` sau MOI lan quet; no phai tu ha tan suat,
-    khong thi moi anh trong mot lo 10 tam la mot luot quet ca bang `scans`."""
-    monkeypatch.setattr(erasure, "_lan_don_gan_nhat", 0.0)
+    khong thi moi anh trong mot lo 10 tam la mot luot quet ca bang `scans`.
+
+    `None` chu khong phai `0.0`: xem chu thich o `erasure._lan_don_gan_nhat`.
+    Tren may vua khoi dong, `0.0` lam lan don dau tien bi bo qua.
+    """
+    monkeypatch.setattr(erasure, "_lan_don_gan_nhat", None)
     goi = []
     monkeypatch.setattr(erasure, "purge_expired",
                         lambda db, image_dir, days: goi.append(days))
