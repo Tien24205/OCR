@@ -23,6 +23,17 @@ pillow>=11.0                  # validate anh that + xoay theo EXIF
 # ban than Tesseract la phan mem he thong, phai cai rieng (xem README).
 pytesseract>=0.3.13
 
+# --- Kho anh tren cloud (Ngay 25) - TUY CHON ---
+# Mac dinh anh nam tren dia (STORAGE_BACKEND=local), khong can goi nay.
+# Chi cai khi doi sang STORAGE_BACKEND=gcs:
+#
+#     pip install google-cloud-storage
+#
+# De o dang chu thich co y: mot phu thuoc chi vai nguoi dung den thi khong
+# nen bat moi nguoi tai ve, va thieu no thi ung dung tu quay ve dia cuc bo
+# chu khong hong.
+# google-cloud-storage>=2.18
+
 # --- Goi dich vu ngoai ---
 httpx>=0.27                   # tai trang web o buoc tra cuu (Ngay 6)
 beautifulsoup4>=4.12          # strip HTML truoc khi dua vao LLM

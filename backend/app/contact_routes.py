@@ -21,6 +21,7 @@ from app.errors import ApiError
 from app.models import (Contact, ContactEmail, ContactPhone, ContactProfile, Organization,
                         Scan, IdempotencyKey, norm_key, new_id)
 from app.services import erasure
+from app.services.storage import kho_anh
 from app.services.drafts import DraftFields, apply_edit, current_draft
 from app.services.normalize import FIELDS, digits
 from app.services.dedupe import duplicate_candidates
@@ -209,7 +210,7 @@ def delete_contact_route(contact_id: str, db: Session = Depends(get_db),
     if contact is None or not doc_duoc(contact.owner_id, nguoi):
         raise ApiError("CONTACT_NOT_FOUND", "Không tìm thấy hồ sơ.", 404)
     with transaction_errors(db):
-        return erasure.delete_contact(db, contact, config.image_path)
+        return erasure.delete_contact(db, contact, kho_anh(config))
 
 
 @router.get("/contacts/{contact_id}/duplicates")

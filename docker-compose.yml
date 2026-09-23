@@ -35,6 +35,12 @@ services:
       # DONG, nghia la moi lan `docker compose restart` la toan bo nguoi dung
       # bi dang xuat. Dat mot gia tri co dinh trong `backend/.env` de tranh.
       JWT_SECRET: "${JWT_SECRET:-}"
+      # Kho anh. Mac dinh `local` = ghi vao volume `ocr-data` ben duoi, chay
+      # duoc ngay. Doi sang `gcs` khi chay NHIEU BAN SAO: luc do volume cuc
+      # bo khong con dung duoc nua, vi ban sao nhan anh len khong phai ban
+      # sao duoc hoi xin anh do. Nho cai them google-cloud-storage.
+      STORAGE_BACKEND: "${STORAGE_BACKEND:-local}"
+      GCS_BUCKET: "${GCS_BUCKET:-}"
     volumes:
       # CSDL va anh phai song lau hon container. Khong co dong nay thi moi lan
       # `docker compose down` la mat sach ho so da luu.

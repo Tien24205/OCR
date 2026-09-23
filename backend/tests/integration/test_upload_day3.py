@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import Session
 
 from app import main
+from app.services import storage
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.models import Base, Scan
@@ -128,9 +129,11 @@ def test_repeat_upload_reuses_file_but_records_separate_scans(upload_app):
 
 def test_storage_failure_returns_actionable_error(upload_app, monkeypatch):
     client, engine, _ = upload_app
-    def fail(*args):
+    def fail(*args, **kwargs):
         raise OSError("private storage path")
-    monkeypatch.setattr(main, "store_image", fail)
+    # Kho anh duoc chon luc chay qua `kho_anh(config)`, nen chan o lop kho
+    # chu khong o `main`: `main` khong con ham luu anh nao de chan.
+    monkeypatch.setattr(storage.KhoTepLocal, "luu", fail)
     res = client.post("/api/scans", files={"file": ("card.png", picture())})
     assert res.status_code == 500
     assert res.json()["error"]["retryable"] is True

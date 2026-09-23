@@ -17,6 +17,7 @@ from app.services.normalize import normalize_draft
 from app.services.agent_orchestrator import AgenticOrchestrator, Action
 from app.services.image_quality import ImageQualityAgent
 from app.services.confidence import ConfidenceAgent
+from app.services.storage import doc_anh
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def run_legacy_scan(scan_id: str, config: Settings, session_factory) -> None:
         started = time.perf_counter()
         orchestrator = AgenticOrchestrator()
         try:
-            image = (config.image_path / scan.image_ref).read_bytes()
+            image = doc_anh(config, scan.image_ref)
 
             # Agent 1: Image Quality
             qa_agent = ImageQualityAgent()

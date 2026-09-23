@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-import os
-import tempfile
 import warnings
 from dataclasses import dataclass
 from io import BytesIO
-from pathlib import Path
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -69,24 +66,3 @@ def prepare_image(data: bytes, max_bytes: int) -> PreparedImage:
     if len(data) > max_bytes:
         raise ImageInputError("IMAGE_TOO_LARGE", "Ảnh sau khi xoay vượt quá dung lượng cho phép.", 413)
     return PreparedImage(data, MIMES[fmt])
-
-
-def store_image(image: PreparedImage, directory: Path) -> Path:
-    directory.mkdir(parents=True, exist_ok=True)
-    target = directory / image.digest
-    if target.is_file():
-        return target
-    # Publish only a complete file, including when requests share the same hash.
-    with tempfile.NamedTemporaryFile(dir=directory, prefix=".upload-", delete=False) as stream:
-        temporary = Path(stream.name)
-        try:
-            stream.write(image.data)
-        except BaseException:
-            stream.close()
-            temporary.unlink(missing_ok=True)
-            raise
-    try:
-        os.replace(temporary, target)
-    finally:
-        temporary.unlink(missing_ok=True)
-    return target

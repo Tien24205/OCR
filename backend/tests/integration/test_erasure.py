@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from app.models import (Address, Contact, ContactEmail, ContactPhone, ContactProfile,
                         Organization, Scan)
 from app.services import erasure
+from app.services.storage import kho_anh
 from test_pipeline_day4 import system, send, providers      # noqa: F401
 
 
@@ -163,7 +164,7 @@ def test_don_qua_han_xoa_ban_quet_cu_va_giu_ban_quet_moi(system, monkeypatch):
     gia_co(system, cu, "2020-01-01T00:00:00+00:00")
 
     with system.factory() as db:
-        ket_qua = erasure.purge_expired(db, system.config.image_path, days=30)
+        ket_qua = erasure.purge_expired(db, kho_anh(system.config), days=30)
     assert ket_qua["scans"] == 1
     # Anh van con vi ban quet moi dung chung ma bam.
     assert ket_qua["images"] == 0
@@ -178,7 +179,7 @@ def test_khong_dat_thoi_han_thi_khong_xoa_gi(system, monkeypatch):
     gia_co(system, cu, "2020-01-01T00:00:00+00:00")
 
     with system.factory() as db:
-        assert erasure.purge_expired(db, system.config.image_path, days=0) == {
+        assert erasure.purge_expired(db, kho_anh(system.config), days=0) == {
             "skipped": True, "scans": 0, "images": 0}
     assert dem(system, Scan, id=cu) == 1
 
@@ -193,7 +194,7 @@ def test_don_theo_lich_chi_chay_lai_sau_mot_gio(system, monkeypatch):
     monkeypatch.setattr(erasure, "_lan_don_gan_nhat", None)
     goi = []
     monkeypatch.setattr(erasure, "purge_expired",
-                        lambda db, image_dir, days: goi.append(days))
+                        lambda db, kho, days: goi.append(days))
     config = system.config.model_copy(update={"retention_days": 30})
 
     erasure.maybe_purge(config, system.factory)

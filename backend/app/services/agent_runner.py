@@ -21,6 +21,7 @@ from app.services.extract.grounding import ground_extraction
 from app.services.confidence import ConfidenceAgent
 from app.services.normalize import normalize_draft
 from app.services.enrich.discover import seed_url
+from app.services.storage import doc_anh
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ def run(controller, scan_id, config, session_factory):
             return True
 
         try:
-            image = (config.image_path / scan.image_ref).read_bytes()
+            image = doc_anh(config, scan.image_ref)
             quality = ImageQualityAgent().assess(image)
             state["quality"] = quality
             if quality["action"] == "recapture" and not scan.raw_text:

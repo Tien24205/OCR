@@ -40,6 +40,17 @@ class Settings(BaseSettings):
     # khong phai mac dinh ky thuat - tu dong xoa du lieu cua ai do vi ho chua
     # doc tai lieu thi te hon la giu lai. Xem `services/erasure.py`.
     retention_days: int = 0
+
+    # --- Kho anh (Ngay 25) ---
+    # local = thu muc tren dia (mac dinh, va la cach du an chay tu Ngay 3).
+    # gcs   = Google Cloud Storage; can GCS_BUCKET va quyen tuong ung.
+    #
+    # Mac dinh `local` chu khong `gcs` vi cung ly do moi mac dinh khac o tep
+    # nay: cai chay duoc ngay tren may vua tai ma nguon ve. Doi sang `gcs`
+    # la doi MOT dong - xem `services/storage.py`.
+    storage_backend: str = "local"
+    gcs_bucket: str = ""
+    gcs_prefix: str = "scans"
     webhook_enabled: bool = False
     webhook_timeout_s: int = 8
     webhook_max_attempts: int = 3
@@ -191,6 +202,10 @@ class Settings(BaseSettings):
                               else "application_default"),
             "extractor": self.extractor,
             "retention_days": self.retention_days,
+            # Bao ro anh dang nam o dau. Khi GCS duoc bat nhung khoi tao hong,
+            # `kho_anh()` quay ve dia cuc bo - va nguoi van hanh phai thay
+            # duoc dieu do o day chu khong phai doan.
+            "storage_backend": self.storage_backend,
             "gemini_key_present": bool(self.gemini_api_key),
             "gemini_model_set": bool(self.gemini_model),
             "enrich_enabled": self.enrich_enabled,

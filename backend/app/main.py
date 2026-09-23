@@ -7,7 +7,7 @@ import re
 
 from fastapi import BackgroundTasks, Depends, FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.requests import Request
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -21,7 +21,8 @@ from app.config import Settings, get_settings
 from app.db import SessionLocal, get_db, init_db
 from app.models import Scan
 from app.pipeline import run_batch, run_scan
-from app.services.images import ImageInputError, prepare_image, store_image
+from app.services.images import ImageInputError, prepare_image
+from app.services.storage import kho_anh
 from app.services.drafts import DraftUpdate, apply_edit, current_draft
 from app.services import erasure
 from app.services.extract.unclaimed import split_text
@@ -182,7 +183,7 @@ def create_scan(
         # Bounded read: never load the whole upload into application memory.
         data = file.file.read(config.max_upload_bytes + 1)
         image = prepare_image(data, config.max_upload_bytes)
-        store_image(image, config.image_path)
+        kho_anh(config).luu(image)
         scan = Scan(
             image_ref=image.digest,
             image_mime=image.mime,
@@ -230,7 +231,7 @@ def create_batch_scans(
         try:
             data = file.file.read(config.max_upload_bytes + 1)
             image = prepare_image(data, config.max_upload_bytes)
-            store_image(image, config.image_path)
+            kho_anh(config).luu(image)
             scan = Scan(
                 image_ref=image.digest,
                 image_mime=image.mime,
@@ -436,11 +437,20 @@ def get_image(scan_id: str, db: Session = Depends(get_db),
     # tro thanh duong doc file khac tren may chu.
     if not re.fullmatch(r"[a-f0-9]{64}", scan.image_ref or ""):
         raise ApiError("IMAGE_NOT_FOUND", "Không tìm thấy ảnh.", 404)
-    path = config.image_path / scan.image_ref
-    if not path.is_file():
+    kho = kho_anh(config)
+
+    # DUONG KY TAM THOI, khi kho ho tro (GCS). Trinh duyet tai thang tu nha
+    # cung cap, backend khong phai bom bytes qua minh. Chi cap SAU khi
+    # `lay_ban_quet()` o tren da xac nhan quyen doc - xem ghi chu dau
+    # `services/storage.py` ve chuyen duong da cap thi khong con kiem duoc.
+    if duong := kho.duong_ky(scan.image_ref, scan.image_mime):
+        return RedirectResponse(duong, status_code=307)
+
+    du_lieu = kho.doc(scan.image_ref)
+    if du_lieu is None:
         raise ApiError("IMAGE_NOT_FOUND", "Không tìm thấy ảnh.", 404)
-    return FileResponse(path, media_type=scan.image_mime,
-                        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+    return Response(du_lieu, media_type=scan.image_mime,
+                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @app.delete("/api/scans/{scan_id}")
@@ -456,7 +466,7 @@ def delete_scan_route(scan_id: str, nguoi: NguoiGoi = Depends(nguoi_goi),
     giu lai. Muon xoa ca hai thi goi `DELETE /api/contacts/{id}`.
     """
     scan = lay_ban_quet(db, scan_id, nguoi)
-    return erasure.delete_scan(db, scan, config.image_path)
+    return erasure.delete_scan(db, scan, kho_anh(config))
 
 
 class ResearchRequest(BaseModel):

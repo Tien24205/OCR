@@ -23,12 +23,12 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Contact, Scan
+from app.services.storage import kho_anh
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ GIAN_CACH_DON_S = 3600
 _lan_don_gan_nhat: float | None = None
 
 
-def _xoa_anh_neu_khong_ai_dung(db: Session, refs: set[str], image_dir: Path) -> int:
+def _xoa_anh_neu_khong_ai_dung(db: Session, refs: set[str], kho) -> int:
     """Xoa tep anh cua nhung ma bam KHONG con ban quet nao tro toi.
 
     Phai goi SAU khi cac dong `scans` da bi xoa va `flush()`, khong thi phep
@@ -56,28 +56,25 @@ def _xoa_anh_neu_khong_ai_dung(db: Session, refs: set[str], image_dir: Path) -> 
                              .where(Scan.image_ref == ref))
         if con_dung:
             continue
-        try:
-            (image_dir / ref).unlink(missing_ok=True)
+        # Kho tu nuot loi va ghi log: xoa duoc dong trong CSDL ma khong
+        # xoa duoc anh thi VAN la da xoa du lieu, va mot tep bi khoa khong
+        # duoc lam hong ca thao tac xoa.
+        if kho.xoa(ref):
             da_xoa += 1
-        except OSError as exc:
-            # Xoa duoc dong trong CSDL ma khong xoa duoc tep thi van la da xoa
-            # du lieu; tep mo coi se bi lan don sau nhat. Nuot loi o day de
-            # mot tep bi khoa khong lam hong ca thao tac xoa.
-            logger.warning("khong xoa duoc anh %s: %s", ref, exc)
     return da_xoa
 
 
-def delete_scan(db: Session, scan: Scan, image_dir: Path) -> dict:
+def delete_scan(db: Session, scan: Scan, kho) -> dict:
     """Xoa mot ban quet va anh goc cua no neu khong ai con dung."""
     ref = scan.image_ref
     db.delete(scan)
     db.flush()
-    anh = _xoa_anh_neu_khong_ai_dung(db, {ref}, image_dir)
+    anh = _xoa_anh_neu_khong_ai_dung(db, {ref}, kho)
     db.commit()
     return {"scans": 1, "images": anh}
 
 
-def delete_contact(db: Session, contact: Contact, image_dir: Path) -> dict:
+def delete_contact(db: Session, contact: Contact, kho) -> dict:
     """Xoa mot ho so: ban ghi, cac ban quet cua no, va anh goc.
 
     Email/dien thoai/dia chi/ho so mo rong di theo `ON DELETE CASCADE` da khai
@@ -95,12 +92,12 @@ def delete_contact(db: Session, contact: Contact, image_dir: Path) -> dict:
         db.execute(delete(Scan).where(Scan.contact_id == contact.id))
     db.delete(contact)
     db.flush()
-    anh = _xoa_anh_neu_khong_ai_dung(db, refs, image_dir)
+    anh = _xoa_anh_neu_khong_ai_dung(db, refs, kho)
     db.commit()
     return {"contacts": 1, "scans": so_ban_quet, "images": anh}
 
 
-def purge_expired(db: Session, image_dir: Path, days: int) -> dict:
+def purge_expired(db: Session, kho, days: int) -> dict:
     """Xoa ban quet cu hon `days` ngay. `days <= 0` la tat.
 
     SO SANH CHUOI, CO Y: `created_at` luu duoi dang chuoi ISO-8601 co mui gio,
@@ -118,7 +115,7 @@ def purge_expired(db: Session, image_dir: Path, days: int) -> dict:
     refs = {s.image_ref for s in scans}
     db.execute(delete(Scan).where(Scan.id.in_([s.id for s in scans])))
     db.flush()
-    anh = _xoa_anh_neu_khong_ai_dung(db, refs, image_dir)
+    anh = _xoa_anh_neu_khong_ai_dung(db, refs, kho)
     db.commit()
     logger.info("don qua han: xoa %d ban quet, %d anh (qua %d ngay)",
                 len(scans), anh, days)
@@ -147,6 +144,6 @@ def maybe_purge(config, session_factory) -> None:
     _lan_don_gan_nhat = bay_gio
     try:
         with session_factory() as db:
-            purge_expired(db, config.image_path, config.retention_days)
+            purge_expired(db, kho_anh(config), config.retention_days)
     except Exception as exc:  # don dep hong khong duoc lam hong duong quet
         logger.warning("don qua han that bai: %s", exc)

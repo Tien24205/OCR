@@ -143,7 +143,7 @@ Chiếu `reports/evaluation.md`.
 
 **Nói chính xác thế này, đừng nói khác:**
 
-> "620 test tự động, không gọi mạng thật. Nhưng test xanh chỉ chứng minh **mã
+> "632 test tự động, không gọi mạng thật. Nhưng test xanh chỉ chứng minh **mã
 > nguồn tự nhất quán** — nó không chứng minh hệ thống đọc được danh thiếp
 > thật. Hai điều đó khác nhau."
 
