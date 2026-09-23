@@ -14,6 +14,7 @@ from sqlalchemy import select, update, or_, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.access import NguoiGoi, doc_duoc, loc_theo_chu, nguoi_goi
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.errors import ApiError
@@ -92,6 +93,7 @@ def replay(db, key, fingerprint):
 
 @router.post("/contacts", status_code=201)
 def save_contact(body: SaveContact, db: Session = Depends(get_db),
+                 nguoi: NguoiGoi = Depends(nguoi_goi),
                  idempotency_key: str = Header(min_length=1, max_length=128)):
     fingerprint = hashlib.sha256(("POST /contacts\n" + json.dumps(
         body.model_dump(), sort_keys=True, ensure_ascii=False)).encode()).hexdigest()
@@ -128,10 +130,11 @@ def save_contact(body: SaveContact, db: Session = Depends(get_db),
         if body.duplicate_action == "update":
             if contact_id not in {x["id"] for x in strong}:
                 raise ApiError("DUPLICATE_TARGET_INVALID", "Hồ sơ đích không còn là ứng viên trùng. Kiểm tra lại.", 409)
-            contact, profile = require_contact(db, contact_id)
+            contact, profile = require_contact(db, contact_id, nguoi)
             claim_version(db, contact_id, body.target_version)
         else:
-            contact = Contact(id=contact_id, full_name_original="", name_norm="")
+            contact = Contact(id=contact_id, full_name_original="", name_norm="",
+                              owner_id=nguoi.user_id)
             profile = ContactProfile(contact_id=contact_id, draft={}, names_norm="", companies_norm="")
             db.add(contact)
             db.flush()
@@ -158,8 +161,10 @@ def scan_duplicates(scan_id: str, organization_id: str | None = None, db: Sessio
 
 @router.get("/contacts")
 def search_contacts(q: str = Query(default="", max_length=500), page: int = Query(default=1, ge=1),
-                    size: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)):
+                    size: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db),
+                    nguoi: NguoiGoi = Depends(nguoi_goi)):
     query = select(Contact).outerjoin(ContactProfile, ContactProfile.contact_id == Contact.id).outerjoin(Organization)
+    query = loc_theo_chu(query, Contact.owner_id, nguoi)
     if normalized := norm_key(q):
         conditions = [Contact.name_norm.contains(normalized, autoescape=True),
                       ContactProfile.names_norm.contains(normalized, autoescape=True),
@@ -180,12 +185,14 @@ def search_contacts(q: str = Query(default="", max_length=500), page: int = Quer
 
 
 @router.get("/contacts/{contact_id}")
-def get_contact(contact_id: str, db: Session = Depends(get_db)):
-    return contact_result(db, contact_id)
+def get_contact(contact_id: str, db: Session = Depends(get_db),
+                nguoi: NguoiGoi = Depends(nguoi_goi)):
+    return contact_result(db, contact_id, nguoi)
 
 
 @router.delete("/contacts/{contact_id}")
 def delete_contact_route(contact_id: str, db: Session = Depends(get_db),
+                         nguoi: NguoiGoi = Depends(nguoi_goi),
                          config: Settings = Depends(get_settings)):
     """Xoa han mot ho so: ban ghi, cac ban quet cua no, va anh goc.
 
@@ -197,15 +204,18 @@ def delete_contact_route(contact_id: str, db: Session = Depends(get_db),
     mot ho so cu thieu profile thi cang phai xoa duoc.
     """
     contact = db.get(Contact, contact_id)
-    if contact is None:
+    # Duong nay co y khong di qua `require_contact` (xem tren), nen phep kiem
+    # quyen phai dat lai o day - day la cho duy nhat trong tep phai lam vay.
+    if contact is None or not doc_duoc(contact.owner_id, nguoi):
         raise ApiError("CONTACT_NOT_FOUND", "Không tìm thấy hồ sơ.", 404)
     with transaction_errors(db):
         return erasure.delete_contact(db, contact, config.image_path)
 
 
 @router.get("/contacts/{contact_id}/duplicates")
-def contact_duplicates(contact_id: str, db: Session = Depends(get_db)):
-    contact, profile = require_contact(db, contact_id)
+def contact_duplicates(contact_id: str, db: Session = Depends(get_db),
+                       nguoi: NguoiGoi = Depends(nguoi_goi)):
+    contact, profile = require_contact(db, contact_id, nguoi)
     candidates = duplicate_candidates(db, profile.draft, organization_id=contact.organization_id, exclude=contact_id)
     for image_ref in db.scalars(select(Scan.image_ref).where(Scan.contact_id == contact_id)):
         candidates += duplicate_candidates(db, profile.draft, image_ref, contact.organization_id, contact_id)
@@ -217,11 +227,12 @@ def contact_duplicates(contact_id: str, db: Session = Depends(get_db)):
 
 
 @router.patch("/contacts/{contact_id}")
-def edit_contact(contact_id: str, body: EditContact, db: Session = Depends(get_db)):
+def edit_contact(contact_id: str, body: EditContact, db: Session = Depends(get_db),
+                 nguoi: NguoiGoi = Depends(nguoi_goi)):
     with transaction_errors(db):
         # Acquire the write/version claim before reading the profile.
         claim_version(db, contact_id, body.version)
-        contact, profile = require_contact(db, contact_id)
+        contact, profile = require_contact(db, contact_id, nguoi)
         try:
             draft = apply_edit(profile.draft, body.fields)
         except ValueError as exc:
@@ -232,7 +243,7 @@ def edit_contact(contact_id: str, body: EditContact, db: Session = Depends(get_d
         project_contact(db, contact, profile, draft, organization, body.note)
         db.commit()
     db.expire_all()
-    return contact_result(db, contact_id)
+    return contact_result(db, contact_id, nguoi)
 
 
 @router.get("/organizations")
@@ -253,8 +264,14 @@ def csv_cell(value):
 
 @router.get("/export")
 def export_contacts(format: Literal["json", "csv", "vcf"] = "json",
-                    db: Session = Depends(get_db)):
-    rows = [contact_result(db, cid) for cid in db.scalars(select(Contact.id).order_by(Contact.created_at, Contact.id))]
+                    db: Session = Depends(get_db),
+                    nguoi: NguoiGoi = Depends(nguoi_goi)):
+    # Xuat du lieu la duong de nhat de mang CA KHO ra ngoai bang mot loi goi,
+    # nen no phai loc theo chu giong het trang tim kiem - khong duoc tra ve
+    # nhieu hon nhung gi nguoi do nhin thay tren giao dien.
+    ids = loc_theo_chu(select(Contact.id), Contact.owner_id, nguoi)
+    rows = [contact_result(db, cid, nguoi)
+            for cid in db.scalars(ids.order_by(Contact.created_at, Contact.id))]
     if format == "json":
         content = json.dumps({"schema_version": 1, "contacts": rows}, ensure_ascii=False, indent=2).encode("utf-8")
         media_type = "application/json"

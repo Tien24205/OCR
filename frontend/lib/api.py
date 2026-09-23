@@ -73,7 +73,46 @@ def _client() -> httpx.Client:
                         headers=headers)
 
 
+def _phieu() -> str:
+    """Phieu dang nhap cua PHIEN TRINH DUYET HIEN TAI, neu co.
+
+    VI SAO KHONG DAT PHIEU VAO `_client()` NHU DA LAM VOI KHOA API: `_client`
+    duoc boc bang `@st.cache_resource`, nghia la MOT doi tuong dung chung cho
+    CA TIEN TRINH - moi phien trinh duyet, moi nguoi dung. Dat phieu cua
+    nguoi A vao do thi nguoi B mo trang ngay sau se goi API bang danh tinh
+    cua A. Do la ro ri tai khoan, va no se khong bao gio lo ra trong luc thu
+    mot minh.
+
+    Khoa API thi dat o client duoc, vi no giong nhau cho moi nguoi.
+    """
+    try:
+        return st.session_state.get("phieu_dang_nhap") or ""
+    except Exception:
+        # Ngoai mot lan chay script cua Streamlit (vi du trong bo test goi
+        # thang), session_state khong ton tai. Khong co phien thi khong co
+        # phieu - khong phai loi.
+        return ""
+
+
+def _dau_xac_thuc(kwargs: dict) -> dict:
+    """Ghep dung MOT danh tinh vao loi goi.
+
+    Backend doc `X-API-Key` TRUOC roi moi doc `Authorization`. Nen neu gui ca
+    hai, phieu nguoi dung bi bo qua va moi nguoi deu hien ra la "he thong" -
+    thay duoc du lieu cua nhau. Do la ly do phai XOA khoa API khi da dang
+    nhap, chu khong phai chi them phieu vao.
+    """
+    phieu = _phieu()
+    if not phieu:
+        return kwargs
+    dau = dict(kwargs.get("headers") or {})
+    dau["Authorization"] = f"Bearer {phieu}"
+    dau["X-API-Key"] = ""            # chuoi rong => backend bo qua, doc phieu
+    return {**kwargs, "headers": dau}
+
+
 def _request(method: str, path: str, *, raw: bool = False, **kwargs: Any) -> Any:
+    kwargs = _dau_xac_thuc(kwargs)
     try:
         res = _client().request(method, path, **kwargs)
     except httpx.RequestError as exc:
@@ -93,6 +132,21 @@ def _request(method: str, path: str, *, raw: bool = False, **kwargs: Any) -> Any
     except ValueError:
         pass
     err = body.get("error", {}) if isinstance(body, dict) else {}
+
+    # PHIEU HET HAN hoac bi thu hoi. Xoa ngay tai day - day la cho DUY NHAT
+    # moi loi goi deu di qua, nen khong co duong nao giu lai mot phieu da
+    # chet. Khong xoa thi nguoi dung ket o mot man hinh bao 401 lien tuc ma
+    # khong co nut nao dua ho ve trang dang nhap.
+    #
+    # Chi xoa khi loi goi NAY co mang phieu: 401 tu mot loi goi khong mang
+    # phieu noi len chuyen khac (vi du thieu khoa API), khong phai phien hong.
+    if res.status_code == 401 and _phieu():
+        try:
+            st.session_state.pop("phieu_dang_nhap", None)
+            st.session_state.pop("nguoi_dung", None)
+        except Exception:
+            pass
+
     raise ApiError(
         err.get("code", "UNKNOWN"),
         err.get("message", f"Loi {res.status_code}"),
@@ -105,6 +159,22 @@ def _request(method: str, path: str, *, raw: bool = False, **kwargs: Any) -> Any
 
 def health() -> dict[str, Any]:
     return _request("GET", "/api/health")
+
+
+# --- Dang nhap (Ngay 23) -----------------------------------------------------
+
+def dang_ky(email: str, mat_khau: str, ten: str = "") -> dict[str, Any]:
+    return _request("POST", "/api/auth/register", json={
+        "email": email, "password": mat_khau, "display_name": ten or None})
+
+
+def dang_nhap(email: str, mat_khau: str) -> dict[str, Any]:
+    return _request("POST", "/api/auth/login",
+                    json={"email": email, "password": mat_khau})
+
+
+def toi_la_ai() -> dict[str, Any]:
+    return _request("GET", "/api/auth/me")
 
 
 def verify_readiness() -> dict[str, Any]:
@@ -182,10 +252,13 @@ def export_contacts(format: str) -> bytes:
 
 
 def get_image(scan_id: str) -> bytes:
-    """Tai anh goc ve de hien thi. Anh khong duoc phuc vu truc tiep ra ngoai."""
-    res = _client().get(f"/api/scans/{scan_id}/image")
-    res.raise_for_status()
-    return res.content
+    """Tai anh goc ve de hien thi. Anh khong duoc phuc vu truc tiep ra ngoai.
+
+    Di qua `_request` chu khong goi thang `_client()` nua: goi thang thi loi
+    goi nay la loi goi DUY NHAT khong mang phieu dang nhap, va anh se duoc
+    tai bang danh tinh khac voi phan con lai cua trang.
+    """
+    return _request("GET", f"/api/scans/{scan_id}/image", raw=True)
 
 
 def stats() -> dict[str, Any]:

@@ -26,6 +26,15 @@ services:
       # Giao dien goi backend qua ten dich vu trong mang noi bo cua compose,
       # khong qua localhost - trong container thi localhost la chinh no.
       CORS_ORIGINS: "http://localhost:8501"
+      # BAT DANG NHAP khi chay bang Docker. Khac han mac dinh cua ma nguon
+      # (tat): mac dinh tat la cho nguoi chay thu tren may minh, con mot lan
+      # trien khai that thi phai doi dang nhap - va day chinh la tep mo ta
+      # mot lan trien khai that.
+      AUTH_REQUIRED: "${AUTH_REQUIRED:-true}"
+      # Khoa ky phieu. De trong thi ung dung sinh ngau nhien MOI LAN KHOI
+      # DONG, nghia la moi lan `docker compose restart` la toan bo nguoi dung
+      # bi dang xuat. Dat mot gia tri co dinh trong `backend/.env` de tranh.
+      JWT_SECRET: "${JWT_SECRET:-}"
     volumes:
       # CSDL va anh phai song lau hon container. Khong co dong nay thi moi lan
       # `docker compose down` la mat sach ho so da luu.

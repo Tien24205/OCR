@@ -10,6 +10,13 @@ pydantic-settings>=2.6
 # --- Co so du lieu ---
 SQLAlchemy>=2.0
 
+# --- Dang nhap (Ngay 23) ---
+# Phieu JWT. Mat khau dung `hashlib.scrypt` cua thu vien chuan nen KHONG can
+# bcrypt/passlib. Tu viet dinh dang phieu la viec khong nen lam: cho sai de
+# mac nhat (chap nhan thuat toan ma phieu tu khai, ke ca `none`) la cho tu
+# no chay dung trong moi phep thu binh thuong.
+PyJWT>=2.9
+
 # --- Xu ly anh ---
 pillow>=11.0                  # validate anh that + xoay theo EXIF
 # OCR cuc bo - mien phi, khong can mang. Goi nay chi la lop goi mong;

@@ -62,6 +62,43 @@ class Base(DeclarativeBase):
 
 
 # --------------------------------------------------------------------------
+# Nguoi dung (Ngay 23)
+# --------------------------------------------------------------------------
+
+class User(Base):
+    """Tai khoan nguoi dung.
+
+    `email_norm` ton tai vi cung mot dia chi viet hoa khac nhau van la MOT
+    nguoi: "An@Cty.vn" va "an@cty.vn" phai dung chung tai khoan, khong duoc
+    dang ky thanh hai. Rang buoc duy nhat dat tren cot da chuan hoa chu khong
+    tren `email` - dat tren `email` thi hai ban ghi tren deu lot qua.
+
+    `email` van giu nguyen ban de hien thi va de gui thu: nguoi ta viet hoa
+    ten minh trong dia chi la co chu y.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    email_norm: Mapped[str] = mapped_column(
+        String(320), nullable=False, unique=True, index=True
+    )
+    display_name: Mapped[str | None] = mapped_column(Text)
+    # Chuoi tu mo ta: "scrypt$n$r$p$salt_hex$hash_hex". Xem auth.py.
+    # KHONG BAO GIO chua mat khau goc, va khong bao gio ra khoi backend.
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    role: Mapped[str] = mapped_column(String(16), default="user", nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), default=utcnow, nullable=False)
+    last_login_at: Mapped[str | None] = mapped_column(String(40))
+
+    __table_args__ = (
+        CheckConstraint("role IN ('admin','user')", name="ck_user_role"),
+    )
+
+
+# --------------------------------------------------------------------------
 # Doanh nghiep
 # --------------------------------------------------------------------------
 
@@ -112,6 +149,13 @@ class Contact(Base):
     job_titles: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     departments: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     note: Mapped[str | None] = mapped_column(Text)
+
+    # NULL = khong co chu: ban ghi tao truoc Ngay 23, hoac tao bang khoa API
+    # (he thong tich hop, khong phai mot nguoi). ON DELETE SET NULL chu khong
+    # CASCADE: xoa mot nhan vien khong duoc keo theo ho so doi tac cua cong ty.
+    owner_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
 
     review_status: Mapped[str] = mapped_column(String(16), default="draft", nullable=False)
     reviewed_at: Mapped[str | None] = mapped_column(String(40))
@@ -229,6 +273,11 @@ class Scan(Base):
     image_ref: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     image_mime: Mapped[str] = mapped_column(String(32), nullable=False)
     image_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Xem ghi chu o Contact.owner_id.
+    owner_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
 
     status: Mapped[str] = mapped_column(String(16), default="pending", nullable=False)
     error_code: Mapped[str | None] = mapped_column(String(64))

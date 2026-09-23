@@ -16,6 +16,8 @@ st.set_page_config(
 # --- Trang thai dung chung giua cac trang: khoi tao o DUNG MOT NOI ---
 st.session_state.setdefault("current_scan_id", None)
 st.session_state.setdefault("pending_image", None)
+st.session_state.setdefault("phieu_dang_nhap", None)
+st.session_state.setdefault("nguoi_dung", None)
 
 
 def show_backend_status() -> None:
@@ -85,29 +87,78 @@ def show_backend_status() -> None:
                    "lời gọi. Không tự chạy.")
 
 
+def bat_buoc_dang_nhap() -> bool:
+    """Backend co doi dang nhap khong. Hoi backend chu khong tu doan.
+
+    Neu backend khong tra loi duoc thi coi nhu KHONG doi: `show_backend_status`
+    o tren da bao ro backend dang hong roi, va chan them mot man hinh dang
+    nhap len tren mot backend da chet chi lam nguoi dung tuong minh go sai
+    mat khau.
+    """
+    try:
+        return bool(api.health()["config"].get("login_required"))
+    except api.ApiError:
+        return False
+
+
+def hien_nguoi_dang_dung() -> None:
+    nguoi = st.session_state.get("nguoi_dung") or {}
+    if not nguoi:
+        return
+    with st.sidebar:
+        st.divider()
+        ten = nguoi.get("display_name") or nguoi.get("email", "")
+        vai = " · quản trị" if nguoi.get("role") == "admin" else ""
+        st.caption(f"Đang đăng nhập: **{ten}**{vai}")
+        if st.button("Đăng xuất", icon=":material/logout:", width="stretch"):
+            # Xoa CA trang thai lam viec chu khong chi phieu: de lai
+            # `current_scan_id` thi nguoi dang nhap sau se mo trung ban quet
+            # cua nguoi truoc va nhan 404 khong ro ly do.
+            for khoa in ("phieu_dang_nhap", "nguoi_dung", "current_scan_id",
+                         "pending_image", "scan_result", "scan_poll"):
+                st.session_state.pop(khoa, None)
+            st.rerun()
+
+
 show_backend_status()
 
-page = st.navigation(
-    [
-        st.Page(
-            "app_pages/capture.py",
-            title="Quét thẻ",
-            icon=":material/photo_camera:",
-            default=True,
-        ),
-        st.Page(
-            "app_pages/review.py", title="Kiểm tra", icon=":material/fact_check:"
-        ),
-        st.Page(
-            "app_pages/contacts.py", title="Hồ sơ", icon=":material/contacts:"
-        ),
-        st.Page(
-            "app_pages/dashboard.py", title="Tổng quan",
-            icon=":material/insights:"
-        ),
-    ],
-    position="top",
-)
+# CONG DANG NHAP.
+#
+# Chan bang cach dua DANH SACH TRANG cho `st.navigation`, chu khong phai
+# bang `st.Page(...).run()` roi `st.stop()`: Streamlit chi cho chay dung
+# trang do `st.navigation` tra ve, nen cach kia nem StreamlitAPIException.
+# Lam theo cach nay con dung hon ve mat an toan - khi chua dang nhap thi
+# bon trang kia KHONG CO trong thanh dieu huong, thay vi co ma bi chan.
+chua_vao = bat_buoc_dang_nhap() and not st.session_state.get("phieu_dang_nhap")
+
+if chua_vao:
+    page = st.navigation([
+        st.Page("app_pages/login.py", title="Đăng nhập",
+                icon=":material/login:", default=True),
+    ])
+else:
+    hien_nguoi_dang_dung()
+    page = st.navigation(
+        [
+            st.Page(
+                "app_pages/capture.py",
+                title="Quét thẻ",
+                icon=":material/photo_camera:",
+                default=True,
+            ),
+            st.Page(
+                "app_pages/review.py", title="Kiểm tra", icon=":material/fact_check:"
+            ),
+            st.Page(
+                "app_pages/contacts.py", title="Hồ sơ", icon=":material/contacts:"
+            ),
+            st.Page(
+                "app_pages/dashboard.py", title="Tổng quan",
+                icon=":material/insights:"
+            ),
+        ],
+        position="top",
+    )
 
 st.title(page.title)
 page.run()

@@ -36,3 +36,16 @@ import os
 # `get_settings()` ngay luc import va gan middleware xac thuc tu day.
 # conftest.py o goc du an duoc pytest nap som nhat, nen cho nay la dung.
 os.environ["API_KEYS"] = ""
+
+# CUNG MOT LY DO, cho khoa ky phieu dang nhap (Ngay 23).
+#
+# De trong thi `Settings.jwt_signing_key` sinh mot khoa NGAU NHIEN cho moi
+# doi tuong Settings. Trong bo test co it nhat hai doi tuong nhu vay: mot cai
+# `main.py` tao luc import de gan middleware, va mot cai moi fixture tu tao.
+# Hai khoa khac nhau nghia la phieu do endpoint dang nhap cap ra KHONG BAO GIO
+# giai ma duoc o middleware - va trieu chung se la "dang nhap thanh cong roi
+# van bi 401", mot dieu rat kho lan ra.
+#
+# Dat mot gia tri co dinh o day de ca hai dung chung mot khoa. Gia tri nay
+# CHI dung trong bo test; khi chay that, `.env` quyet dinh.
+os.environ.setdefault("JWT_SECRET", "khoa-chi-dung-trong-bo-test-khong-dung-that")

@@ -51,6 +51,37 @@ class Settings(BaseSettings):
     api_keys: str = ""
     rate_limit_per_minute: int = 60
 
+    # --- Dang nhap nguoi dung (Ngay 23) ---
+    # Bat buoc dang nhap moi goi duoc API. MAC DINH TAT vi cung ly do
+    # API_KEYS mac dinh trong (xem auth.py): cong cu nay chay tren may ca
+    # nhan la chinh, va mot mac dinh bat se khien nguoi ta dat mat khau cho
+    # co. Bat khi chay that - Docker Compose bat san.
+    auth_required: bool = False
+    # Khoa ky phieu JWT. DE TRONG = sinh ngau nhien moi lan khoi dong, tuc
+    # moi lan khoi dong lai la moi nguoi phai dang nhap lai. Chap nhan duoc
+    # khi chay may ca nhan, KHONG chap nhan duoc khi chay that - nen
+    # `readiness()` noi ro dang o trang thai nao.
+    jwt_secret: str = ""
+    # 12 tieng: du dai cho mot ngay lam viec ma khong phai dang nhap lai
+    # giua chung, du ngan de mot phieu bi lo khong song mai.
+    jwt_ttl_minutes: int = 12 * 60
+
+    @property
+    def jwt_signing_key(self) -> str:
+        """Khoa ky that su dung. Sinh mot lan cho ca tien trinh khi de trong.
+
+        `lru_cache` tren `get_settings()` bao dam ca tien trinh dung CUNG mot
+        doi tuong Settings, nen gia tri sinh ra o day on dinh den luc tat -
+        khong phai moi loi goi mot khoa khac nhau, dieu se lam moi phieu vua
+        cap da hong ngay.
+        """
+        if self.jwt_secret:
+            return self.jwt_secret
+        if not hasattr(self, "_khoa_tam"):
+            import secrets
+            object.__setattr__(self, "_khoa_tam", secrets.token_urlsafe(32))
+        return self._khoa_tam
+
     # --- OCR ---
     ocr_provider: str = "mock"          # google | tesseract | rapidocr | mock
     google_application_credentials: str | None = None
@@ -167,6 +198,13 @@ class Settings(BaseSettings):
             # Bao ro API dang mo hay dong. KHONG bao gio tra ve gia tri
             # khoa - chi tra ve co, giong moi truong khac o day.
             "auth_enabled": bool(self.api_key_list),
+            # Dang nhap nguoi dung, tach khoi khoa API o tren: hai co che
+            # khac nhau, co the bat rieng.
+            "login_required": self.auth_required,
+            # False = khoa ky sinh ngau nhien luc khoi dong, tuc khoi dong
+            # lai la moi nguoi mat phien. Bao ra de khong ai phai doan vi sao
+            # tu nhien bi dang xuat.
+            "jwt_secret_persistent": bool(self.jwt_secret),
         }
 
 

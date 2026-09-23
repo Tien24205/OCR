@@ -16,6 +16,7 @@ from typing import Literal
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.access import NguoiGoi, doc_duoc, loc_theo_chu, nguoi_goi
 from app.config import Settings, get_settings
 from app.db import SessionLocal, get_db, init_db
 from app.models import Scan
@@ -58,7 +59,9 @@ app = FastAPI(
 # chan ngay, khong di sau vao ung dung.
 from app.auth import gan_xac_thuc  # noqa: E402
 
-gan_xac_thuc(app, settings.api_key_list, settings.rate_limit_per_minute)
+gan_xac_thuc(app, settings.api_key_list, settings.rate_limit_per_minute,
+             bi_mat_jwt=settings.jwt_signing_key,
+             bat_buoc=settings.auth_required)
 
 app.add_middleware(
     CORSMiddleware,
@@ -77,6 +80,10 @@ app.include_router(contact_router)
 from app.webhook import router as webhook_router  # noqa: E402
 
 app.include_router(webhook_router)
+
+from app.user_routes import router as user_router  # noqa: E402
+
+app.include_router(user_router)
 
 
 @app.exception_handler(ApiError)
@@ -142,6 +149,25 @@ def get_session_factory():
     return SessionLocal
 
 
+def lay_ban_quet(db: Session, scan_id: str, nguoi: NguoiGoi,
+                 ma_loi: str = "SCAN_NOT_FOUND", ten: str = "bản quét") -> Scan:
+    """Nap mot ban quet VA kiem quyen doc, trong mot buoc.
+
+    VI SAO GOP HAI VIEC LAM MOT: sau endpoint deu bat dau bang dung ba dong
+    "nap - neu None thi 404 - neu khong phai cua minh thi 404". Viet roi ra
+    sau cho thi cho thu bay se bi quen, va cai bi quen o day khong hong to -
+    no chi lang le cho nguoi nay doc ban quet cua nguoi kia. Gop lai thi
+    khong the nap ban quet ma khong kiem quyen, vi chi co mot duong nap.
+
+    "Khong ton tai" va "khong phai cua ban" tra ve CUNG MOT cau: xem ghi chu
+    dau `access.py` ve ly do khong dung 403.
+    """
+    scan = db.get(Scan, scan_id)
+    if scan is None or not doc_duoc(scan.owner_id, nguoi):
+        raise ApiError(ma_loi, f"Không tìm thấy {ten}.", 404)
+    return scan
+
+
 @app.post("/api/scans", status_code=201)
 def create_scan(
     file: UploadFile,
@@ -149,6 +175,7 @@ def create_scan(
     db: Session = Depends(get_db),
     config: Settings = Depends(get_settings),
     session_factory=Depends(get_session_factory),
+    nguoi: NguoiGoi = Depends(nguoi_goi),
 ) -> dict[str, str]:
     """Persist first, then process after the response using a separate session."""
     try:
@@ -161,6 +188,7 @@ def create_scan(
             image_mime=image.mime,
             image_bytes=len(image.data),
             status="pending",
+            owner_id=nguoi.user_id,
         )
         db.add(scan)
         db.commit()
@@ -185,6 +213,7 @@ def create_batch_scans(
     db: Session = Depends(get_db),
     config: Settings = Depends(get_settings),
     session_factory=Depends(get_session_factory),
+    nguoi: NguoiGoi = Depends(nguoi_goi),
 ) -> dict:
     """Xử lý hàng loạt nhiều ảnh trong một lần gửi.
 
@@ -207,6 +236,7 @@ def create_batch_scans(
                 image_mime=image.mime,
                 image_bytes=len(image.data),
                 status="pending",
+                owner_id=nguoi.user_id,
             )
             db.add(scan)
             db.commit()
@@ -229,7 +259,8 @@ def create_batch_scans(
 
 
 @app.get("/api/scans")
-def list_scans(limit: int = 12, db: Session = Depends(get_db)) -> dict:
+def list_scans(limit: int = 12, db: Session = Depends(get_db),
+               nguoi: NguoiGoi = Depends(nguoi_goi)) -> dict:
     """Cac ban quet gan day nhat, de nguoi dung quay lai mot ban quet cu.
 
     VI SAO CAN: truoc endpoint nay, giao dien chi mo duoc dung ban quet vua
@@ -241,7 +272,8 @@ def list_scans(limit: int = 12, db: Session = Depends(get_db)) -> dict:
     va `image_ref` de hien anh thu nho.
     """
     limit = max(1, min(limit, MAX_LIST_SCANS))
-    rows = db.scalars(select(Scan).order_by(Scan.created_at.desc()).limit(limit)).all()
+    stmt = loc_theo_chu(select(Scan), Scan.owner_id, nguoi)
+    rows = db.scalars(stmt.order_by(Scan.created_at.desc()).limit(limit)).all()
 
     items = []
     for scan in rows:
@@ -266,7 +298,8 @@ def list_scans(limit: int = 12, db: Session = Depends(get_db)) -> dict:
 
 # Phai khai bao TRUOC `/api/scans/{scan_id}` - xem chu thich trong ham do.
 @app.get("/api/scans/status")
-def scans_status(ids: str, db: Session = Depends(get_db)) -> dict:
+def scans_status(ids: str, db: Session = Depends(get_db),
+                 nguoi: NguoiGoi = Depends(nguoi_goi)) -> dict:
     """Trang thai cua nhieu ban quet trong MOT loi goi.
 
     VI SAO CAN: giao dien theo doi mot lo dang chay bang cach hoi lai vai giay
@@ -280,8 +313,9 @@ def scans_status(ids: str, db: Session = Depends(get_db)) -> dict:
     wanted = [x.strip() for x in ids.split(",") if x.strip()][:MAX_STATUS_IDS]
     if not wanted:
         return {"items": []}
-    rows = db.execute(select(Scan.id, Scan.status, Scan.error_code)
-                      .where(Scan.id.in_(wanted))).all()
+    stmt = loc_theo_chu(select(Scan.id, Scan.status, Scan.error_code),
+                        Scan.owner_id, nguoi)
+    rows = db.execute(stmt.where(Scan.id.in_(wanted))).all()
     found = {row[0]: {"id": row[0], "status": row[1], "error_code": row[2]}
              for row in rows}
     # Giu dung thu tu ma nguoi goi hoi, va bo qua ma khong ton tai thay vi bao
@@ -290,14 +324,13 @@ def scans_status(ids: str, db: Session = Depends(get_db)) -> dict:
 
 
 @app.get("/api/scans/{scan_id}")
-def get_scan(scan_id: str, db: Session = Depends(get_db)) -> dict:
+def get_scan(scan_id: str, db: Session = Depends(get_db),
+             nguoi: NguoiGoi = Depends(nguoi_goi)) -> dict:
     # BAY THU TU ROUTE: khai bao nay phai nam SAU `/api/scans/status`.
     # FastAPI khop route theo thu tu khai bao, nen neu `{scan_id}` dung truoc
     # thi "status" se bi nuot thanh mot ma ban quet va endpoint kia khong bao
     # gio chay - loi im lang, chi lo ra la 404 "khong tim thay ban quet".
-    scan = db.get(Scan, scan_id)
-    if scan is None:
-        raise ApiError("SCAN_NOT_FOUND", "Không tìm thấy bản quét.", 404)
+    scan = lay_ban_quet(db, scan_id, nguoi)
     grounding = scan.grounding_json or {}
     agent_work = (scan.ocr_payload or {}).get("agent_work", {})
     selected = agent_work.get("selected_ocr")
@@ -331,10 +364,9 @@ def get_scan(scan_id: str, db: Session = Depends(get_db)) -> dict:
 
 
 @app.patch("/api/scans/{scan_id}/draft")
-def save_draft(scan_id: str, body: DraftUpdate, db: Session = Depends(get_db)) -> dict:
-    scan = db.get(Scan, scan_id)
-    if scan is None:
-        raise ApiError("SCAN_NOT_FOUND", "Không tìm thấy bản quét.", 404)
+def save_draft(scan_id: str, body: DraftUpdate, db: Session = Depends(get_db),
+               nguoi: NguoiGoi = Depends(nguoi_goi)) -> dict:
+    scan = lay_ban_quet(db, scan_id, nguoi)
     grounding = scan.grounding_json or {}
     draft = current_draft(grounding)
     if scan.status != "ocr_done" or draft is None:
@@ -359,16 +391,17 @@ def save_draft(scan_id: str, body: DraftUpdate, db: Session = Depends(get_db)) -
         db.rollback()
         raise ApiError("DRAFT_SAVE_FAILED", "Chưa lưu được bản nháp. Giữ form và thử lại.", 500, True) from exc
     db.expire_all()
-    return get_scan(scan_id, db)
+    return get_scan(scan_id, db, nguoi)
 
 
 @app.post("/api/scans/{scan_id}/retry", status_code=202)
 def retry_scan(scan_id: str, background_tasks: BackgroundTasks,
+               nguoi: NguoiGoi = Depends(nguoi_goi),
                db: Session = Depends(get_db), config: Settings = Depends(get_settings),
                session_factory=Depends(get_session_factory)) -> dict:
-    scan = db.get(Scan, scan_id)
-    if scan is None:
-        raise ApiError("SCAN_NOT_FOUND", "Không tìm thấy bản quét.", 404)
+    # Goi de KIEM QUYEN; doi tuong tra ve khong dung den vi cau UPDATE ben
+    # duoi lam viec truc tiep tren bang.
+    lay_ban_quet(db, scan_id, nguoi)
     changed = db.execute(update(Scan).where(
         Scan.id == scan_id, Scan.status == "failed", Scan.retry_count < 3,
         (Scan.error_code.is_(None) | (Scan.error_code != "IMAGE_RECAPTURE_REQUIRED"))
@@ -382,7 +415,9 @@ def retry_scan(scan_id: str, background_tasks: BackgroundTasks,
 
 
 @app.get("/api/scans/{scan_id}/image")
-def get_image(scan_id: str, db: Session = Depends(get_db), config: Settings = Depends(get_settings)):
+def get_image(scan_id: str, db: Session = Depends(get_db),
+              nguoi: NguoiGoi = Depends(nguoi_goi),
+              config: Settings = Depends(get_settings)):
     """Anh goc CUA MOT BAN QUET - quyen di qua ban quet, khong qua ma bam.
 
     LO HONG DA SUA (san-sang-thuong-mai.md, C1): duong dan cu la
@@ -395,9 +430,7 @@ def get_image(scan_id: str, db: Session = Depends(get_db), config: Settings = De
     Di qua ban quet thi phep kiem quyen sap toi (`owner_id`, Giai doan 2) chi
     co MOT cho de dat, va la cho ma moi truy van ban quet khac deu di qua.
     """
-    scan = db.get(Scan, scan_id)
-    if scan is None:
-        raise ApiError("IMAGE_NOT_FOUND", "Không tìm thấy ảnh.", 404)
+    scan = lay_ban_quet(db, scan_id, nguoi, "IMAGE_NOT_FOUND", "ảnh")
     # `image_ref` den tu CSDL chu khong tu nguoi goi nua, nhung no van bi ghep
     # vao duong dan tep - giu phep kiem de mot gia tri hong trong CSDL khong
     # tro thanh duong doc file khac tren may chu.
@@ -411,7 +444,8 @@ def get_image(scan_id: str, db: Session = Depends(get_db), config: Settings = De
 
 
 @app.delete("/api/scans/{scan_id}")
-def delete_scan_route(scan_id: str, db: Session = Depends(get_db),
+def delete_scan_route(scan_id: str, nguoi: NguoiGoi = Depends(nguoi_goi),
+                      db: Session = Depends(get_db),
                       config: Settings = Depends(get_settings)):
     """Xoa han mot ban quet va anh goc cua no.
 
@@ -421,9 +455,7 @@ def delete_scan_route(scan_id: str, db: Session = Depends(get_db),
     Ho so da luu tu ban quet nay KHONG bi xoa theo: no la thu nguoi dung co y
     giu lai. Muon xoa ca hai thi goi `DELETE /api/contacts/{id}`.
     """
-    scan = db.get(Scan, scan_id)
-    if scan is None:
-        raise ApiError("SCAN_NOT_FOUND", "Không tìm thấy bản quét.", 404)
+    scan = lay_ban_quet(db, scan_id, nguoi)
     return erasure.delete_scan(db, scan, config.image_path)
 
 
@@ -433,13 +465,12 @@ class ResearchRequest(BaseModel):
 
 @app.post("/api/scans/{scan_id}/enrich", status_code=202)
 def research_scan(scan_id: str, body: ResearchRequest, background_tasks: BackgroundTasks,
+                  nguoi: NguoiGoi = Depends(nguoi_goi),
                   db: Session = Depends(get_db), config: Settings = Depends(get_settings),
                   session_factory=Depends(get_session_factory)):
     if not config.enrich_enabled:
         raise ApiError("ENRICH_DISABLED", "Tra cứu đang tắt trong cấu hình.", 409)
-    scan = db.get(Scan, scan_id)
-    if scan is None:
-        raise ApiError("SCAN_NOT_FOUND", "Không tìm thấy bản quét.", 404)
+    scan = lay_ban_quet(db, scan_id, nguoi)
     grounding = scan.grounding_json or {}
     if scan.status not in {"ocr_done", "committed"} or body.revision != grounding.get("draft_revision", 0):
         raise ApiError("DRAFT_CONFLICT", "Lưu hoặc tải lại bản nháp đã xử lý trước khi tra cứu.", 409)

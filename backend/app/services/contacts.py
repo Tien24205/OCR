@@ -9,10 +9,20 @@ from app.models import (Contact, ContactProfile, ContactEmail, ContactPhone, Add
 from app.services.enrich.worker import job_result
 
 
-def require_contact(db, contact_id):
+def require_contact(db, contact_id, nguoi):
+    """Nap ho so VA kiem quyen doc.
+
+    `nguoi` la THAM SO BAT BUOC, khong co gia tri mac dinh. Mot mac dinh kieu
+    "khong kiem" o day se im lang bo qua phep kiem moi khi ai do quen truyen,
+    va khong gi bao ca - trong khi thieu tham so thi hong ngay, to va som.
+    Day la ham ma MOI duong doc ho so di qua, nen cho nay dang gia mot chut
+    phien ha o sau cho goi.
+    """
+    from app.access import doc_duoc
+
     contact = db.get(Contact, contact_id)
     profile = db.get(ContactProfile, contact_id)
-    if contact is None:
+    if contact is None or not doc_duoc(contact.owner_id, nguoi):
         raise ApiError("CONTACT_NOT_FOUND", "Không tìm thấy hồ sơ.", 404)
     if profile is None:
         raise ApiError("PROFILE_NOT_READY", "Hồ sơ cũ chưa có dữ liệu đa giá trị để sửa.", 409)
@@ -70,8 +80,8 @@ def project_contact(db, contact, profile, draft, organization, note):
         db.add(Address(contact_id=contact.id, value_raw=x["value"], source=x["source"]))
 
 
-def contact_result(db, contact_id):
-    contact, profile = require_contact(db, contact_id)
+def contact_result(db, contact_id, nguoi):
+    contact, profile = require_contact(db, contact_id, nguoi)
     scans = db.scalars(select(Scan).where(Scan.contact_id == contact_id).order_by(Scan.created_at, Scan.id)).all()
     research = []
     for scan in scans:
