@@ -153,6 +153,10 @@ else:
                 "app_pages/contacts.py", title="Hồ sơ", icon=":material/contacts:"
             ),
             st.Page(
+                "app_pages/graph.py", title="Mạng lưới",
+                icon=":material/hub:"
+            ),
+            st.Page(
                 "app_pages/dashboard.py", title="Tổng quan",
                 icon=":material/insights:"
             ),
