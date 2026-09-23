@@ -9,6 +9,31 @@
 venv/
 **/.env
 
+# --- Bi mat KHONG phai la .env -------------------------------------------
+#
+# VI SAO DANH SACH NAY TON TAI: `.env` khong phai cho duy nhat chua khoa.
+# `backend/.env` khai
+#
+#     GOOGLE_APPLICATION_CREDENTIALS=./secrets/gcp-sa.json
+#
+# tuc khoa service account cua Google nam o `backend/secrets/`. `.gitignore`
+# da chan thu muc do tu lau, nhung tep nay thi CHUA - nen `COPY backend/
+# backend/` trong Dockerfile nuot gon no vao image.
+#
+# Da kiem chung: dat mot tep gia o dung duong dan tren, build, roi `cat` ra
+# tu trong container - noi dung hien nguyen. Sau khi them cac dong duoi day
+# thi khong con.
+#
+# Danh sach nay la ban sao muc "Bi mat" cua `.gitignore`. Hai tep phai tra
+# loi CUNG mot cau hoi - "thu gi khong duoc roi khoi may nay" - nen khi them
+# mot loai khoa moi thi phai sua ca hai.
+secrets/
+**/secrets/
+gcp-sa.json
+**/gcp-sa.json
+*.json.key
+.streamlit/secrets.toml
+
 # Du lieu chay - phai nam o volume, khong nam trong image. Nhoi vao day se
 # lam moi ban dung deu bat dau voi CSDL cu cua may nguoi build.
 backend/data/
