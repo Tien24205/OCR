@@ -1,0 +1,66 @@
+# Lop phu cho mot lan trien khai THAT, qua Cloudflare Tunnel.
+#
+#     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Huong dan day du: muc "Triển khai miễn phí bằng Cloudflare Tunnel" trong
+# README.md.
+#
+# TEP NAY KHONG CHUA KHOA NAO. Hai bien bat buoc (`JWT_SECRET`,
+# `CLOUDFLARE_TUNNEL_TOKEN`) duoc doc tu moi truong hoac tu tep `.env` o GOC
+# du an - khong phai `backend/.env`. Dat sai cho la compose khong thay, va
+# no se bao ngay luc khoi dong chu khong hong am tham.
+
+services:
+  backend:
+    # DONG CONG 8000. Giao dien goi backend qua mang noi bo cua compose
+    # (`http://backend:8000`), nen khong ai can goi no tu ben ngoai.
+    #
+    # De mo thi API nam tren Internet, va thu duy nhat che no la `API_KEYS`.
+    # Da kiem: dong cong nay xong, ung dung van chay du - chi co dieu backend
+    # khong con voi toi duoc tu ngoai.
+    ports: !override []
+    environment:
+      # `:?` = compose TU CHOI khoi dong khi bien trong, kem dong nhac duoi.
+      #
+      # De trong thi khoa ky duoc sinh ngau nhien moi lan khoi dong, tuc moi
+      # lan `docker compose restart` la TAT CA nguoi dung bi dang xuat - va
+      # khong co gi trong log noi cho ho biet vi sao. Da do: phieu tra 401
+      # sau restart khi de trong, tra 200 khi dat co dinh.
+      JWT_SECRET: "${JWT_SECRET:?can JWT_SECRET. Sinh bang: python -c \"import secrets; print(secrets.token_urlsafe(48))\"}"
+
+  frontend:
+    # Chi mo tren 127.0.0.1, KHONG mo ra moi giao dien mang cua may chu.
+    #
+    # VI SAO VAN MO: de con `curl http://localhost:8501` kiem tra ngay tren
+    # may chu khi co su co. Duong ra Internet la qua `cloudflared` ben duoi,
+    # di trong mang noi bo cua compose - khong qua cong nay.
+    #
+    # Dat `8501:8501` tran (khong co `127.0.0.1:`) la mo thang cong 8501 ra
+    # Internet bang HTTP tran, va nhu vay thi ca duong Cloudflare tro nen vo
+    # nghia: nguoi ta van vao duoc bang IP va khong co ma hoa.
+    ports: !override
+      - "127.0.0.1:8501:8501"
+
+  # --- Duong ra Internet ----------------------------------------------------
+  #
+  # `cloudflared` mo mot ket noi DI RA tu container toi Cloudflare, roi luu
+  # luong chay nguoc ve qua chinh ket noi do. Nghia la may chu KHONG can mo
+  # cong nao vao, khong can IP tinh, khong can cau hinh tuong lua.
+  #
+  # VI SAO CAN CLOUDFLARE CHU KHONG PHAI CHI MOT TEN MIEN: trinh duyet chan
+  # camera va chan cai PWA tren `http://`. Khong co HTTPS thi mat duong chup
+  # anh - tuc mat tinh nang chinh. Cloudflare cap va gia han chung chi mien
+  # phi, khong phai lam gi them.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    # `--no-autoupdate`: ban trong container duoc thay bang cach keo image
+    # moi, khong phai bang cach tu sua chinh no luc dang chay.
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARE_TUNNEL_TOKEN:?can CLOUDFLARE_TUNNEL_TOKEN. Lay o Cloudflare Zero Trust > Networks > Tunnels}"
+    depends_on:
+      frontend:
+        # `service_started` la du: `cloudflared` tu thu lai khi dich chua
+        # san sang, va giao dien thi khong co healthcheck rieng.
+        condition: service_started

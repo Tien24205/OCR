@@ -325,6 +325,123 @@ Muốn số đo khớp với báo cáo thì gắn `tessdata_best` vào bằng vo
 
 ---
 
+## Triển khai miễn phí bằng Cloudflare Tunnel
+
+Cách đưa ứng dụng lên một địa chỉ `https://` thật mà **không tốn tiền, không
+cần VPS, không cần mở cổng trên router**. Ứng dụng chạy trên máy của bạn;
+Cloudflare chỉ làm đường dẫn vào.
+
+### Vì sao phải là HTTPS
+
+Trình duyệt chặn camera và chặn cài PWA trên `http://` (trừ `localhost`).
+Chạy qua IP trần là mất đường chụp ảnh — tức mất tính năng chính. Cloudflare
+cấp và tự gia hạn chứng chỉ, không phải làm gì thêm.
+
+### Đổi lại là gì
+
+**Máy phải bật.** Tắt máy là trang sập. Đủ cho demo và cho dùng nội bộ; muốn
+chạy 24/7 thì cần một máy chủ thật.
+
+Dữ liệu nằm trong volume `ocr_ocr-data` trên máy bạn, không mất khi tắt.
+
+### Các bước
+
+**1. Sinh khóa ký phiên đăng nhập**
+
+```powershell
+.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+**2. Tạo tunnel ở Cloudflare**
+
+Cần một tài khoản Cloudflare (miễn phí) và một tên miền đã trỏ nameserver về
+Cloudflare. Vào **Zero Trust → Networks → Tunnels → Create a tunnel**, chọn
+kiểu **Cloudflared**, đặt tên, rồi **sao lấy token**.
+
+Ở bước *Public hostname*, khai:
+
+| Ô | Điền |
+|---|---|
+| Subdomain | ví dụ `ocr` |
+| Domain | tên miền của bạn |
+| Service type | `HTTP` |
+| URL | `frontend:8501` |
+
+`frontend:8501` là tên dịch vụ trong mạng nội bộ của compose, **không phải**
+`localhost:8501` — `cloudflared` chạy trong container, nên `localhost` với nó
+là chính nó.
+
+**3. Đặt hai biến vào tệp `.env` ở gốc dự án**
+
+Là gốc dự án, **không phải** `backend/.env`:
+
+```
+JWT_SECRET=<chuỗi vừa sinh ở bước 1>
+CLOUDFLARE_TUNNEL_TOKEN=<token vừa sao ở bước 2>
+```
+
+**4. Chạy**
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+**5. Mở trang bằng điện thoại và đăng ký ngay**
+
+Người đăng ký đầu tiên trở thành **quản trị**. Deploy xong mà đi ăn cơm thì
+ai vào trước người đó nắm quyền.
+
+### Lớp phủ `docker-compose.prod.yml` làm gì
+
+| | Mặc định | Khi có lớp phủ |
+|---|---|---|
+| Cổng 8000 (API) | mở ra ngoài | **đóng hẳn** |
+| Cổng 8501 (giao diện) | mở ra mọi giao diện mạng | chỉ `127.0.0.1` |
+| `JWT_SECRET` | để trống được | **bắt buộc**, thiếu thì không khởi động |
+| Đường ra Internet | không có | `cloudflared` |
+
+Backend không cần mở cổng vì giao diện gọi nó qua mạng nội bộ của compose.
+Đã kiểm: đóng cổng 8000 rồi ứng dụng vẫn chạy đủ, chỉ là API không còn với
+tới được từ ngoài.
+
+### Đã kiểm chứng những gì
+
+Mô phỏng yêu cầu đi qua tunnel (`Host` và `Origin` là tên miền Cloudflare,
+không phải `localhost`):
+
+| Đường | Kết quả |
+|---|---|
+| `GET /` | 200 |
+| `GET /_stcore/health` | 200 |
+| WebSocket `/_stcore/stream` | **101 Switching Protocols** |
+| `/manifest.webmanifest`, `/sw.js`, `/icon-192.png` | 200 |
+| Thẻ `rel="manifest"` trong `<head>` | có |
+
+WebSocket là thứ quyết định giao diện có bấm được không, nên nó được kiểm
+riêng: Streamlit có phép kiểm nguồn gốc kết nối, và phép kiểm đó **không**
+chặn tunnel — nghĩa là không phải chỉnh `enableCORS` hay
+`enableXsrfProtection` gì cả.
+
+### Khi có sự cố
+
+```powershell
+# Tunnel đã nối được chưa
+docker compose logs cloudflared | Select-String -Pattern "Registered tunnel|ERR"
+
+# Giao diện có sống không, kiểm ngay trên máy chủ
+curl http://localhost:8501/
+
+# Backend có sống không (cổng 8000 đã đóng nên phải hỏi từ bên trong)
+docker compose exec backend python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/api/health').status)"
+```
+
+### Một việc nên làm trước khi mở cho người khác
+
+Đổi `API_KEYS` trong `backend/.env` sang khóa mới. Khóa đang dùng ở máy phát
+triển không nên mang lên bản chạy thật.
+
+---
+
 ## Xác thực API
 
 **Mặc định API không có xác thực** — bất kỳ ai gọi được cổng 8000 đều đọc được
