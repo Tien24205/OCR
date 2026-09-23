@@ -391,9 +391,9 @@ Cập nhật README hoàn chỉnh:
 > **✅ ĐÃ LÀM XONG toàn bộ Giai đoạn 4.** Báo cáo:
 > [moc-23-29-09.md](../3-bao-cao/moc-23-29-09.md).
 >
-> Hai chỗ **chưa** làm, ghi ra thay vì để trống: chưa build được Docker image
-> thật (Docker Desktop chưa bật trên máy phát triển — `docker compose config`
-> thì đã hợp lệ), và chưa quay lại video demo.
+> Một chỗ **chưa** làm, ghi ra thay vì để trống: chưa quay lại video demo.
+> Hai image Docker đã build và đã chạy `docker compose up` đi trọn hành trình,
+> kèm phép kiểm cách ly dữ liệu giữa hai tài khoản ngay trong container.
 >
 > Hai chỗ đi **khác** kế hoạch, đều theo hướng bớt phụ thuộc:
 > Ngày 26–27 dùng `st.App` + Pillow/numpy thay vì một custom component và
