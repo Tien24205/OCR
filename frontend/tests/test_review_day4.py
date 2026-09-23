@@ -17,6 +17,23 @@ def page(monkeypatch):
     out = BytesIO()
     Image.new("RGB", (20, 12), "white").save(out, format="PNG")
     monkeypatch.setattr(api, "get_image", lambda ref: out.getvalue())
+
+    # CHAN MOI LOI GOI MANG THAT, khong chan tung ham mot.
+    #
+    # Trang nay con goi `list_scans`, `organization_choices` va
+    # `scan_duplicates` ngoai `get_scan`. Khi backend khong chay, MOI loi goi
+    # khong duoc chan mat ~2,5s moi bao loi - vuot timeout 3s mac dinh cua
+    # AppTest, va test do vi mot ly do khong lien quan gi den thu dang kiem.
+    #
+    # Chan o `_request` chu khong o tung ham: moi loi goi deu di qua day, nen
+    # trang co them API moi cung khong lam sau test nay do lai. Trang da duoc
+    # thiet ke de chay tiep khi cac loi goi phu that bai, nen ApiError o day
+    # dung la duong ma no von xu ly.
+    def _khong_goi_mang(method, path, **kwargs):
+        raise api.ApiError("BACKEND_UNREACHABLE", f"(test) {method} {path}",
+                           retryable=True, status=0)
+
+    monkeypatch.setattr(api, "_request", _khong_goi_mang)
     at = AppTest.from_file(REVIEW)
     at.session_state["current_scan_id"] = "scan-1"
     return at
