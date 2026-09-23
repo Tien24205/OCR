@@ -388,6 +388,18 @@ Cập nhật README hoàn chỉnh:
 ### 🟣 Giai Đoạn 4: Advanced & Scaling (Ngày 23–29/09)
 *Mục tiêu: Đưa dự án từ Prototype lên cấp độ Enterprise (Chuyển đổi số thực sự)*
 
+> **✅ ĐÃ LÀM XONG toàn bộ Giai đoạn 4.** Báo cáo:
+> [moc-23-29-09.md](../3-bao-cao/moc-23-29-09.md).
+>
+> Hai chỗ **chưa** làm, ghi ra thay vì để trống: chưa build được Docker image
+> thật (Docker Desktop chưa bật trên máy phát triển — `docker compose config`
+> thì đã hợp lệ), và chưa quay lại video demo.
+>
+> Hai chỗ đi **khác** kế hoạch, đều theo hướng bớt phụ thuộc:
+> Ngày 26–27 dùng `st.App` + Pillow/numpy thay vì một custom component và
+> `cv2`; Ngày 28 dùng `st.graphviz_chart` có sẵn thay vì `streamlit-agraph`
+> hoặc `pyvis`. Lý do ở từng mục của báo cáo.
+
 ---
 
 #### Ngày 23–24/09 — Authentication & Multi-user (RBAC)

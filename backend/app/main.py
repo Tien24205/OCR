@@ -64,6 +64,19 @@ gan_xac_thuc(app, settings.api_key_list, settings.rate_limit_per_minute,
              bi_mat_jwt=settings.jwt_signing_key,
              bat_buoc=settings.auth_required)
 
+# Bat buoc dang nhap ma khong dat khoa ky: moi lan khoi dong lai la mot khoa
+# moi, tuc TAT CA nguoi dung bi dang xuat. Trieu chung o phia nguoi dung la
+# "tu nhien bi dang xuat" sau moi lan trien khai, va khong co gi trong log
+# noi tai sao - nen dong canh bao nay phai co.
+if settings.auth_required and not settings.jwt_secret:
+    import logging as _logging
+
+    _logging.getLogger(__name__).warning(
+        "AUTH_REQUIRED bat nhung JWT_SECRET de trong: khoa ky duoc sinh ngau "
+        "nhien moi lan khoi dong, nen khoi dong lai la moi nguoi phai dang "
+        "nhap lai. Dat JWT_SECRET trong backend/.env khi chay that."
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -129,7 +142,8 @@ def verify_readiness(config: Settings = Depends(get_settings)) -> dict:
     return readiness.verify(config)
 
 @app.get("/api/stats")
-def get_stats(db: Session = Depends(get_db)) -> dict:
+def get_stats(db: Session = Depends(get_db),
+              nguoi: NguoiGoi = Depends(nguoi_goi)) -> dict:
     """So lieu tong quan cho trang Bang dieu khien.
 
     Giu lai ba khoa `total_*` cua ban dau de khong pha vo thu da goi endpoint
@@ -137,7 +151,7 @@ def get_stats(db: Session = Depends(get_db)) -> dict:
     """
     from app.services.stats import collect
 
-    data = collect(db)
+    data = collect(db, nguoi)
     totals = data["totals"]
     return {
         "total_scans": totals["scans"],

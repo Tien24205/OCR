@@ -17,6 +17,7 @@ from datetime import date, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.access import NguoiGoi, loc_theo_chu
 from app.models import Contact, Enrichment, Organization, Scan
 
 RECENT_DAYS = 14
@@ -39,28 +40,68 @@ def _day(timestamp: str | None) -> str:
     return (timestamp or "")[:10]
 
 
-def collect(db: Session) -> dict:
+def collect(db: Session, nguoi: NguoiGoi | None = None) -> dict:
+    """So lieu cho trang Bang dieu khien, trong pham vi cua `nguoi`.
+
+    VI SAO PHAI LOC O DAY NUA: trang nay khong nhan ma ban ghi nao, nen no
+    la duong DE QUEN NHAT khi them phan quyen - va cai quen o day khong lo
+    ra nhu mot loi. No lo ra duoi dang nhung con so: nguoi dung thay "50 ho
+    so" trong khi minh chi co hai, va thay ten cong ty cua nguoi khac trong
+    bang "doanh nghiep nhieu dau moi nhat". Ten cong ty la quan he lam an,
+    va do la thu khong duoc lan giua cac tai khoan.
+    """
+    nguoi = nguoi or NguoiGoi()
+
+    def cua_toi(stmt, cot):
+        return loc_theo_chu(stmt, cot, nguoi)
+
+    # Doanh nghiep va tra cuu la du lieu DUNG CHUNG - chung khong co
+    # `owner_id`. Khi nguoi goi la mot NGUOI cu the thi chi dem nhung doanh
+    # nghiep co lien he cua ho; khong thi con so tu no da noi ra ca he thong
+    # co bao nhieu doi tac.
+    #
+    # Khi nguoi goi thay tat ca (quan tri, he thong tich hop, hoac che do mo)
+    # thi KHONG rang buoc gi: rang buoc o do se am tham bo di nhung doanh
+    # nghiep chua co lien he nao, va do la mot thay doi khac han - khong lien
+    # quan gi den phan quyen.
+    gioi_han_theo_lien_he = not nguoi.thay_tat_ca
+    ma_ho_so = cua_toi(select(Contact.id), Contact.owner_id)
+    ma_doanh_nghiep = select(Contact.organization_id).where(
+        Contact.id.in_(ma_ho_so), Contact.organization_id.is_not(None))
+
+    def trong_pham_vi(stmt, cot):
+        """Rang buoc theo doanh nghiep, chi khi nguoi goi bi gioi han."""
+        return stmt.where(cot.in_(ma_doanh_nghiep)) if gioi_han_theo_lien_he else stmt
+
     totals = {
-        "scans": db.scalar(select(func.count(Scan.id))) or 0,
-        "contacts": db.scalar(select(func.count(Contact.id))) or 0,
-        "organizations": db.scalar(select(func.count(Organization.id))) or 0,
-        "enrichments": db.scalar(select(func.count(Enrichment.id))) or 0,
+        "scans": db.scalar(cua_toi(select(func.count(Scan.id)), Scan.owner_id)) or 0,
+        "contacts": db.scalar(
+            cua_toi(select(func.count(Contact.id)), Contact.owner_id)) or 0,
+        "organizations": db.scalar(trong_pham_vi(
+            select(func.count(func.distinct(Organization.id))),
+            Organization.id)) or 0,
+        "enrichments": db.scalar(trong_pham_vi(
+            select(func.count(Enrichment.id)),
+            Enrichment.organization_id)) or 0,
     }
 
     by_status = dict(
-        db.execute(select(Scan.status, func.count(Scan.id)).group_by(Scan.status)).all()
+        db.execute(cua_toi(select(Scan.status, func.count(Scan.id)), Scan.owner_id)
+                   .group_by(Scan.status)).all()
     )
 
     by_review = dict(
         db.execute(
-            select(Contact.review_status, func.count(Contact.id))
+            cua_toi(select(Contact.review_status, func.count(Contact.id)),
+                    Contact.owner_id)
             .group_by(Contact.review_status)
         ).all()
     )
 
     enrichment_status = dict(
         db.execute(
-            select(Enrichment.status, func.count(Enrichment.id))
+            trong_pham_vi(select(Enrichment.status, func.count(Enrichment.id)),
+                          Enrichment.organization_id)
             .group_by(Enrichment.status)
         ).all()
     )
@@ -71,9 +112,9 @@ def collect(db: Session) -> dict:
     scores: list[float] = []
     missing_critical: Counter[str] = Counter()
 
-    rows = db.execute(
-        select(Scan.detected_langs, Scan.grounding_json, Scan.extraction_json)
-    ).all()
+    rows = db.execute(cua_toi(
+        select(Scan.detected_langs, Scan.grounding_json, Scan.extraction_json),
+        Scan.owner_id)).all()
     for detected, grounding, extraction in rows:
         grounding = _loads(grounding)
 
@@ -98,7 +139,8 @@ def collect(db: Session) -> dict:
     today = date.today()
     window = [(today - timedelta(days=i)).isoformat() for i in range(RECENT_DAYS - 1, -1, -1)]
     created = Counter(
-        _day(value) for (value,) in db.execute(select(Contact.created_at)).all()
+        _day(value) for (value,) in
+        db.execute(cua_toi(select(Contact.created_at), Contact.owner_id)).all()
     )
     per_day = [{"date": day, "contacts": created.get(day, 0)} for day in window]
 
@@ -108,6 +150,7 @@ def collect(db: Session) -> dict:
         for name, count in db.execute(
             select(Organization.name_original, func.count(Contact.id))
             .join(Contact, Contact.organization_id == Organization.id)
+            .where(Contact.id.in_(ma_ho_so))
             .group_by(Organization.id)
             .order_by(func.count(Contact.id).desc())
             .limit(TOP_ORGS)
