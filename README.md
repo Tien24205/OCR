@@ -49,12 +49,46 @@ Cần **hai terminal**, cả hai chạy **từ thư mục gốc dự án**:
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000 --app-dir backend
 
 # Terminal 2 — giao diện, cổng 8501
-.\.venv\Scripts\streamlit.exe run frontend\streamlit_app.py
+.\.venv\Scripts\streamlit.exe run frontend\asgi_app.py
 ```
 
 Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 32 endpoint, bảng mã lỗi và lưu ý khi tích hợp
 
 > **Phải chạy từ gốc dự án.** Streamlit đọc `.streamlit/config.toml` theo thư mục đang chạy, không theo vị trí file ứng dụng. Chạy từ chỗ khác thì giới hạn dung lượng tải lên 8 MB sẽ không được áp dụng.
+
+> **Vì sao chạy `asgi_app.py` chứ không phải `streamlit_app.py`.** `asgi_app.py`
+> là vỏ ASGI mỏng bọc quanh đúng giao diện đó, chỉ thêm các thẻ PWA vào
+> `<head>` để trang cài được lên màn hình chính của điện thoại (xem *Dùng trên
+> điện thoại* bên dưới). Chạy thẳng `streamlit_app.py` vẫn hoạt động bình
+> thường, chỉ là không cài lên màn hình chính được.
+
+## Dùng trên điện thoại
+
+Giao diện chạy được như một ứng dụng trên màn hình chính, không cần cài gì từ
+cửa hàng ứng dụng.
+
+**Cần HTTPS.** Trình duyệt chỉ cho phép dùng camera và cài PWA trên trang
+`https://` (hoặc `localhost`). Chạy thử qua mạng LAN bằng `http://192.168.x.x`
+thì camera sẽ bị chặn. Dùng `ngrok http 8501` hoặc đặt sau một reverse proxy có
+chứng chỉ.
+
+| Máy | Cách cài |
+|---|---|
+| Android (Chrome) | Menu ⋮ → **Cài ứng dụng** / **Thêm vào màn hình chính** |
+| iPhone (Safari) | Nút Chia sẻ → **Thêm vào MH chính** |
+
+Sau khi cài, ứng dụng mở toàn màn hình, không có thanh địa chỉ.
+
+**Không có bộ nhớ đệm ngoại tuyến, và đó là cố ý.** Service worker của ứng dụng
+chỉ chuyển tiếp yêu cầu chứ không giữ lại gì. Một bộ nhớ đệm sẽ giữ ảnh danh
+thiếp và hồ sơ đối tác trong trình duyệt — nằm ngoài mọi phép kiểm quyền của
+backend và sống lâu hơn cả phiên đăng nhập. Xem `frontend/asgi_app.py`.
+
+**Cắt viền tự động.** Ở trang Quét thẻ, ảnh có viền nền rõ sẽ được đề xuất một
+khung cắt, bật sẵn. Ảnh **gửi đi chính là ảnh đang hiển thị** — tắt công tắc là
+gửi ảnh gốc. Không có bước sửa nào chạy sau lưng, vì ảnh đã gửi là bằng chứng
+gốc để đối chiếu kết quả OCR. Trên 54 ảnh chụp thật trong `Dataset/Camera`, 50
+ảnh nhận được đề xuất, cắt trung vị 31% diện tích.
 
 ## Thử ngay khi chưa có API key
 
@@ -202,7 +236,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**632 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**652 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI

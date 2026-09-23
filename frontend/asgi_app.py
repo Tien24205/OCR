@@ -1,0 +1,203 @@
+"""Vo ASGI cho giao dien: bien app Streamlit thanh mot PWA cai duoc (Ngay 26).
+
+    streamlit run frontend/asgi_app.py
+
+VI SAO CAN MOT VO RIENG: de "Them vao man hinh chinh" tren dien thoai hoat
+dong, trang phai khai bao mot `manifest` trong the `<head>`. Streamlit dung
+trang `index.html` cua rieng no va khong cho chen vao `<head>` - `st.markdown`
+va `st.html` deu do noi dung vao THAN trang, ma the `<link rel="manifest">`
+o trong than thi trinh duyet bo qua.
+
+`st.App` la duong CHINH THUC de lam viec nay: no cho them route va middleware
+quanh dung app Streamlit do, khong dung toi DOM bang JavaScript. Cach hay gap
+tren mang - nhet mot iframe an roi `window.parent.document.head.appendChild`
+- chay duoc, nhung no phu thuoc vao cau truc DOM ben trong cua Streamlit, va
+cau truc do khong phai giao dien cong khai.
+
+`streamlit_app.py` VAN chay thang duoc nhu cu (`streamlit run
+frontend/streamlit_app.py`); khi do chi thieu phan cai len man hinh chinh.
+Toan bo bo test dung `AppTest` tren tep do nen khong bi anh huong.
+"""
+
+from __future__ import annotations
+
+import json
+from functools import lru_cache
+from io import BytesIO
+from pathlib import Path
+
+import streamlit as st
+from PIL import Image, ImageDraw
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+from starlette.routing import Route
+
+TEN_APP = "Quét danh thiếp"
+TEN_NGAN = "Danh thiếp"          # hien duoi icon tren man hinh chinh
+MAU_NEN = "#0e1117"              # trung voi nen toi mac dinh cua Streamlit
+MAU_NHAN = "#ff4b4b"
+
+# Cac co icon can co. 192 va 512 la hai co Android doi; 180 la co cua
+# `apple-touch-icon` tren iOS.
+CO_ICON = (180, 192, 512)
+
+
+# --------------------------------------------------------------------------
+# Icon: sinh bang PIL thay vi cam san tep PNG
+# --------------------------------------------------------------------------
+#
+# VI SAO SINH: ba tep PNG trong kho ma nguon la ba tep nhi phan khong ai doc
+# duoc trong ban dif, va doi mau nhan la phai sinh lai ca ba bang tay. Sinh
+# tu ma nguon thi icon la MA NGUON - sua mot hang so o tren la xong.
+#
+# `lru_cache`: sinh mot lan cho ca tien trinh. Trinh duyet xin icon vai lan
+# trong doi mot phien.
+
+@lru_cache(maxsize=len(CO_ICON))
+def _icon_png(canh: int) -> bytes:
+    anh = Image.new("RGB", (canh, canh), MAU_NEN)
+    but = ImageDraw.Draw(anh)
+
+    # Mot tam the nam ngang, ti le 1.6:1 - dung ti le danh thiep that.
+    rong = int(canh * 0.62)
+    cao = int(rong / 1.6)
+    trai = (canh - rong) // 2
+    tren = (canh - cao) // 2
+    but.rounded_rectangle([trai, tren, trai + rong, tren + cao],
+                          radius=max(2, canh // 28), fill="#ffffff")
+
+    # Ba dong chu gia tren the, va mot vach nhan.
+    dem = max(1, canh // 40)
+    day = max(2, canh // 48)
+    y = tren + dem * 2
+    but.rectangle([trai + dem * 2, y, trai + rong - dem * 6, y + day * 2],
+                  fill=MAU_NHAN)
+    for i in range(2):
+        y += day * 4
+        but.rectangle([trai + dem * 2, y, trai + rong - dem * (4 + i * 4), y + day],
+                      fill="#9aa0a6")
+
+    ra = BytesIO()
+    anh.save(ra, format="PNG")
+    return ra.getvalue()
+
+
+def _manifest() -> dict:
+    return {
+        "name": TEN_APP,
+        "short_name": TEN_NGAN,
+        "description": "Quét danh thiếp thành hồ sơ đối tác.",
+        "start_url": "/",
+        "scope": "/",
+        # `standalone` la thu bien trang web thanh mot thu trong nhu app:
+        # khong thanh dia chi, khong nut back cua trinh duyet.
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": MAU_NEN,
+        "theme_color": MAU_NEN,
+        "lang": "vi",
+        "icons": [
+            {"src": f"/icon-{c}.png", "sizes": f"{c}x{c}", "type": "image/png",
+             # `maskable` cho Android tu cat icon theo hinh dang cua may,
+             # thay vi dan mot o vuong trang len man hinh.
+             "purpose": "any maskable"}
+            for c in (192, 512)
+        ],
+    }
+
+
+# Service worker TOI THIEU, CO Y KHONG LUU DEM GI CA.
+#
+# Chrome doi trang phai co service worker dang ky thi moi moi cai dat. Nhung
+# mot service worker CO luu dem tren ung dung nay se la mot loi bao mat: no
+# se giu lai anh danh thiep va ho so doi tac trong bo nho dem cua trinh
+# duyet, nam ngoai moi phep kiem quyen cua backend va song lau hon ca phien
+# dang nhap.
+#
+# Nen no chi chuyen tiep. Duoc cai dat, khong giu gi.
+SERVICE_WORKER = b"""// Khong luu dem CO Y - xem asgi_app.py.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request)));
+"""
+
+THE_HEAD = ("""
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="{mau}">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- iOS khong doc `display: standalone` trong manifest; no doc ba the duoi. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="{ten}">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<script>
+  if ('serviceWorker' in navigator) {{
+    window.addEventListener('load', function () {{
+      navigator.serviceWorker.register('/sw.js').catch(function () {{}});
+    }});
+  }}
+</script>
+""").format(mau=MAU_NEN, ten=TEN_NGAN).encode("utf-8")
+
+
+async def _tra_manifest(request):
+    return Response(json.dumps(_manifest(), ensure_ascii=False),
+                    media_type="application/manifest+json")
+
+
+async def _tra_sw(request):
+    # `Service-Worker-Allowed` cho phep pham vi `/` du tep duoc phuc vu o dau.
+    return Response(SERVICE_WORKER, media_type="application/javascript",
+                    headers={"Service-Worker-Allowed": "/",
+                             "Cache-Control": "no-cache"})
+
+
+async def _tra_icon(request):
+    try:
+        canh = int(request.path_params["canh"])
+    except (KeyError, ValueError):
+        return Response(status_code=404)
+    if canh not in CO_ICON:
+        return Response(status_code=404)
+    return Response(_icon_png(canh), media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=86400"})
+
+
+class ChenTheVaoHead(BaseHTTPMiddleware):
+    """Chen cac the PWA vao `<head>` cua trang Streamlit.
+
+    Chi dong vao cau tra loi HTML. Moi thu khac - WebSocket cua Streamlit,
+    tep tinh, anh - di qua khong suy suyen.
+    """
+
+    async def dispatch(self, request, call_next):
+        tra_loi = await call_next(request)
+        if not tra_loi.headers.get("content-type", "").startswith("text/html"):
+            return tra_loi
+
+        than = b"".join([khuc async for khuc in tra_loi.body_iterator])
+        if b"</head>" in than:
+            than = than.replace(b"</head>", THE_HEAD + b"</head>", 1)
+
+        dau = dict(tra_loi.headers)
+        # Do dai da doi sau khi chen; de nguyen la trinh duyet cat mat phan
+        # duoi cua trang.
+        dau.pop("content-length", None)
+        return Response(than, status_code=tra_loi.status_code, headers=dau,
+                        media_type=tra_loi.media_type)
+
+
+app = st.App(
+    str(Path(__file__).parent / "streamlit_app.py"),
+    routes=[
+        Route("/manifest.webmanifest", _tra_manifest),
+        Route("/sw.js", _tra_sw),
+        Route("/icon-{canh}.png", _tra_icon),
+    ],
+    middleware=[Middleware(ChenTheVaoHead)],
+)
+
+
+if __name__ == "__main__":
+    app.run()

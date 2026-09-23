@@ -2,3 +2,9 @@
 streamlit>=1.57
 httpx>=0.27          # goi API cua backend
 pillow>=11.0         # xem truoc / xoay anh phia client truoc khi gui
+numpy>=1.26          # do vien de goi y cat anh (lib/autocrop.py)
+#
+# numpy von da theo streamlit vao moi truong, nhung `lib/autocrop.py`
+# import no TRUC TIEP - nen no la phu thuoc that su cua giao dien, khong
+# phai thu muon nho. Ghi ra de mot ban streamlit sau nay bo numpy di thi
+# loi hien ra o day chu khong hien ra luc nguoi dung bam nut.

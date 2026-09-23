@@ -41,7 +41,10 @@ FROM base AS frontend
 EXPOSE 8501
 # `--server.address 0.0.0.0` la BAT BUOC: mac dinh Streamlit chi nghe tren
 # localhost CUA CONTAINER, nen anh xa cong ra ngoai se khong toi duoc.
-CMD ["streamlit", "run", "frontend/streamlit_app.py", \
+# Chay `asgi_app.py` chu khong phai `streamlit_app.py`: vo ASGI do them cac
+# the PWA vao `<head>` de trang cai duoc len man hinh chinh cua dien thoai.
+# Giao dien ben trong van la `streamlit_app.py` - xem frontend/asgi_app.py.
+CMD ["streamlit", "run", "frontend/asgi_app.py", \
      "--server.address", "0.0.0.0", "--server.port", "8501", \
      "--server.headless", "true"]
 

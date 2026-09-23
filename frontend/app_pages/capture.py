@@ -6,6 +6,7 @@ import streamlit as st
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from lib import api
+from lib import autocrop
 
 MAX_BYTES = 8 * 1024 * 1024
 BATCH_MAX = 10
@@ -183,12 +184,51 @@ except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombErro
     st.error("Không đọc được ảnh. Vui lòng chọn lại tệp JPEG hoặc PNG hợp lệ.")
     st.stop()
 
+# --- Goi y cat vien (Ngay 27) --------------------------------------------
+#
+# `cache_data` khoa theo chinh bytes cua anh: Streamlit chay lai ca script
+# sau MOI thao tac, va do vien la viec ton vai chuc mili giay tren anh lon.
+# Khong nho lai thi moi lan go phim la mot lan do lai cung mot tam anh.
+@st.cache_data(show_spinner=False, max_entries=8)
+def _khung_cat(anh_bytes: bytes):
+    return autocrop.goi_y_cat(anh_bytes)
+
+
+khung = _khung_cat(data)
+cat_vien = False
+if khung:
+    cat_vien = st.toggle(
+        "Cắt viền tự động", value=True, key="capture_autocrop",
+        help="Bỏ phần nền quanh thẻ để chữ chiếm nhiều điểm ảnh hơn. "
+             "Tắt nếu khung cắt ăn vào thẻ.")
+
+gui_data, gui_mime = data, uploaded.type or "image/jpeg"
+if khung and cat_vien:
+    da_cat, mime_cat = autocrop.cat(data, khung)
+    # Anh cat ra ma van vuot han muc thi gui ban goc: 8 MB la gioi han cua
+    # backend, va mot buoc lam dep khong duoc lam hong duong gui.
+    if len(da_cat) <= MAX_BYTES:
+        gui_data, gui_mime = da_cat, mime_cat
+        with Image.open(BytesIO(gui_data)) as anh_cat:
+            anh_cat.load()
+            display_image = anh_cat.copy()
+    else:
+        cat_vien = False
+        st.caption("Ảnh sau khi cắt vẫn vượt 8 MB nên giữ ảnh gốc.")
+
 preview, actions = st.columns([2, 1])
 with preview:
-    st.image(display_image, caption="Ảnh xem trước theo chiều EXIF", width="stretch")
+    chu_thich = ("Ảnh sẽ gửi — đã cắt viền" if khung and cat_vien
+                 else "Ảnh xem trước theo chiều EXIF")
+    st.image(display_image, caption=chu_thich, width="stretch")
 with actions:
-    st.caption(f"Dung lượng: {len(data) / 1024:,.0f} KB")
-    st.caption(f"Định dạng: `{uploaded.type or 'không rõ'}`")
+    st.caption(f"Dung lượng: {len(gui_data) / 1024:,.0f} KB")
+    st.caption(f"Định dạng: `{gui_mime}`")
+    if khung and cat_vien:
+        st.caption("Đã bỏ phần nền quanh thẻ. Ảnh **gửi đi** chính là ảnh "
+                   "bạn đang xem — không có bước sửa nào sau lưng bạn.")
+    elif not khung:
+        st.caption("Không tìm được viền thẻ rõ ràng nên gửi nguyên ảnh.")
     st.caption(
         "Chụp lại bằng nút của widget bên trái nếu ảnh nghiêng, mờ hoặc bị chói."
     )
@@ -198,7 +238,7 @@ with actions:
     ):
         try:
             scan = api.create_scan(
-                uploaded.name or "card.jpg", data, uploaded.type or "image/jpeg"
+                uploaded.name or "card.jpg", gui_data, gui_mime
             )
         except api.ApiError as exc:
             st.error(exc.message, icon=":material/error:")
