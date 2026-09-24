@@ -14,6 +14,20 @@ def button(at, label):
     return next(x for x in at.button if x.label == label)
 
 
+def toggle(at, label):
+    """Cong tac theo NHAN, khong theo chi so.
+
+    LOI DA SUA: hai test duoi day tung dung `at.toggle[0]`, va no gay hong
+    ngay khi trang Ho so them mot cong tac khac o phia tren ("Hien day du
+    email va so dien thoai"). Khi do chung bat nham cong tac, nut "Luu thay
+    doi ho so" khong bao gio xuat hien, va loi hien ra la `StopIteration` -
+    mot cau khong noi gi ve nguyen nhan that.
+
+    Tim theo nhan thi them bao nhieu widget o tren cung khong sao.
+    """
+    return next(x for x in at.toggle if x.label == label)
+
+
 def test_save_ui_retries_same_request_after_lost_response(system, monkeypatch):
     scan = ready(system, monkeypatch)
     monkeypatch.setattr(api, "_client", lambda: system.client)
@@ -73,7 +87,7 @@ def test_directory_search_export_and_edit_preserve_japanese(system, monkeypatch)
     assert len(at.dataframe[0].value) == 1
     button(at, "Chuẩn bị file xuất").click().run()
     assert at.session_state.contact_exports["csv"].startswith(b"\xef\xbb\xbf")
-    at.toggle[0].set_value(True).run()
+    toggle(at, "Chỉnh sửa hồ sơ").set_value(True).run()
     prefix = f"profile:{cid}:1:0:full_names"
     at.session_state[prefix] = {"edited_rows": {0: {"value": "山田 花子"}}, "added_rows": [], "deleted_rows": []}
     button(at, "Lưu thay đổi hồ sơ").click().run()
@@ -89,7 +103,7 @@ def test_profile_ui_does_not_overwrite_a_newer_version(system, monkeypatch):
     at = AppTest.from_file(APP, default_timeout=15)
     at.session_state.selected_contact_id = cid
     at.switch_page("app_pages/contacts.py").run()
-    at.toggle[0].set_value(True).run()
+    toggle(at, "Chỉnh sửa hồ sơ").set_value(True).run()
     other = edit_body(detail(system, cid))
     other["fields"]["full_names"][0]["value"] = "新しい名前"
     assert system.client.patch(f"/api/contacts/{cid}", json=other).status_code == 200

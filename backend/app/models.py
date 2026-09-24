@@ -372,6 +372,47 @@ class EnrichmentJob(Base):
     )
 
 
+class ExportLog(Base):
+    """Moi lan du lieu ROI KHOI he thong deu de lai mot dong o day.
+
+    VI SAO CAN: xuat du lieu la duong de nhat de mang CA KHO ra ngoai bang
+    mot cu bam - mot tep CSV chua toan bo ten, email va so dien thoai cua
+    doi tac. Phan quyen chan duoc nguoi nay doc du lieu nguoi kia, nhung no
+    KHONG chan duoc chinh chu tai xuong roi mang di dau khong ai biet.
+
+    Khong the ngan viec do ma van giu ung dung dung duoc. Nhung co the lam
+    cho no DE LAI DAU VET, va do la khac biet giua mot su co doc duoc va
+    mot su co khong ai dung lai duoc.
+
+    Ghi SO LUONG chu khong ghi noi dung: mot ban sao thu hai cua du lieu ca
+    nhan trong bang nhat ky la lam cho van de te hon chu khong tot hon.
+
+    BANG NAY CHI THEM, KHONG SUA, KHONG XOA. Khong co endpoint nao xoa mot
+    dong o day - mot nhat ky ma nguoi bi ghi co the tu xoa thi khong phai
+    nhat ky. (Xoa ca tai khoan thi `user_id` ve NULL, dong nhat ky van con.)
+    """
+
+    __tablename__ = "export_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    # NULL = xuat boi khoa API (he thong tich hop) hoac o che do mo.
+    user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    # Giu lai email luc xuat, KE CA khi tai khoan bi xoa sau nay. `user_id`
+    # ve NULL thi dong nhat ky van con tra loi duoc "ai da lam viec nay".
+    actor: Mapped[str | None] = mapped_column(String(320))
+    format: Mapped[str] = mapped_column(String(8), nullable=False)
+    contact_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    byte_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), default=utcnow,
+                                            nullable=False, index=True)
+
+    __table_args__ = (
+        CheckConstraint("format IN ('json','csv','vcf')", name="ck_export_format"),
+    )
+
+
 class IdempotencyKey(Base):
     __tablename__ = "idempotency_keys"
 

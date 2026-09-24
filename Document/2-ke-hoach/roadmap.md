@@ -24,8 +24,8 @@ bắt đầu** — vì phần lớn việc phía sau không chặn ở công s�
 - Điều phối agentic có nhánh rẽ thật, ngân sách 2 lượt thử lại mỗi bản quét
 - Tra cứu doanh nghiệp có dẫn nguồn, chặn SSRF ở mọi lần chuyển hướng
 - Lưu hồ sơ, tìm kiếm, phát hiện trùng, xuất JSON/CSV/vCard
-- Trang tổng quan, màn hình duyệt, 32 endpoint có mô tả OpenAPI
-- 690 test tự động
+- Trang tổng quan, màn hình duyệt, 33 endpoint có mô tả OpenAPI
+- 721 test tự động
 
 **Còn thiếu để gọi là v1.0 thật:**
 

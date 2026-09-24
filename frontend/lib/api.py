@@ -247,6 +247,11 @@ def organization_choices() -> dict:
     return _request("GET", "/api/organizations")
 
 
+def nhat_ky_xuat(limit: int = 50) -> dict[str, Any]:
+    """Nhung lan du lieu da roi khoi he thong (Ngay 30)."""
+    return _request("GET", "/api/export/log", params={"limit": limit})
+
+
 def export_contacts(format: str) -> bytes:
     return _request("GET", "/api/export", params={"format": format}, raw=True)
 

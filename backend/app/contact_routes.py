@@ -18,8 +18,8 @@ from app.access import NguoiGoi, doc_duoc, loc_theo_chu, nguoi_goi
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.errors import ApiError
-from app.models import (Contact, ContactEmail, ContactPhone, ContactProfile, Organization,
-                        Scan, IdempotencyKey, norm_key, new_id)
+from app.models import (Contact, ContactEmail, ContactPhone, ContactProfile, ExportLog,
+                        Organization, Scan, IdempotencyKey, norm_key, new_id)
 from app.services import erasure
 from app.services.storage import kho_anh
 from app.services.drafts import DraftFields, apply_edit, current_draft
@@ -299,6 +299,47 @@ def export_contacts(format: Literal["json", "csv", "vcf"] = "json",
                              json.dumps(accepted, ensure_ascii=False)])
         content = output.getvalue().encode("utf-8-sig")
         media_type = "text/csv; charset=utf-8"
+    # GHI NHAT KY TRUOC KHI TRA VE. Du lieu roi khoi he thong o dong duoi,
+    # nen dong nay phai nam TRUOC no - khong thi mot loi khi ghi se thanh
+    # "da xuat ma khong co dau vet", dung truong hop nhat ky sinh ra de bat.
+    db.add(ExportLog(user_id=nguoi.user_id, actor=_ten_nguoi_goi(db, nguoi),
+                     format=format, contact_count=len(rows),
+                     byte_count=len(content)))
+    db.commit()
+
     return Response(content, media_type=media_type,
                     headers={"Content-Disposition": f'attachment; filename="contacts.{format}"',
                              "Cache-Control": "no-store"})
+
+
+def _ten_nguoi_goi(db: Session, nguoi: NguoiGoi) -> str | None:
+    """Email cua nguoi xuat, giu lai KE CA khi tai khoan bi xoa sau nay."""
+    if nguoi.la_he_thong:
+        return "(khóa API)"
+    if not nguoi.user_id:
+        return None
+    from app.models import User
+
+    u = db.get(User, nguoi.user_id)
+    return u.email if u else None
+
+
+@router.get("/export/log")
+def nhat_ky_xuat(db: Session = Depends(get_db),
+                 nguoi: NguoiGoi = Depends(nguoi_goi),
+                 limit: int = Query(default=50, ge=1, le=200)):
+    """Nhung lan du lieu da roi khoi he thong.
+
+    Quan tri thay cua moi nguoi; nguoi dung thuong chi thay cua minh - cung
+    quy tac voi phan con lai, va vi mot ly do rieng: nhat ky xuat cua nguoi
+    khac cho biet ho lam viec luc nao va nhieu bao nhieu.
+    """
+    stmt = select(ExportLog)
+    if not nguoi.thay_tat_ca:
+        stmt = stmt.where(ExportLog.user_id == nguoi.user_id)
+    dong = db.scalars(stmt.order_by(ExportLog.created_at.desc()).limit(limit)).all()
+    return {"items": [
+        {"luc": x.created_at, "ai": x.actor, "dinh_dang": x.format,
+         "so_ho_so": x.contact_count, "so_byte": x.byte_count}
+        for x in dong
+    ]}
