@@ -1,0 +1,55 @@
+#!/bin/sh
+# Chay cac cong kiem NHANH cua CI truoc khi day.
+#
+# VI SAO CO TEP NAY: da co mot lan day code voi 2 trong 4 cong duoc chay o
+# may - ruff va pytest xanh nen tuong la xong, con `check_docs.py` thi lech
+# va CI do. Te hon: khi mot cong do thi cac buoc SAU no tren CI khong chay
+# nua, nen `check_secrets` va `pip-audit` lan do khong he duoc kiem.
+#
+# KHONG CHAY PYTEST O DAY, co y: bo test mat gan hai phut, va gan no vao moi
+# lan day thi nguoi ta se hoc cach go `--no-verify`. Mot cong bi tat luon thi
+# te hon mot cong hep. Ba cong duoi chay het trong vai giay, va chung dung
+# la nhung thu CI thuong bat duoc ma nguoi viet khong ngo - so lieu tai lieu
+# da lech 6 lan.
+#
+# Bat mot lan cho kho ma nguon nay:
+#
+#     git config core.hooksPath .githooks
+#
+# Bo qua mot lan khi that su can:  git push --no-verify
+
+goc=$(git rev-parse --show-toplevel) || exit 1
+cd "$goc" || exit 1
+
+py=python
+[ -x .venv/Scripts/python.exe ] && py=.venv/Scripts/python.exe
+[ -x .venv/bin/python ] && py=.venv/bin/python
+
+hong=0
+
+chay() {
+  ten=$1
+  shift
+  if "$@" >/tmp/pre-push.log 2>&1; then
+    printf '  ok    %s\n' "$ten"
+  else
+    printf '  HONG  %s\n' "$ten"
+    sed 's/^/        /' /tmp/pre-push.log | tail -20
+    hong=1
+  fi
+}
+
+echo "Kiem truoc khi day:"
+chay "ruff"          "$py" -m ruff check backend frontend mcp_server conftest.py
+chay "check_docs"    "$py" backend/scripts/check_docs.py
+chay "check_secrets" "$py" backend/scripts/check_secrets.py
+
+if [ "$hong" -ne 0 ]; then
+  echo
+  echo "Khong day. So lieu tai lieu lech thi sua bang:"
+  echo "    $py backend/scripts/check_docs.py --fix"
+  exit 1
+fi
+
+echo "  (pytest khong chay o day - CI chay)"
+exit 0

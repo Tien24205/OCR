@@ -252,6 +252,39 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe backend\scripts\evaluate.py --split dev
 ```
 
+### Cổng chặn trước khi đẩy code
+
+CI chạy bốn cổng kiểm. Đã có một lần đẩy code với chỉ hai trong bốn cổng được
+chạy ở máy — `ruff` và `pytest` xanh nên tưởng là xong, còn `check_docs.py`
+thì lệch số liệu và CI đỏ.
+
+Tệ hơn: **khi một cổng đỏ thì các bước sau nó trên CI không chạy nữa.** Lần
+đó `check_secrets` và `pip-audit` không hề được kiểm, mà nhìn vào bảng kết
+quả thì rất dễ tưởng chúng an toàn.
+
+Bật cổng chặn ở máy, một lần cho kho mã nguồn này:
+
+```powershell
+git config core.hooksPath .githooks
+```
+
+Từ đó mỗi lần `git push` sẽ chạy `ruff`, `check_docs` và `check_secrets`
+trước. Cả ba xong trong vài giây, và **cả ba đều chạy hết** dù cái trước đã
+hỏng — khác với CI, để báo một lượt thay vì bắt sửa từng vòng.
+
+`pytest` **không** nằm trong hook, có ý: bộ test mất gần hai phút, và gắn nó
+vào mọi lần đẩy thì người ta sẽ học cách gõ `--no-verify`. Một cổng bị tắt
+luôn thì tệ hơn một cổng hẹp. CI vẫn chạy test.
+
+Số liệu tài liệu lệch thì sửa bằng:
+
+```powershell
+.\.venv\Scripts\python.exe backend\scripts\check_docs.py --fix
+```
+
+Bỏ qua một lần khi thật sự cần: `git push --no-verify`.
+
+
 ---
 
 ## Cấu trúc
