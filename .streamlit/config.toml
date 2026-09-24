@@ -4,3 +4,21 @@ maxUploadSize = 8
 
 [browser]
 gatherUsageStats = false
+
+# Bang mau va bo tron goc. Dat o DAY chu khong phai bang CSS vi day la duong
+# native cua Streamlit: no ap cho ca hai cach chay (`streamlit_app.py` truc
+# tiep lan `asgi_app.py` trong Docker), va no ngam vao ca nhung thanh phan
+# ve bang canvas (bang du lieu) - thu ma CSS khong voi toi duoc.
+[theme]
+# Xanh thay vi do mac dinh: do la mau canh bao, ma o day no dang to cho
+# NUT CHINH - moi nut luu deu trong nhu mot loi bao loi.
+primaryColor = "#4c8dff"
+backgroundColor = "#0e1117"
+# Nhinh hon nen mot chut de the, khung ben, o nhap tu tach ra duoc ma khong
+# can vien.
+secondaryBackgroundColor = "#161a23"
+textColor = "#e6e9ef"
+# Vien mo: du de chia o trong bang, khong du de ve luoi len man hinh.
+borderColor = "#2a3040"
+baseRadius = "0.7rem"
+font = "sans-serif"

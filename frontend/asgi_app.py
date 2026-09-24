@@ -35,8 +35,8 @@ from starlette.routing import Route
 
 TEN_APP = "Quét danh thiếp"
 TEN_NGAN = "Danh thiếp"          # hien duoi icon tren man hinh chinh
-MAU_NEN = "#0e1117"              # trung voi nen toi mac dinh cua Streamlit
-MAU_NHAN = "#ff4b4b"
+MAU_NEN = "#0e1117"              # trung voi `backgroundColor` trong .streamlit/config.toml
+MAU_NHAN = "#4c8dff"             # trung voi `primaryColor` - icon phai cung mau voi app
 
 # Cac co icon can co. 192 va 512 la hai co Android doi; 180 la co cua
 # `apple-touch-icon` tren iOS.
@@ -122,6 +122,78 @@ self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request)));
 """
 
+# --------------------------------------------------------------------------
+# Vai net CSS cho nhung thu `[theme]` khong noi duoc
+# --------------------------------------------------------------------------
+#
+# Bang mau, bo chu va do bo goc nam trong `.streamlit/config.toml` - do la
+# duong native, va no ap duoc ca cho nhung thanh phan ve bang canvas. Con lai
+# duoi day CHI la nhung thu theme khong dien ta duoc: khoang cach, co chu
+# theo be ngang man hinh, va vien ngoai khi go phim Tab.
+#
+# CHON BANG `data-testid` CHU KHONG PHAI TEN LOP: ten lop cua Streamlit la
+# chuoi bam sinh ra luc dung, doi sau moi lan nang cap va khong bao truoc.
+# `data-testid` la thu bo test chinh thuc cua Streamlit bam vao, nen no on
+# dinh hon nhieu. Du vay day van la giao dien khong cam ket - nen moi net o
+# duoi deu chi la TO THEM: mat het CSS nay thi trang xau di chu khong hong.
+#
+# KHONG dat trong `.format()` ben duoi, co y: CSS day dau ngoac nhon, ma
+# `str.format` se doi doubling tung cai mot. Noi chuoi thi khong phai nghi.
+KIEU_DANG = b"""
+<style>
+  /* Streamlit chua mot khoang trong rat rong tren dau trang. Tren dien thoai
+     no day tieu de xuong gan nua man hinh, va nguoi dung phai cuon moi thay
+     duoc noi dung dau tien. */
+  [data-testid="stMainBlockContainer"] {
+    padding-top: 2.25rem;
+    padding-bottom: 3rem;
+    max-width: 1200px;
+  }
+
+  /* Co chu tieu de chay theo be ngang: 2.1rem vua man hinh may tinh nhung
+     tren dien thoai thi "Danh thiep -> Ho so doi tac" vo thanh ba dong. */
+  h1 {
+    font-size: clamp(1.45rem, 4.2vw, 2.1rem);
+    letter-spacing: -0.015em;
+  }
+
+  /* Le hai ben mac dinh an mat gan mot phan tu be ngang dien thoai. */
+  @media (max-width: 640px) {
+    [data-testid="stMainBlockContainer"] {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  /* So lieu tren trang Tong quan troi tren nen trong, khong ro cai nao di
+     voi cai nao. Bo chung vao the cho thanh tung khoi doc duoc. */
+  [data-testid="stMetric"] {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0.7rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .stButton button:active,
+  .stFormSubmitButton button:active,
+  .stDownloadButton button:active {
+    transform: translateY(1px);
+  }
+
+  /* KHONG BO DUOC: vien ngoai khi di chuyen bang phim Tab. Thieu no thi
+     nguoi khong dung duoc chuot se khong biet minh dang dung o dau. */
+  :focus-visible {
+    outline: 2px solid #4c8dff;
+    outline-offset: 2px;
+  }
+
+  /* Email va dia chi dai tran ra ngoai khung tren dien thoai. */
+  [data-testid="stMarkdownContainer"] {
+    overflow-wrap: break-word;
+  }
+</style>
+"""
+
 THE_HEAD = ("""
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="{mau}">
@@ -138,7 +210,7 @@ THE_HEAD = ("""
     }});
   }}
 </script>
-""").format(mau=MAU_NEN, ten=TEN_NGAN).encode("utf-8")
+""").format(mau=MAU_NEN, ten=TEN_NGAN).encode("utf-8") + KIEU_DANG
 
 
 async def _tra_manifest(request):

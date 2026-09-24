@@ -115,3 +115,36 @@ def test_khong_dong_vao_cau_tra_loi_khong_phai_html():
 
     assert r.json() == {"a": 1}
     assert "manifest" not in r.text
+
+
+# --------------------------------------------------------------------------
+# Giao dien (Ngay 31)
+# --------------------------------------------------------------------------
+
+def test_css_di_kem_cac_the_pwa():
+    """Mat khuc CSS thi trang van chay, chi xau di - nhung mat NO MA KHONG AI
+    BIET thi moi lan sua giao dien sau nay deu sua vao cho khong con duoc
+    nap."""
+    from asgi_app import THE_HEAD
+
+    assert b"<style>" in THE_HEAD
+    assert b"stMainBlockContainer" in THE_HEAD
+
+
+def test_mau_icon_trung_voi_mau_theme():
+    """Mau nay nam o HAI tep: `MAU_NHAN` trong asgi_app.py ve icon PWA, va
+    `primaryColor` trong .streamlit/config.toml to nut.
+
+    Doi mot cai ma quen cai kia thi icon tren man hinh chinh mot mau, app mo
+    ra mot mau khac - khong hong gi, nen khong ai phat hien ra.
+    """
+    import tomllib
+    from pathlib import Path
+
+    from asgi_app import MAU_NEN, MAU_NHAN
+
+    goc = Path(__file__).resolve().parents[2]
+    cau_hinh = tomllib.loads((goc / ".streamlit" / "config.toml").read_text("utf-8"))
+
+    assert cau_hinh["theme"]["primaryColor"].lower() == MAU_NHAN.lower()
+    assert cau_hinh["theme"]["backgroundColor"].lower() == MAU_NEN.lower()
