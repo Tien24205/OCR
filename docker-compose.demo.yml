@@ -69,7 +69,21 @@ services:
     # `frontend:8501` la ten dich vu trong mang noi bo cua compose, KHONG
     # phai `localhost:8501` - cloudflared chay trong container, nen
     # `localhost` voi no la chinh no.
-    command: tunnel --no-autoupdate --url http://frontend:8501
+    # `--protocol http2`: mac dinh cua cloudflared la QUIC, chay tren UDP
+    # cong 7844. Rat nhieu mang gia dinh va mang cong ty CHAN UDP ra ngoai,
+    # va khi do tunnel bao "Failed to dial a quic connection" con Cloudflare
+    # tra ve 530 - mot ma loi khong he nhac gi den UDP.
+    #
+    # Chinh cloudflared phat hien duoc va ghi `suggested_protocol=http2`
+    # trong log, nhung no KHONG tu chuyen. HTTP/2 chay tren TCP 443, cung
+    # duong voi moi trang web khac, nen gan nhu khong mang nao chan.
+    #
+    # PHAI dat bang CO DONG LENH. Bien moi truong `TUNNEL_PROTOCOL` khong
+    # duoc ban cloudflared nay doc o che do nay - da thu, no van quay so
+    # QUIC va van 530.
+    #
+    # Mang cho UDP qua thi dat TUNNEL_PROTOCOL=quic de nhanh hon mot chut.
+    command: tunnel --no-autoupdate --protocol ${TUNNEL_PROTOCOL:-http2} --url http://frontend:8501
     depends_on:
       frontend:
         condition: service_started

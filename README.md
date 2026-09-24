@@ -422,6 +422,40 @@ riêng: Streamlit có phép kiểm nguồn gốc kết nối, và phép kiểm �
 chặn tunnel — nghĩa là không phải chỉnh `enableCORS` hay
 `enableXsrfProtection` gì cả.
 
+### Lỗi 530 — gần như chắc chắn là mạng chặn UDP
+
+Đây là cái bẫy tốn thời gian nhất, nên ghi riêng.
+
+`cloudflared` mặc định nối bằng **QUIC, chạy trên UDP cổng 7844**. Rất nhiều
+mạng gia đình và mạng công ty chặn UDP ra ngoài. Khi đó tunnel vẫn khởi động,
+vẫn in ra địa chỉ, nhưng mọi yêu cầu trả **530** — một mã lỗi không hề nhắc gì
+đến UDP.
+
+Dấu hiệu trong log:
+
+```
+ERR Failed to dial a quic connection  error="... timeout: no recent network activity"
+INF precheck component="UDP Connectivity"  status=fail
+INF precheck complete  suggested_protocol=http2
+```
+
+Chính `cloudflared` phát hiện ra và ghi `suggested_protocol=http2`, nhưng **nó
+không tự chuyển**. Cả hai tệp `docker-compose.demo.yml` và
+`docker-compose.prod.yml` đã đặt sẵn `--protocol http2`, nên bạn không gặp lỗi
+này. HTTP/2 chạy trên TCP 443 — cùng đường với mọi trang web khác.
+
+> Phải đặt bằng **cờ dòng lệnh**. Biến môi trường `TUNNEL_PROTOCOL` không được
+> bản `cloudflared` hiện tại đọc ở chế độ này — đã thử, nó vẫn quay số QUIC và
+> vẫn 530.
+
+Nối thành công thì log có dòng này:
+
+```
+INF Registered tunnel connection  connIndex=0  location=hkg12  protocol=http2
+```
+
+Mạng cho UDP qua thì đặt `TUNNEL_PROTOCOL=quic` để nhanh hơn một chút.
+
 ### Khi có sự cố
 
 ```powershell
