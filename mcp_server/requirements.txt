@@ -1,0 +1,13 @@
+# MCP server - TUY CHON, khong can de chay ung dung.
+#
+#     pip install -r mcp_server/requirements.txt
+#
+# CO Y KHONG gop vao backend/requirements.txt: ung dung khong bao gio import
+# `mcp`, nen gop vao la bat moi ban dung Docker tai ve mot goi ho khong chay.
+# Bo test cua no tu bo qua khi thieu goi (`pytest.importorskip`), dung nhu
+# cach du an doi xu voi Tesseract va rapidocr.
+mcp>=2.0
+
+# httpx da nam trong backend/requirements.txt; ghi lai o day de cai rieng
+# mcp_server cung du chay.
+httpx>=0.27

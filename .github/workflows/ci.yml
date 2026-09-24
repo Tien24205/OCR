@@ -10,6 +10,12 @@
 # KHONG cai Tesseract o day, co y: cac test can Tesseract tu bo qua khi may
 # khong co no. Cai Tesseract se lam CI cham hon vai phut de doi lay vai test,
 # trong khi chinh cac test do da duoc viet de chay duoc ma khong can no.
+#
+# NHUNG CO cai `mcp_server/requirements.txt`, va do la mot lua chon khac:
+# `mcp` la mot goi Python thuan, cai het vai giay - khong phai 150 MB nhu
+# Tesseract. Doi lai la 11 test kiem dung mot dieu KHONG duoc phep sai:
+# tro ly AI goi qua MCP khong doc duoc du lieu cua tai khoan khac. Mot ranh
+# gioi quyen ma CI khong chay thu thi khong phai mot ranh gioi.
 
 name: CI
 
@@ -36,7 +42,9 @@ jobs:
       - name: Cài phụ thuộc
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt -r frontend/requirements.txt
+          pip install -r backend/requirements.txt \
+                      -r frontend/requirements.txt \
+                      -r mcp_server/requirements.txt
 
       # Cau hinh o ruff.toml co y HEP: chi bat E9 + F, tuc la loi that su
       # (bien khong dinh nghia, import thua, cu phap hong). Khong bat nhom
@@ -44,7 +52,7 @@ jobs:
       - name: Linter
         run: |
           pip install ruff
-          python -m ruff check backend frontend
+          python -m ruff check backend frontend mcp_server conftest.py
 
       - name: Chạy test
         # API_KEYS rong: bo test tu ep tat xac thuc trong conftest.py, dat o

@@ -236,7 +236,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**679 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**690 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI
@@ -439,6 +439,88 @@ docker compose exec backend python -c "import urllib.request; print(urllib.reque
 
 Đổi `API_KEYS` trong `backend/.env` sang khóa mới. Khóa đang dùng ở máy phát
 triển không nên mang lên bản chạy thật.
+
+---
+
+## Dùng bằng trợ lý AI (MCP server)
+
+`mcp_server/server.py` là một [MCP](https://modelcontextprotocol.io) server
+cho phép Claude hoặc trợ lý AI khác dùng kho danh thiếp: quét thẻ, tìm hồ sơ,
+xem kết quả nhận diện.
+
+### Phân quyền: không có hệ quyền thứ hai
+
+Server này **không** tự nghĩ ra một hệ quyền riêng. Nó **đăng nhập như một
+người dùng bình thường** rồi gọi đúng những API mà giao diện web vẫn gọi —
+nên giới hạn nằm ở backend, nơi đã có bộ test chứng minh, chứ không nằm ở đây.
+
+Nghĩa là "phân quyền cho từng tài khoản" được thực hiện bằng cách **mỗi người
+khai tài khoản của mình** trong cấu hình MCP của họ:
+
+| Biến môi trường | Phạm vi nhìn thấy |
+|---|---|
+| `OCR_EMAIL` + `OCR_PASSWORD` | Đúng phần của tài khoản đó. `admin` thấy tất cả, y như trên web |
+| `OCR_API_KEY` | Chế độ **hệ thống** — thấy tất cả, không gắn với ai |
+| `OCR_API_URL` | Địa chỉ backend, mặc định `http://127.0.0.1:8000` |
+
+Không có đường nào để trợ lý nhìn vượt qua phạm vi đó.
+
+### Cài và khai báo
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r mcp_server/requirements.txt
+```
+
+Trong tệp cấu hình MCP của Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "danh-thiep": {
+      "command": "C:\đường\dẫn\.venv\Scripts\python.exe",
+      "args": ["C:\đường\dẫn\mcp_server\server.py"],
+      "env": {
+        "OCR_API_URL": "http://127.0.0.1:8000",
+        "OCR_EMAIL": "ban@congty.vn",
+        "OCR_PASSWORD": "mật khẩu của bạn"
+      }
+    }
+  }
+}
+```
+
+> Mật khẩu nằm trong tệp cấu hình dưới dạng văn bản thường — cùng mức tin cậy
+> với khóa API vốn đã nằm trong `backend/.env`. Muốn hơn thế thì cần một bảng
+> khóa-theo-người-dùng có thu hồi được ở backend; đó là một tính năng riêng,
+> chưa làm.
+
+### Sáu công cụ
+
+| Công cụ | Làm gì |
+|---|---|
+| `toi_la_ai` | Đang làm việc dưới danh tính nào, thấy được phạm vi nào |
+| `tim_ho_so` | Tìm theo tên, công ty, email, số điện thoại |
+| `xem_ho_so` | Chi tiết một hồ sơ |
+| `danh_sach_ban_quet` | Các bản quét gần đây và trạng thái |
+| `quet_danh_thiep` | Gửi một ảnh JPEG/PNG từ đĩa lên để nhận diện |
+| `xem_ban_quet` | Văn bản OCR và các trường đọc được |
+
+### Đã kiểm chứng
+
+11 test chạy với backend **thật** (không giả lập lớp HTTP, vì điều cần chứng
+minh nằm ở chỗ giáp giữa hai bên):
+
+| Phép kiểm | Kết quả |
+|---|---|
+| An quét một thẻ, Bình gọi `danh_sach_ban_quet` | thấy 0 bản quét |
+| Bình gọi `xem_ban_quet` với mã của An | bị chặn, kèm câu giải thích |
+| Bình gọi `tim_ho_so` | 0 hồ sơ |
+| Quản trị gọi `xem_ban_quet` với mã của nhân viên | đọc được |
+| Sai mật khẩu | báo rõ tài khoản nào, để sửa được cấu hình |
+
+CI cài `mcp` và chạy các test này. Khác với Tesseract (150 MB, để CI tự bỏ
+qua), `mcp` là gói Python thuần cài hết vài giây — và một ranh giới quyền mà
+CI không chạy thử thì không phải một ranh giới.
 
 ---
 

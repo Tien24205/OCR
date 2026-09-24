@@ -49,3 +49,26 @@ os.environ["API_KEYS"] = ""
 # Dat mot gia tri co dinh o day de ca hai dung chung mot khoa. Gia tri nay
 # CHI dung trong bo test; khi chay that, `.env` quyet dinh.
 os.environ.setdefault("JWT_SECRET", "khoa-chi-dung-trong-bo-test-khong-dung-that")
+
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _xoa_han_muc_dang_nhap():
+    """Tra bo dem chong do mat khau ve 0 truoc MOI test, o MOI thu muc test.
+
+    `user_routes._chan_dang_nhap` la mot doi tuong cap module: no khong bi
+    tao lai giua cac test, va `TestClient` thi luon goi tu cung mot dia chi.
+    Sau muoi lan dang nhap la cac test con lai do voi 429 - mot kieu do
+    khong lien quan gi den thu dang kiem.
+
+    VI SAO O CONFTEST GOC chu khong o `backend/tests/conftest.py`: bo dem do
+    la trang thai cua CA TIEN TRINH, nen no vat qua ca ranh gioi thu muc
+    test. Dat o backend thi `mcp_server/tests` - von cung dang nhap that -
+    khong duoc bao ve, va do dung la cach loi nay da lo ra.
+    """
+    from app.user_routes import _chan_dang_nhap
+
+    _chan_dang_nhap.xoa_het()
+    yield
