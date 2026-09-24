@@ -1,0 +1,79 @@
+# Chay thu qua Quick Tunnel cua Cloudflare, KHONG can tai khoan va KHONG can
+# ten mien.
+#
+#     docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d
+#     docker compose logs cloudflared | grep trycloudflare.com
+#
+# Dong thu hai in ra mot dia chi https ngau nhien dang
+# `https://<vai-tu-ngau-nhien>.trycloudflare.com`.
+#
+# KHAC GI `docker-compose.prod.yml`:
+#
+#   prod  - tunnel CO TEN, gan vao ten mien cua ban. Dia chi co dinh, khong
+#           doi khi khoi dong lai. Can tai khoan Cloudflare va mot token.
+#   demo  - tunnel NHANH. Khong can gi ca, nhung dia chi DOI MOI LAN CHAY,
+#           va Cloudflare noi ro no danh cho thu nghiem chu khong phai de
+#           chay that. Dung de thu camera tren dien thoai that va de demo.
+#
+# ==========================================================================
+# VI SAO TEP NAY DUNG MOT VOLUME RIENG
+# ==========================================================================
+#
+# Quick Tunnel cho ra mot dia chi CONG KHAI. Dia chi ngau nhien khong phai
+# la mot lop bao ve - no chi la mot dia chi kho doan.
+#
+# Va trang dang ky thi dang mo. Nghia la ai tim ra dia chi do cung tao duoc
+# tai khoan, va hai dieu sau se xay ra:
+#
+#   1. Ban ghi KHONG CO CHU (`owner_id IS NULL`) hien voi MOI nguoi dang
+#      nhap - do la thiet ke co y, de bat dang nhap len khong lam kho du
+#      lieu cu bien mat. Nhung no cung co nghia la moi ban quet cu deu doc
+#      duoc boi bat ky ai vua dang ky.
+#
+#   2. Nguoi dang ky DAU TIEN thanh quan tri. Dung tunnel len roi di pha cafe
+#      la nguoi la co the nam quyen truoc ban.
+#
+# Volume `ocr_ocr-data` cua may phat trien dang chua danh thiep THAT cua
+# nguoi that - ten, so dien thoai, dia chi email. Day chung ra mot dia chi
+# cong khai la mot su co du lieu ca nhan, khong phai mot buoi demo.
+#
+# Nen tep nay gan mot volume RONG rieng. Muon demo co san du lieu thi quet
+# vai tam the tong hop sau khi dung len.
+#
+# Xoa du lieu demo khi xong:
+#
+#     docker compose -f docker-compose.yml -f docker-compose.demo.yml down
+#     docker volume rm ocr_ocr-demo-data
+
+services:
+  backend:
+    # Dong cong 8000 - xem ghi chu trong docker-compose.prod.yml.
+    ports: !override []
+    environment:
+      JWT_SECRET: "${JWT_SECRET:?can JWT_SECRET. Sinh bang: python -c \"import secrets; print(secrets.token_urlsafe(48))\"}"
+    volumes: !override
+      - ocr-demo-data:/app/backend/data
+
+  frontend:
+    # Chi mo tren 127.0.0.1 de con kiem tra tai cho; duong ra Internet di
+    # qua cloudflared trong mang noi bo.
+    ports: !override
+      - "127.0.0.1:8501:8501"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    # `--url` la che do tunnel nhanh: cloudflared tu xin mot ten mien phu
+    # `trycloudflare.com` va in ra trong log, khong can dang nhap.
+    #
+    # `frontend:8501` la ten dich vu trong mang noi bo cua compose, KHONG
+    # phai `localhost:8501` - cloudflared chay trong container, nen
+    # `localhost` voi no la chinh no.
+    command: tunnel --no-autoupdate --url http://frontend:8501
+    depends_on:
+      frontend:
+        condition: service_started
+
+volumes:
+  # Tach han khoi `ocr-data` cua may phat trien. Xem ghi chu dau tep.
+  ocr-demo-data:

@@ -1,4 +1,11 @@
-"""Bảng điều khiển: tổng quan số liệu của kho hồ sơ."""
+"""Trang chu cua nguoi dang dang nhap: loi chao, tom tat rieng, va so lieu.
+
+VI SAO KHONG TAO MOT TRANG "Trang chu" RIENG: dat mot trang nua truoc trang
+Quet the nghia la them mot cu bam vao viec ma nguoi ta mo ung dung len de
+lam. Trang nay von da la trang so lieu, va tu Ngay 29 thi so lieu do da
+duoc loc theo chu so huu - nen no DA LA trang chu ca nhan, chi la chua noi
+ra dieu do.
+"""
 
 import streamlit as st
 
@@ -31,6 +38,24 @@ def bars(mapping: dict, names: dict, label: str) -> None:
     st.bar_chart(rows, x=label, y="Số lượng", horizontal=True)
 
 
+def _ten_goi() -> str | None:
+    """Ten de chao. Khong co ten hien thi thi lay phan truoc dau @ cua email.
+
+    Chao bang ca dia chi email day du nghe nhu mot thu tu dong; lay phan
+    truoc @ thi gan voi cach nguoi ta tu goi minh hon.
+    """
+    nguoi = st.session_state.get("nguoi_dung") or {}
+    ten = (nguoi.get("display_name") or "").strip()
+    if ten:
+        return ten
+    email = (nguoi.get("email") or "").strip()
+    return email.split("@")[0] if email else None
+
+
+def _la_quan_tri() -> bool:
+    return (st.session_state.get("nguoi_dung") or {}).get("role") == "admin"
+
+
 try:
     data = api.stats()
 except api.ApiError as exc:
@@ -39,18 +64,73 @@ except api.ApiError as exc:
 
 totals = data["totals"]
 
+# --- Loi chao ------------------------------------------------------------
+ten_toi = _ten_goi()
+if ten_toi:
+    st.subheader(f"Chào {ten_toi}")
+
+# NOI RO SO LIEU NAY LA CUA AI. Voi nguoi dung thuong, backend da loc theo
+# chu so huu; voi quan tri thi khong loc. Hai con so do khac nhau ve ban
+# chat, va khong noi ra thi quan tri se tuong 40 ban quet kia la cua minh.
+if _la_quan_tri():
+    st.caption("Bạn đang là **quản trị**, nên số liệu dưới đây là của **toàn "
+               "hệ thống**, không riêng bạn.")
+elif ten_toi:
+    st.caption("Số liệu dưới đây chỉ tính phần của bạn. Người khác không thấy "
+               "bản quét hay hồ sơ của bạn, và ngược lại.")
+
 with st.container(horizontal=True):
     st.metric("Bản quét", totals["scans"])
     st.metric("Hồ sơ đối tác", totals["contacts"])
     st.metric("Doanh nghiệp", totals["organizations"])
     st.metric("Thông tin tra cứu", totals["enrichments"])
 
+TRANG_THAI_VI = {"pending": "đang chờ", "processing": "đang nhận diện",
+                 "ocr_done": "chờ bạn kiểm tra", "committed": "đã lưu hồ sơ",
+                 "failed": "lỗi"}
+
+
+def _ban_quet_gan_nhat() -> dict | None:
+    """Ban quet moi nhat cua nguoi nay, de mo lai bang mot cu bam.
+
+    Nuot loi co y: day la mot tien ich o dau trang, no khong duoc lam ca
+    trang so lieu hong chi vi mot loi goi phu that bai.
+    """
+    try:
+        items = api.list_scans(limit=1)["items"]
+    except api.ApiError:
+        return None
+    return items[0] if items else None
+
+
 if not totals["scans"]:
     st.info(
-        "Chưa có bản quét nào. Sang trang **Quét thẻ** để bắt đầu.",
+        (f"{ten_toi} ơi, bạn chưa quét tấm thẻ nào. " if ten_toi
+         else "Chưa có bản quét nào. ")
+        + "Sang trang **Quét thẻ** để bắt đầu.",
         icon=":material/photo_camera:",
     )
+    if st.button("Quét tấm thẻ đầu tiên", type="primary",
+                 icon=":material/photo_camera:"):
+        st.switch_page("app_pages/capture.py")
     st.stop()
+
+# --- Tom tat rieng, va duong quay lai viec dang lam do ------------------
+gan_nhat = _ban_quet_gan_nhat()
+if gan_nhat:
+    trang_thai = TRANG_THAI_VI.get(gan_nhat["status"], gan_nhat["status"])
+    nhan = gan_nhat.get("full_name") or gan_nhat.get("company_name") or "chưa rõ tên"
+    luc = (gan_nhat.get("created_at") or "")[11:16]
+    with st.container(horizontal=True, vertical_alignment="center"):
+        st.markdown(f"Gần nhất: **{nhan}** · {trang_thai}"
+                    + (f" · lúc {luc}" if luc else ""))
+        if st.button("Mở lại", icon=":material/fact_check:"):
+            # Dat lai ca ba khoa: giu `scan_result` cu thi trang Kiem tra
+            # hien ban quet truoc do trong mot nhip roi moi doi.
+            st.session_state.current_scan_id = gan_nhat["id"]
+            st.session_state.pop("scan_result", None)
+            st.session_state.pop("scan_poll", None)
+            st.switch_page("app_pages/review.py")
 
 # --- Hồ sơ tạo mới theo ngày ---
 per_day = data.get("contacts_per_day") or []
