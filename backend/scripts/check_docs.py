@@ -34,8 +34,19 @@ BACKEND = ROOT / "backend"
 # Bao cao theo ngay va theo moc KHONG nam trong danh sach nay: chung la anh
 # chup mot thoi diem. "116 test pass" trong bao cao Ngay 5 la su that cua ngay
 # hom do; sua no thanh 462 se bien mot ban ghi lich su thanh mot loi noi doi.
-LIVING_DOCS = [
-    "README.md",
+#
+# CHI CON README.md TREN CI. Cac tep trong `Document/` khong con duoc day len
+# GitHub (xem .gitignore), nen tren may chay CI chung KHONG TON TAI - ma
+# `kiem_tra()` coi tep thieu la mot loi. De nguyen danh sach cu thi cong kiem
+# nay do mai ma khong phai vi so lieu sai.
+#
+# Nhung chung VAN duoc doi chieu khi ban chay o may: `TAI_LIEU_CUC_BO` duoi
+# day duoc gop vao khi tep co that. Nho vay tai lieu tren may van khong troi
+# khoi ma nguon, con CI thi chi soi thu no thuc su nhin thay.
+LIVING_DOCS = ["README.md"]
+
+# Doi chieu them khi chay o may, bo qua khi khong co (vi du: tren CI).
+TAI_LIEU_CUC_BO = [
     "Document/README.md",
     "Document/2-ke-hoach/kien-truc-agentic.md",
     "Document/2-ke-hoach/roadmap.md",
@@ -106,7 +117,10 @@ def dem_endpoint() -> int:
 
 def kiem_tra(that: dict[str, int], sua: bool) -> list[str]:
     loi: list[str] = []
-    for ten in LIVING_DOCS:
+    # Tep cuc bo chi duoc soi khi no co that - xem ghi chu o LIVING_DOCS.
+    danh_sach = LIVING_DOCS + [t for t in TAI_LIEU_CUC_BO
+                               if (ROOT / t).is_file()]
+    for ten in danh_sach:
         path = ROOT / ten
         if not path.is_file():
             loi.append(f"{ten}: khong tim thay tep")
@@ -146,7 +160,7 @@ def main() -> int:
     that = {"test": dem_test(), "endpoint": dem_endpoint()}
     print(f"Thuc te: {that['test']} test thu thap duoc, "
           f"{that['endpoint']} endpoint")
-    print(f"Doi chieu {len(LIVING_DOCS)} tai lieu dang song "
+    print(f"Doi chieu {len(LIVING_DOCS) + sum((ROOT / t).is_file() for t in TAI_LIEU_CUC_BO)} tai lieu dang song "
           f"(bao cao theo ngay/moc duoc mien - chung la anh chup lich su)")
     print("")
 
