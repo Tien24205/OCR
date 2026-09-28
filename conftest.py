@@ -37,6 +37,23 @@ import os
 # conftest.py o goc du an duoc pytest nap som nhat, nen cho nay la dung.
 os.environ["API_KEYS"] = ""
 
+# CUNG MOT LY DO, cho cong dang nhap nguoi dung (Ngay 23).
+#
+# `AUTH_REQUIRED` ra doi SAU khi tep nay duoc viet, nen no khong duoc ep - va
+# bay lai sap y nguyen: hom bat dang nhap len de thu tren may, `backend/.env`
+# co `AUTH_REQUIRED=true`, va cac test webhook do voi 401 thay vi 400.
+#
+# Chung KHONG cuu duoc bang `dependency_overrides[get_settings]`, vi
+# middleware xac thuc duoc gan MOT LAN luc `main.py` duoc import, tu
+# `get_settings()` luc do. Doi dependency sau khi da gan thi khong voi toi
+# middleware nua.
+#
+# CI khong lo ra loi nay vi `.env` nam trong .gitignore: tren may chay CI
+# khong co tep do, nen mac dinh (tat) duoc dung. Nghia la bo test xanh tren
+# CI va do tren may nguoi phat trien - dung kieu phu thuoc an ma tep nay
+# sinh ra de dep bo.
+os.environ["AUTH_REQUIRED"] = "false"
+
 # CUNG MOT LY DO, cho khoa ky phieu dang nhap (Ngay 23).
 #
 # De trong thi `Settings.jwt_signing_key` sinh mot khoa NGAU NHIEN cho moi
