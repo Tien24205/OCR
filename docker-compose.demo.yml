@@ -51,6 +51,18 @@ services:
     ports: !override []
     environment:
       JWT_SECRET: "${JWT_SECRET:?can JWT_SECRET. Sinh bang: python -c \"import secrets; print(secrets.token_urlsafe(48))\"}"
+      # DONG CUA DANG KY, giong `docker-compose.prod.yml`.
+      #
+      # Ghi chu dau tep nay da neu ro hai rui ro cua mot dia chi cong khai:
+      # ban ghi chua co chu hien voi moi nguoi dang nhap, va NGUOI DANG KY
+      # DAU TIEN THANH QUAN TRI. Volume demo rong nen rui ro thu nhat khong
+      # con, nhung rui ro thu hai VAN CON - dung tunnel len roi di pha cafe
+      # la nguoi la co the nam quyen truoc ban.
+      #
+      # KHONG KHOA CHET: khi CSDL chua co tai khoan nao thi `/register` van
+      # nhan, de ban vao duoc va thanh quan tri. Dang ky NGAY sau khi dung
+      # len; xong la cua tu dong, khong can khoi dong lai.
+      REGISTRATION_OPEN: "${REGISTRATION_OPEN:-false}"
     volumes: !override
       - ocr-demo-data:/app/backend/data
 
