@@ -758,6 +758,41 @@ Bảng đo tách **bốn cột**: Đúng / Sai / Bỏ sót / **Tự sinh**. Cộ
 trị hệ thống trả về trong khi thẻ *không hề có* trường đó — bịa ra dữ liệu và
 đọc nhầm là hai loại lỗi khác hẳn nhau về mức nguy hiểm, nên không gộp.
 
+### Thử nhanh trên ảnh cắt sẵn (KHÔNG phải số đo)
+
+Khi chỉ muốn kiểm chức năng — thêm một ngôn ngữ, đổi model, sửa pipeline —
+một vòng in–cắt–chụp là quá đắt. Cắt thẳng từ trang PNG gốc:
+
+```powershell
+.\.venv\Scripts\python.exe backend\scripts\cut_cards.py
+# -> datasets/the-cat/<split>/<lang>/001..010.png  (80 tấm)
+```
+
+Ảnh này **sắc nét tuyệt đối**, nên chúng nằm ở thư mục riêng và không bao giờ
+đi vào `datasets/dev/` hay `datasets/eval/`. Đo trên ảnh sắc nét rồi gọi đó là
+độ chính xác của hệ thống là tự lừa mình.
+
+**Một kết quả đo được bằng bộ này** (10 thẻ mỗi ngôn ngữ, đếm số thẻ Tesseract
+đọc ra đúng tên / đúng tên công ty):
+
+| `OCR_LANGUAGE_HINTS` | EN | JA | KO | ZH | Tổng |
+| --- | --- | --- | --- | --- | --- |
+| `ja,en` | 10/10 | 9/9 | 0/0 | 3/1 | 22/20 |
+| **`ja,en,ko,zh`** (mặc định) | 10/10 | 8/8 | 1/2 | **10/9** | **29/29** |
+| chọn riêng từng thẻ | 10/10 | 9/9 | 2/2 | 9/10 | 30/31 |
+
+Ba điều rút ra:
+
+- **Bật đủ bốn ngôn ngữ không làm hỏng tiếng Anh** — 10/10 ở cả ba cấu hình.
+  Thu hẹp xuống `ja,en` trong `.env` làm tiếng Trung tụt từ 10/9 xuống 3/1.
+- **Chọn ngôn ngữ riêng cho từng thẻ chỉ hơn 1–2 thẻ**, không đáng để thêm một
+  bước đoán ngôn ngữ trước khi OCR.
+- **Tiếng Hàn hỏng ở mọi cấu hình**, kể cả `kor+eng` riêng. Các trường khác
+  (email, điện thoại, địa chỉ) đọc được, chỉ mỗi tên là không. Chưa rõ đây là
+  hạn chế của Tesseract hay của phông dùng để *vẽ* thẻ mẫu — nên không kết luận.
+
+Đây là số đo trên ảnh sắc nét, **không phải** độ chính xác của sản phẩm.
+
 Lấy số đo thật:
 
 ```powershell
