@@ -2,7 +2,12 @@
 
 Ứng dụng web: chụp hoặc tải ảnh danh thiếp → OCR (Anh + Nhật) → trích xuất trường có cấu trúc → chuẩn hóa → tra cứu bổ sung thông tin doanh nghiệp **có dẫn nguồn** → lưu hồ sơ tập trung, tìm kiếm và xuất dữ liệu.
 
-Đề bài #2. Tài liệu đầy đủ: [Document/README.md](Document/README.md)
+Đề bài #2.
+
+> **Tệp này là tài liệu đầy đủ của dự án.** Kế hoạch theo ngày, báo cáo tiến độ
+> và tài liệu kiểm chứng nằm trong `Document/` trên máy người phát triển và
+> **không được đẩy lên GitHub** (xem `.gitignore`). Mọi kiến thức cần để hiểu,
+> chạy, sửa và mở rộng hệ thống đều đã gom vào đây.
 
 ```
 Streamlit (giao diện)  →  FastAPI (backend)  →  SQLite
@@ -12,8 +17,8 @@ Streamlit (giao diện)  →  FastAPI (backend)  →  SQLite
 
 Hai tầng AI được giữ **độc lập có chủ ý**: OCR đọc pixel, Gemini suy diễn. Mọi
 giá trị Gemini trả về phải tìm được trong văn bản OCR, không tìm được thì bị
-loại — nên nguồn này kiểm chứng được nguồn kia. Xem
-[kien-truc-agentic.md](Document/2-ke-hoach/kien-truc-agentic.md).
+loại — nên nguồn này kiểm chứng được nguồn kia. Chi tiết ở mục
+[Kiến trúc: hai nguồn độc lập và tầng grounding](#kiến-trúc-hai-nguồn-độc-lập-và-tầng-grounding).
 
 Cả hai tầng đều là Python và dùng chung một môi trường ảo.
 
@@ -203,7 +208,7 @@ Rồi đặt `OCR_PROVIDER=rapidocr`. Ba điều phải biết trước khi ch�
 - **Không nằm trong `requirements.txt` và không có trong image Docker**, cố ý:
   phụ thuộc này nặng và chỉ đáng cài khi bạn thật sự cần nó.
 
-Số đo đối chiếu với Tesseract: xem [báo cáo nâng cấp 21/09](Document/3-bao-cao/nang-cap-ocr-21-09.md).
+Số đo đối chiếu giữa các nhà cung cấp OCR nằm trong `Document/4-kiem-chung/ocr-provider-notes.md` (không công khai).
 
 #### Đường C — Google Vision
 
@@ -299,8 +304,72 @@ backend/scripts/      công cụ chạy tay (thử OCR, sinh thẻ mẫu, đo ch
 backend/tests/        unit + integration
 frontend/             streamlit_app.py + app_pages/ + lib/
 datasets/             ảnh mẫu (không commit) + labels.jsonl
-Document/             đề bài, kế hoạch, báo cáo, kiểm chứng
+Document/             kế hoạch, báo cáo, kiểm chứng — CHỈ CÓ TRÊN MÁY,
+                      không đẩy lên GitHub; nội dung cốt lõi đã gom vào README
 ```
+
+---
+
+## Định hướng cho trợ lý AI
+
+Mục này viết cho một trợ lý AI vừa mở kho mã nguồn này lần đầu. Người đọc bình
+thường bỏ qua được.
+
+### Bắt đầu đọc từ đâu
+
+| Câu hỏi | Mở tệp |
+| --- | --- |
+| Một tấm ảnh đi qua những gì | `backend/app/pipeline.py` |
+| Ai được xem cái gì | `backend/app/access.py` — **mọi** luật phân quyền ở đúng tệp này |
+| Vì sao một giá trị bị loại | `backend/app/services/extract/grounding.py` |
+| Cấu hình nào tồn tại, mặc định ra sao | `backend/app/config.py` |
+| Đăng nhập, khoá API, giới hạn tần suất | `backend/app/auth.py` |
+| Bảng dữ liệu | `backend/app/models.py` — 12 bảng |
+
+### Bốn bất biến, đừng phá
+
+1. **Grounding không được bỏ qua.** Mọi giá trị model trả về phải đối chiếu
+   được với `raw_text`. Đừng thay bằng một câu trong prompt.
+2. **Phân quyền chỉ sửa ở `access.py`.** Thêm endpoint mới thì gọi
+   `loc_theo_chu()` hoặc `doi_quyen()`, đừng viết luật riêng tại chỗ.
+3. **Bản ghi của người khác trả 404, không phải 403.** 403 xác nhận bản ghi đó
+   có thật.
+4. **Bằng chứng gốc bất biến.** `scans.raw_text` và `scans.extraction_json`
+   không bao giờ bị ghi đè; người dùng sửa ở bảng hồ sơ.
+
+### Quy ước viết mã
+
+- **Ghi chú trong mã: tiếng Việt KHÔNG DẤU.** Chuỗi hiện cho người dùng thì có
+  dấu đầy đủ. Đừng trộn hai thứ.
+- Ghi chú trả lời **vì sao**, không phải **làm gì** — phần *làm gì* đã nằm
+  trong chính dòng mã.
+- Tên hàm và biến bằng tiếng Việt không dấu ở phần viết sau (`nguoi_goi`,
+  `che_email`, `doi_quyen`); phần viết trước dùng tiếng Anh. Cả hai đều chấp
+  nhận được, theo tệp đang sửa.
+
+### Kiểm trước khi coi là xong
+
+```powershell
+python -m pytest -q                              # 738 test
+python -m ruff check backend frontend mcp_server conftest.py
+python backend\scripts\check_docs.py            # số liệu tài liệu vs mã nguồn
+python backend\scripts\check_secrets.py         # khoá bị commit nhầm
+```
+
+Bốn lệnh này đúng là bốn cổng CI. Bật cổng chặn ở máy một lần:
+`git config core.hooksPath .githooks`.
+
+**Sửa bug thì viết test tái hiện bug TRƯỚC, sửa sau.** Test phải đỏ vì đúng lý
+do trước khi bản vá được tính là xong.
+
+### Hai cái bẫy đã có người vấp
+
+- `/api/auth/*` nằm trong `PUBLIC_PATHS`, nên middleware xác thực **trả về sớm
+  và không điền `request.state`**. Đọc `nguoi_goi(request)` ở đó sẽ luôn thấy
+  "không có ai" — mà "không có ai" lại được coi là *chế độ mở*, tức thấy tất
+  cả. Muốn kiểm quyền ở đường công khai thì phải tự đọc phiếu.
+- `pytest.importorskip` **lặng lẽ bỏ qua** cả tệp test khi thiếu gói, và CI vẫn
+  xanh. Kiểm bằng cách so số test CI thu thập được với số ở máy.
 
 ---
 
@@ -666,7 +735,7 @@ chỉ trả về cờ true/false, không bao giờ trả về giá trị khóa n
 | Giới hạn | Nghĩa là |
 | --- | --- |
 | Bộ đếm tần suất nằm **trong bộ nhớ một tiến trình** | Chạy nhiều bản sao thì mỗi bản đếm riêng; khởi động lại là mất bộ đếm |
-| Khóa lưu dạng **văn bản thường** trong `.env` | Giống khóa Gemini. Đủ cho một máy; môi trường nhiều người dùng cần lưu dạng băm — xem [roadmap.md](Document/2-ke-hoach/roadmap.md) mốc v2.0 |
+| Khóa lưu dạng **văn bản thường** trong `.env` | Giống khóa Gemini. Đủ cho một máy; môi trường nhiều người dùng cần lưu dạng băm — xem mốc **v2.0** ở mục Lộ trình |
 
 ---
 
@@ -700,14 +769,145 @@ Lấy số đo thật:
 
 ---
 
-## Kiến trúc và lộ trình
+## Kiến trúc: hai nguồn độc lập và tầng grounding
 
-| Tài liệu | Nội dung |
+Một tấm ảnh đi qua sáu trạm:
+
+```text
+1. Nhận ảnh    kiểm định dạng bằng GIẢI MÃ THẬT (không tin đuôi tệp hay
+               Content-Type), giới hạn 8 MB, cạnh tối đa 6000 px, chặn bom
+               nén, xoay theo EXIF rồi kiểm dung lượng lần nữa
+2. OCR         ra raw_text + toạ độ từng khối chữ
+3. Trích xuất  raw_text → khuôn CardExtraction có sẵn trường
+4. GROUNDING   đối chiếu TỪNG giá trị với raw_text; không khớp thì loại
+5. Chuẩn hoá   điện thoại về dạng quốc tế, email chữ thường, bỏ hậu tố công ty
+6. Lưu hồ sơ   phát hiện trùng, người dùng chọn gộp hay tạo mới, kèm revision
+```
+
+Trạm 4 là trạm các sản phẩm cùng loại không có — chúng đi thẳng từ 3 sang 5.
+
+### Quy tắc grounding
+
+> Mọi giá trị model trả về đều phải tìm được trong văn bản OCR. Không tìm
+> được thì **bị loại**, nhưng vẫn **được ghi lại**.
+
+Vế sau quan trọng ngang vế trước. Giá trị bị loại không biến mất im lặng — nó
+vào `scans.grounding_json`, để đo được model bịa nhiều hay ít. Một hệ thống âm
+thầm vứt dữ liệu là một hệ thống không ai kiểm toán được.
+
+**Vì sao là một tầng code chứ không phải một câu trong prompt:** prompt chỉ là
+lời đề nghị. Model có thể làm theo hôm nay và không làm theo khi đổi phiên bản.
+Một tầng chạy *sau* model thì model không có đường đi vòng qua. Khoá bằng **31
+test** cố tình ép hệ thống bịa dữ liệu.
+
+### Vì sao hai nguồn phải độc lập
+
+OCR đọc pixel. Model suy diễn. Đó là **hai nguồn khác nhau**, nên nguồn này
+kiểm chứng được nguồn kia.
+
+Nếu để model sinh ra cả văn bản thô lẫn các trường thì cơ chế này mất sạch ý
+nghĩa — thành ra lấy lời khai của một người ra kiểm chứng chính lời khai đó.
+
+Đây là lý do hệ thống giữ thêm một nhà cung cấp OCR cục bộ thay vì bỏ OCR đi
+cho gọn. Tesseract đọc Kanji kém hơn Vision, nhưng nó vẫn **độc lập** với
+Gemini — và tính độc lập mới là thứ không được phép đánh đổi.
+
+### Tầng agentic
+
+Mặc định **tắt** (`AGENT_ENABLED=false`). Bật lên thì tầng điều phối đọc kết
+quả từng bước rồi quyết định bước sau, trong **ngân sách tối đa 2 lượt thử lại
+mỗi bản quét**:
+
+| Tình huống | Hành động |
 | --- | --- |
-| [kien-truc-agentic.md](Document/2-ke-hoach/kien-truc-agentic.md) | Vì sao chia thành nhiều tác tử, mô hình ba hành động, grounding như lớp an toàn, sơ đồ Mermaid |
-| [roadmap.md](Document/2-ke-hoach/roadmap.md) | v1.0 → v4.0, kèm **điều kiện bắt đầu** từng mốc |
-| [ngay-21-demo.md](Document/3-bao-cao/ngay-21-demo.md) | Kịch bản demo 7–10 phút |
-| [Document/4-kiem-chung/](Document/4-kiem-chung/) | Cái gì đã thật sự chạy, cái gì mới chỉ viết xong |
+| Ảnh mờ | Chặn trước khi gọi dịch vụ — không tiêu lời gọi cho một ảnh vô vọng |
+| OCR điểm thấp | Đọc lại với ảnh đã tăng tương phản |
+| Thiếu tên hoặc công ty | Trích xuất lại bằng prompt khác |
+
+Mỗi quyết định được ghi lại và xem được trên trang Tổng quan. Ngân sách có giới
+hạn vì một vòng thử lại không chặn là một hoá đơn không chặn.
+
+---
+
+## Lộ trình
+
+> **Nguyên tắc xuyên suốt:** không thêm tính năng khi chưa đo được tính năng
+> hiện có. Xây tầng mới trên một nền chưa đo là cách chắc chắn để sau này
+> không biết chỗ nào hỏng.
+
+Mỗi mốc ghi kèm **điều kiện để bắt đầu** — phần lớn việc phía sau không chặn ở
+công sức lập trình mà chặn ở chỗ khác.
+
+### v1.0 — bản hiện tại · *mã nguồn xong, chưa nghiệm thu*
+
+Đã chạy được: chụp/tải ảnh (hàng loạt tối đa 10) · OCR qua bốn nhà cung cấp ·
+trích xuất có schema · grounding · điểm tin cậy bốn tín hiệu · điều phối
+agentic có nhánh rẽ thật · tra cứu doanh nghiệp dẫn nguồn, chặn SSRF ·
+lưu/tìm/chống trùng · xuất JSON, CSV, vCard · đa người dùng có phân quyền ·
+34 endpoint · 738 test.
+
+Còn thiếu để gọi là v1.0 thật:
+
+| Việc | Chặn ở đâu |
+| --- | --- |
+| Số đo chất lượng trên ảnh chụp thật | Cần in, cắt, chụp 40 thẻ — hiện **0/40** |
+| Kiểm thử camera, HTTPS trên điện thoại | Cần thiết bị thật |
+
+*Ghi chú thành thật:* tiếng Hàn và tiếng Trung **đã có trong mã nguồn** nhưng
+**chưa từng được đo**, nên tính là *chưa nghiệm thu*, không phải *đã xong*.
+
+### v1.1 — nghiệm thu bốn ngôn ngữ
+
+*Bắt đầu khi:* đã có số đo tiếng Anh và tiếng Nhật.
+
+Đo **riêng từng ngôn ngữ** — gộp chung sẽ giấu mất ngôn ngữ nào yếu. Hiệu
+chỉnh ngưỡng so khớp mờ theo dữ liệu thật; ngưỡng 0.90 hiện nay chưa từng được
+kiểm trên chữ Kanji thật. Hiệu chỉnh ngưỡng của tác tử chất lượng ảnh — mã
+nguồn tự ghi *"thresholds are uncalibrated rules"*.
+
+### v1.5 — mở cho hệ thống khác dùng
+
+*Bắt đầu khi:* chất lượng đã đo và chấp nhận được.
+
+Xác thực bằng khoá API và giới hạn tần suất **đã làm sớm**, vì chúng không
+đụng gì tới tầng AI nên không làm hỏng số đo sau này — trong khi để API mở thì
+mọi câu nói về "mở cho hệ thống khác dùng" đều không đứng vững. Còn chờ: băm
+khoá khi lưu, bộ đếm tần suất dùng chung giữa nhiều bản sao, webhook bật mặc
+định, nhập hàng loạt từ thư mục.
+
+### v2.0 — nhiều người dùng
+
+Bảng `users`, phân quyền, Docker, đa người dùng: **đã làm**. Còn lại: chuyển
+SQLite sang PostgreSQL, nhật ký thao tác chi tiết theo từng trường.
+
+**Phải trả lời trước khi đi tiếp:** bảng `scans` giữ ảnh gốc và văn bản OCR
+bất biến. Nhiều người dùng nghĩa là dữ liệu cá nhân của người khác — lưu bao
+lâu, ai xoá được, phải chốt **trước** khi viết dòng mã đầu tiên.
+
+### v3.0 — di động và dịch thuật
+
+Ứng dụng gốc, làm việc ngoại tuyến, dịch chức danh Nhật ↔ Anh.
+
+*Vì sao dịch thuật chưa làm sớm:* chức danh doanh nghiệp Nhật không dịch theo
+từ điển được — `部長` là "trưởng phòng" hay "giám đốc" tuỳ quy mô công ty.
+
+### v4.0 — nối vào quy trình kinh doanh
+
+Đồng bộ CRM hai chiều, tác tử gộp trùng, bản đồ quan hệ.
+
+> **Cảnh báo:** tác tử gộp trùng là thứ dễ gây hại nhất trong toàn bộ lộ trình.
+> Gộp nhầm hai người thành một hồ sơ là mất dữ liệu **không khôi phục được**, và
+> sai lầm đó lan ra mọi hệ thống đã đồng bộ. Phải đo được tỷ lệ nhận nhầm trên
+> dữ liệu thật trước, và phải luôn có bước người xác nhận.
+
+### Việc cố ý KHÔNG làm
+
+| Không làm | Vì sao |
+| --- | --- |
+| Để Gemini làm luôn OCR cho gọn | Phá vỡ tính độc lập hai nguồn; grounding mất sạch ý nghĩa |
+| Đọc thẻ hai mặt trong một ảnh | Đề bài chốt một thẻ một mặt; mở rộng phải đổi cả bộ nhãn chuẩn |
+| Tự động sửa chính tả tên người | Tên người không có "đúng chính tả"; sửa tự động là bịa có hệ thống |
+| Đoán ngôn ngữ khi chữ Hán không phân biệt được | Trả về nhãn `han` trung thực thay vì đoán bừa giữa Nhật và Trung |
 
 ---
 
@@ -725,7 +925,7 @@ Lấy số đo thật:
 
 ## Giới hạn đã biết
 
-**Chưa có lời gọi Google Vision hay Gemini nào được thực hiện trong dự án này.** Toàn bộ kiểm thử chạy trên provider giả lập. Nghĩa là chưa trả lời được câu hỏi trung tâm: hệ thống đọc đúng bao nhiêu phần trăm các trường trên một tấm danh thiếp thật. Xem [báo cáo Ngày 9](Document/3-bao-cao/ngay-9.md).
+**Chưa có lời gọi Google Vision hay Gemini nào được thực hiện trong dự án này.** Toàn bộ kiểm thử chạy trên provider giả lập. Nghĩa là chưa trả lời được câu hỏi trung tâm: hệ thống đọc đúng bao nhiêu phần trăm các trường trên một tấm danh thiếp thật.
 
 | Hạng mục | Trạng thái |
 | --- | --- |
