@@ -1,0 +1,34 @@
+// Cho Pylance/Pyright biet `app`, `lib` va `mcp_server` nam o dau.
+//
+// VI SAO CAN: ma nguon chia lam ba goc (backend, frontend, mcp_server), va
+// `import app.main` chi giai duoc khi `backend/` nam trong duong tim module.
+// Pytest biet dieu do nho `pythonpath` trong pytest.ini, nhung Pylance KHONG
+// doc pytest.ini - nen no gach do moi dong `from app...` trong khi test van
+// xanh. Gach do sai lau ngay thi nguoi ta hoc cach lo di, va hom nao gach do
+// that cung bi lo not.
+//
+// VI SAO DAT O DAY chu khong phai .vscode/settings.json: `.vscode/` nam
+// trong .gitignore, nen cau hinh trong do khong di theo kho ma nguon - may
+// khac clone ve se gach do y nhu cu. Tep nay duoc commit.
+//
+// DANH SACH `extraPaths` PHAI KHOP voi `pythonpath` trong pytest.ini. Lech
+// nhau thi IDE va bo test se bat dong ve viec module nam o dau.
+//
+// `typeCheckingMode: off` co y: viec cua tep nay la GIAI DUOC IMPORT, khong
+// phai bat dau mot dot them chu thich kieu cho ca du an. Bat "basic" len se
+// do ra hang tram canh bao kieu trong ma nguon von chay tot, va tieng on do
+// chinh la thu lam nguoi ta lo di ca nhung canh bao that.
+{
+  "extraPaths": ["backend", "frontend", "mcp_server"],
+  "venvPath": ".",
+  "venv": ".venv",
+  "exclude": [
+    "**/__pycache__",
+    "**/.venv",
+    "datasets",
+    "reports",
+    "tmp"
+  ],
+  "typeCheckingMode": "off",
+  "reportMissingImports": "warning"
+}
