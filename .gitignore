@@ -52,3 +52,20 @@ reports/
 
 # Graphify knowledge graph (regenerate: /graphify . --update)
 graphify-out/
+
+# ==========================================================================
+# TAI LIEU .md KHONG LEN GITHUB
+# ==========================================================================
+#
+# Giu DUNG MOT tep: README.md o goc. Ai mo repo can biet day la gi va chay
+# the nao; mot kho ma nguon khong co README la mot kho khong ai doc duoc.
+#
+# Con lai o trong may: ke hoach, bao cao theo ngay, tai lieu van dap. Chung
+# van la bang chung qua trinh khi can trinh bay truc tiep, chi la khong cong
+# khai.
+#
+# `/README.md` CO DAU GACH DAU, co y: khong co no thi `!README.md` se mien
+# tru CA `Document/README.md` va `datasets/README.md` - gitignore khop ten
+# tep o moi cap thu muc. Dau gach neo vao goc kho ma nguon.
+*.md
+!/README.md
