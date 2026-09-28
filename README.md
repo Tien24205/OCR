@@ -52,7 +52,7 @@ Cần **hai terminal**, cả hai chạy **từ thư mục gốc dự án**:
 .\.venv\Scripts\streamlit.exe run frontend\asgi_app.py
 ```
 
-Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 33 endpoint, bảng mã lỗi và lưu ý khi tích hợp
+Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 34 endpoint, bảng mã lỗi và lưu ý khi tích hợp
 
 > **Phải chạy từ gốc dự án.** Streamlit đọc `.streamlit/config.toml` theo thư mục đang chạy, không theo vị trí file ứng dụng. Chạy từ chỗ khác thì giới hạn dung lượng tải lên 8 MB sẽ không được áp dụng.
 
@@ -236,7 +236,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**723 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**738 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI
@@ -419,10 +419,43 @@ CLOUDFLARE_TUNNEL_TOKEN=<token vừa sao ở bước 2>
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
-**5. Mở trang bằng điện thoại và đăng ký ngay**
+**5. Đăng ký NGAY, trước khi đưa địa chỉ cho ai**
 
-Người đăng ký đầu tiên trở thành **quản trị**. Deploy xong mà đi ăn cơm thì
-ai vào trước người đó nắm quyền.
+Lớp phủ này đặt `REGISTRATION_OPEN=false`, nghĩa là trang **không nhận người
+tự đăng ký**. Nhưng khi cơ sở dữ liệu chưa có tài khoản nào thì cửa vẫn mở —
+phải có người đầu tiên vào được thì mới có quản trị, không thì hệ thống tự
+khoá chết chính nó.
+
+Nên có đúng một khe hở: **từ lúc dịch vụ lên đến lúc bạn đăng ký.** Ai vào
+trước người đó là quản trị. Đăng ký xong là cửa tự đóng, không cần khởi động
+lại, không cần sửa gì.
+
+**6. Cấp tài khoản cho người khác**
+
+Trang **Tổng quan → "Cấp tài khoản cho người khác"**, chỉ quản trị mới thấy.
+Tài khoản tạo ở đây luôn là quyền thường.
+
+### Vì sao phải đóng đăng ký — một lỗ hổng đã đo được
+
+Hai quy tắc, mỗi cái đều hợp lý khi đứng riêng:
+
+- trang đăng ký mở
+- bản ghi `owner_id IS NULL` hiện với **mọi** người đăng nhập — cố ý, để bản
+  quét tạo trước Ngày 23 không biến mất khi bật đăng nhập lên
+
+Ghép lại thì thành một cửa mở. Đo thật trước khi sửa — một người lạ vừa đăng
+ký lấy được:
+
+```
+danh sach ban quet     1
+chi tiet ban quet      200
+ANH THE                200      ← tải được ảnh tấm danh thiếp
+danh sach ho so        1
+XUAT TOAN BO           3112     ← cả tập dữ liệu, dạng tệp
+```
+
+`REGISTRATION_OPEN=false` bịt vế thứ nhất. Vế thứ hai giữ nguyên vì nó vẫn
+đúng: người trong nhà cần thấy dữ liệu cũ.
 
 ### Lớp phủ `docker-compose.prod.yml` làm gì
 
@@ -431,6 +464,9 @@ ai vào trước người đó nắm quyền.
 | Cổng 8000 (API) | mở ra ngoài | **đóng hẳn** |
 | Cổng 8501 (giao diện) | mở ra mọi giao diện mạng | chỉ `127.0.0.1` |
 | `JWT_SECRET` | để trống được | **bắt buộc**, thiếu thì không khởi động |
+| Đăng ký | mở cho bất kỳ ai | **đóng**, trừ khi chưa có tài khoản nào |
+| Dữ liệu | volume `ocr-data` | volume **riêng** `ocr-prod-data` |
+| OCR | `tesseract` | `tesseract` — miễn phí, người lạ quét bao nhiêu cũng không ra hoá đơn |
 | Đường ra Internet | không có | `cloudflared` |
 
 Backend không cần mở cổng vì giao diện gọi nó qua mạng nội bộ của compose.

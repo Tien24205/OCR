@@ -168,6 +168,19 @@ def dang_ky(email: str, mat_khau: str, ten: str = "") -> dict[str, Any]:
         "email": email, "password": mat_khau, "display_name": ten or None})
 
 
+def cua_dang_ky_mo() -> bool:
+    """Backend con nhan nguoi tu dang ky khong.
+
+    Loi mang thi coi nhu DONG: doan nham huong dong chi lam mat mot o nhap
+    tren trang dang nhap, con doan nham huong mo la moi nguoi la vao mot cua
+    da khoa roi nhan 403 khong ro ly do.
+    """
+    try:
+        return bool(_request("GET", "/api/auth/registration")["open"])
+    except (ApiError, KeyError):
+        return False
+
+
 def dang_nhap(email: str, mat_khau: str) -> dict[str, Any]:
     return _request("POST", "/api/auth/login",
                     json={"email": email, "password": mat_khau})

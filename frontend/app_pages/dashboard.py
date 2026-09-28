@@ -204,3 +204,45 @@ if top:
         [{"Doanh nghiệp": r["organization"], "Số liên hệ": r["contacts"]} for r in top],
         width="stretch", hide_index=True,
     )
+
+
+# --------------------------------------------------------------------------
+# Cap tai khoan (chi quan tri, Ngay 31)
+# --------------------------------------------------------------------------
+#
+# VI SAO O DAY: khi `REGISTRATION_OPEN=false` thi trang dang nhap khong con o
+# "Tao tai khoan" nua - do la ca muc dich. Nhung quan tri VAN phai cap duoc
+# tai khoan cho dong nghiep, va neu khong co cho nao lam viec do tren giao
+# dien thi ho se phai go `curl`, hoac se mo lai cua dang ky va quen dong.
+#
+# Dung lai `/api/auth/register`: backend cho quan tri di qua cong da dong.
+# Khong them endpoint rieng - cung phep kiem dinh dang, cung cach bam mat
+# khau, mot duong de kiem.
+
+if _la_quan_tri():
+    st.divider()
+    with st.expander("Cấp tài khoản cho người khác", icon=":material/person_add:"):
+        with st.form("cap_tai_khoan"):
+            ten_moi = st.text_input("Tên hiển thị (không bắt buộc)")
+            email_moi = st.text_input("Email", autocomplete="off")
+            mk_moi = st.text_input("Mật khẩu tạm (ít nhất 10 ký tự)",
+                                   type="password", autocomplete="new-password")
+            cap = st.form_submit_button("Tạo tài khoản", width="stretch")
+        if cap:
+            if len(mk_moi) < 10:
+                st.error("Mật khẩu cần ít nhất 10 ký tự.", icon=":material/error:")
+            elif "@" not in email_moi:
+                st.error("Email chưa đúng định dạng.", icon=":material/error:")
+            else:
+                try:
+                    api.dang_ky(email_moi, mk_moi, ten_moi)
+                except api.ApiError as exc:
+                    st.error(exc.message, icon=":material/error:")
+                else:
+                    # KHONG doi phien hien tai: `dang_ky` tra ve phieu cua tai
+                    # khoan VUA TAO, va nhan no vao day se dang xuat quan tri
+                    # roi dang nhap thanh nguoi moi. Chi bao da xong.
+                    st.success(f"Đã tạo tài khoản cho {email_moi}.",
+                               icon=":material/check:")
+        st.caption("Người được cấp nên đổi mật khẩu sau lần đăng nhập đầu. "
+                   "Tài khoản tạo ở đây luôn là quyền thường, không phải quản trị.")

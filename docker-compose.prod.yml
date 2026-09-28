@@ -27,6 +27,31 @@ services:
       # khong co gi trong log noi cho ho biet vi sao. Da do: phieu tra 401
       # sau restart khi de trong, tra 200 khi dat co dinh.
       JWT_SECRET: "${JWT_SECRET:?can JWT_SECRET. Sinh bang: python -c \"import secrets; print(secrets.token_urlsafe(48))\"}"
+      # DONG CUA DANG KY. Day la thu chan lo hong nang nhat cua ban cong
+      # khai, va ly do no can ton tai:
+      #
+      #   dang ky mo  +  ban ghi `owner_id IS NULL` hien voi moi nguoi dang
+      #   nhap  =  bat ky ai mo duoc dia chi deu tai ve duoc toan bo danh
+      #   thiep, ke ca ANH da chup, va mot ban xuat day du.
+      #
+      # Da do that truoc khi sua: nguoi la vua dang ky lay duoc danh sach ban
+      # quet, noi dung, anh, danh sach ho so va mot ban xuat 3112 byte.
+      #
+      # KHONG KHOA CHET: khi CSDL chua co tai khoan nao thi `/register` van
+      # nhan, de nguoi dau tien vao duoc va thanh quan tri. Nen hay dang ky
+      # NGAY sau khi dung len, truoc khi tro ten mien ve - trong khe ho do
+      # ai vao truoc thi nguoi do la quan tri.
+      #
+      # Sau khi da co quan tri, tai khoan moi duoc cap trong giao dien:
+      # trang Tong quan > "Cấp tài khoản cho người khác".
+      REGISTRATION_OPEN: "${REGISTRATION_OPEN:-false}"
+    # VOLUME RIENG, tach han `ocr-data` cua may phat trien.
+    #
+    # `ocr-data` dang chua danh thiep THAT cua nguoi that - ten, so dien
+    # thoai, dia chi email. Gan no vao mot dich vu nam tren Internet la mot
+    # su co du lieu ca nhan, khong phai mot lan trien khai.
+    volumes: !override
+      - ocr-prod-data:/app/backend/data
 
   frontend:
     # Chi mo tren 127.0.0.1, KHONG mo ra moi giao dien mang cua may chu.
@@ -78,3 +103,7 @@ services:
         # `service_started` la du: `cloudflared` tu thu lai khi dich chua
         # san sang, va giao dien thi khong co healthcheck rieng.
         condition: service_started
+
+volumes:
+  # Xem ghi chu o `backend.volumes` ben tren.
+  ocr-prod-data:

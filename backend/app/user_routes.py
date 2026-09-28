@@ -15,6 +15,8 @@ from app.auth import (
     MAT_KHAU_TOI_THIEU,
     GioiHanTanSuat,
     bam_mat_khau,
+    doc_khoa,
+    doc_phieu,
     mat_khau_dung,
     tao_phieu,
 )
@@ -89,6 +91,42 @@ def _phat_phieu(user: User, config: Settings) -> dict:
     }
 
 
+def _chan_neu_cua_dong(request: Request, db: Session, config: Settings) -> None:
+    """Chan nguoi la tu tao tai khoan khi `REGISTRATION_OPEN=false`.
+
+    HAI NGOAI LE, ca hai deu can thiet:
+
+    1. CHUA CO TAI KHOAN NAO -> van nhan. Dong cua tu dau ma khong co ngoai
+       le nay thi khong ai dang ky duoc, nen khong bao gio co quan tri, nen
+       khong bao gio mo lai duoc cua: he thong tu khoa chet minh. Doi lai la
+       mot khe ho giua luc dich vu len va luc ban dang ky - hay dang ky NGAY,
+       truoc khi tro ten mien ve.
+
+    2. QUAN TRI goi -> nhan, va day la duong de quan tri tao tai khoan cho
+       nguoi khac. Dung lai endpoint nay thay vi them mot endpoint rieng:
+       cung mot phep kiem dinh dang, cung mot cach bam mat khau.
+
+    PHAI TU DOC PHIEU O DAY: `/api/auth/register` nam trong `PUBLIC_PATHS`,
+    nen middleware xac thuc tra ve som va KHONG dien `request.state`. Doc
+    `nguoi_goi(request)` o day se luon thay "khong ai ca" - ke ca khi quan
+    tri that dang gui phieu - va `NguoiGoi(user_id=None)` lai duoc coi la
+    che do mo, tuc la thay tat ca. Tin vao no o day thi phep kiem nay luon
+    lot.
+    """
+    if config.registration_open:
+        return
+    if db.scalar(select(func.count()).select_from(User)) == 0:
+        return
+    phieu = doc_phieu(doc_khoa(request), config.jwt_signing_key)
+    if phieu and phieu.get("role") == "admin":
+        return
+    raise ApiError(
+        "REGISTRATION_CLOSED",
+        "Trang này không mở đăng ký. Liên hệ quản trị viên để được cấp tài khoản.",
+        403,
+    )
+
+
 def _chan_neu_qua_nhieu(request: Request) -> None:
     ip = request.client.host if request.client else "khong-ro"
     if not _chan_dang_nhap.cho_phep(ip):
@@ -97,6 +135,24 @@ def _chan_neu_qua_nhieu(request: Request) -> None:
             f"Quá {DANG_NHAP_MOI_PHUT} lần đăng nhập mỗi phút. Thử lại sau ít phút.",
             429, retryable=True,
         )
+
+
+@router.get("/registration")
+def trang_thai_dang_ky(db: Session = Depends(get_db),
+                       config: Settings = Depends(get_settings)) -> dict:
+    """Trang dang nhap co nen hien o "Tao tai khoan" khong.
+
+    KHONG gop vao `/api/health`: health bi healthcheck goi 10 giay mot lan va
+    co y KHONG dung toi CSDL, de no con tra loi duoc khi CSDL hong - do la
+    luc nguoi van hanh can no nhat.
+
+    `open` la ket qua DA TINH, khong phai co cau hinh tho: khi chua co tai
+    khoan nao thi cua van mo du `REGISTRATION_OPEN=false`, vi nguoi dau tien
+    phai vao duoc. Tra ve co tho se bat giao dien tu suy lai luat do, va hai
+    ban sao cua mot luat thi som muon lech nhau.
+    """
+    chua_co_ai = db.scalar(select(func.count()).select_from(User)) == 0
+    return {"open": bool(config.registration_open or chua_co_ai)}
 
 
 @router.post("/register", status_code=201)
@@ -111,6 +167,7 @@ def dang_ky(body: DangKy, request: Request, db: Session = Depends(get_db),
     that, chu khong phai sau khi da mo cho nguoi dung vao.
     """
     _chan_neu_qua_nhieu(request)
+    _chan_neu_cua_dong(request, db, config)
 
     email = body.email.strip()
     email_norm = email.casefold()

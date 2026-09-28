@@ -37,6 +37,15 @@ def _khong_goi_mang(monkeypatch):
 
     monkeypatch.setattr(api, "_request", _chan)
 
+    # Cua dang ky MO, tru khi tung test noi khac.
+    #
+    # Phai dat o day vi `cua_dang_ky_mo()` di qua `_request`, ma `_request` o
+    # tren nem loi mang - va ham do FAIL CLOSED co y: khong hoi duoc backend
+    # thi coi nhu cua dong. Khong stub thi moi test trong tep nay bong dung
+    # chay tren mot trang khong con o dang ky, va chung se do vi mot ly do
+    # khong lien quan gi den thu chung dang kiem.
+    monkeypatch.setattr(api, "cua_dang_ky_mo", lambda: True)
+
 
 def o(at: AppTest, key: str):
     """O nhap theo `key`. AppTest ban nay khong nhan `at.text_input(key=...)`."""
@@ -154,3 +163,56 @@ def test_dang_xuat_xoa_ca_ban_quet_dang_mo():
 
     assert not at.session_state["phieu_dang_nhap"]
     assert at.session_state["current_scan_id"] is None
+
+
+# --------------------------------------------------------------------------
+# Cua dang ky dong (Ngay 31)
+# --------------------------------------------------------------------------
+
+def test_cua_dong_thi_KHONG_con_o_tao_tai_khoan(monkeypatch):
+    """De o do lai thi nguoi ta dien xong ca bieu mau roi moi nhan 403, va ho
+    se tuong minh go sai chu khong phai trang nay khong nhan nguoi moi."""
+    monkeypatch.setattr(api, "cua_dang_ky_mo", lambda: False)
+
+    at = chay(doi_dang_nhap=True)
+
+    nhan = [b.label for b in at.button]
+    assert "Đăng nhập" in nhan
+    assert "Tạo tài khoản" not in nhan
+
+
+def test_cua_dong_thi_noi_ro_phai_lien_he_quan_tri(monkeypatch):
+    monkeypatch.setattr(api, "cua_dang_ky_mo", lambda: False)
+
+    at = chay(doi_dang_nhap=True)
+
+    assert any("không mở đăng ký" in i.value for i in at.info)
+
+
+def test_van_dang_nhap_duoc_khi_cua_dong(monkeypatch):
+    """Dong cua dang ky KHONG duoc dong luon duong vao cua nguoi da co tai
+    khoan - do se la mot cach tu khoa minh ra ngoai rat de xay ra."""
+    monkeypatch.setattr(api, "cua_dang_ky_mo", lambda: False)
+
+    at = chay(doi_dang_nhap=True)
+
+    assert o(at, "vao_email") is not None
+    assert nut(at, "Đăng nhập") is not None
+
+
+# Ham THAT, bat o day vi than module chay luc import - tuc la TRUOC khi
+# fixture autouse o tren thay no bang ban gia. Khong bat thi test duoi se
+# kiem chinh ban gia va luon xanh.
+CUA_THAT = api.cua_dang_ky_mo
+
+
+def test_khong_hoi_duoc_backend_thi_coi_nhu_DONG(monkeypatch):
+    """Doan nham huong "dong" chi mat mot o nhap. Doan nham huong "mo" la moi
+    nguoi la vao mot cua da khoa."""
+    def _hong(*a, **k):
+        raise api.ApiError("BACKEND_UNREACHABLE", "(test)", retryable=True,
+                           status=0)
+
+    monkeypatch.setattr(api, "_request", _hong)
+
+    assert CUA_THAT() is False

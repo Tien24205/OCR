@@ -47,6 +47,9 @@ logger = logging.getLogger(__name__)
 PUBLIC_PATHS = frozenset({
     "/api/health", "/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect",
     "/api/auth/register", "/api/auth/login",
+    # Chi noi cua dang ky dang mo hay dong - dung thu trang dang
+    # nhap the nao cung lo ra khi no ve o nhap.
+    "/api/auth/registration",
 })
 
 

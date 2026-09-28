@@ -77,6 +77,24 @@ class Settings(BaseSettings):
     # giua chung, du ngan de mot phieu bi lo khong song mai.
     jwt_ttl_minutes: int = 12 * 60
 
+    # Cho nguoi la tu tao tai khoan hay khong.
+    #
+    # MAC DINH MO, giong moi mac dinh khac o tep nay: cai chay duoc ngay tren
+    # may vua tai ma nguon ve. Nhung khi trang duoc day ra Internet thi PHAI
+    # dong, va day la lo hong nang nhat cua du an truoc khi co thiet lap nay:
+    #
+    #   dang ky mo  +  ban ghi `owner_id IS NULL` hien voi moi nguoi dang
+    #   nhap  =  bat ky ai mo duoc dia chi deu tai ve duoc toan bo danh
+    #   thiep, ke ca ANH da chup.
+    #
+    # Hai ve deu hop ly rieng le. Ve thu hai la co y, de du lieu cu khong
+    # bien mat khi bat dang nhap len. Ghep lai thi thanh mot cua mo.
+    #
+    # DONG KHONG KHOA CHET HE THONG: khi CHUA CO tai khoan nao, `/register`
+    # van nhan - nguoi dau tien phai vao duoc thi moi co quan tri. Sau do
+    # chi quan tri tao duoc tai khoan moi. Xem `user_routes.dang_ky`.
+    registration_open: bool = True
+
     @property
     def jwt_signing_key(self) -> str:
         """Khoa ky that su dung. Sinh mot lan cho ca tien trinh khi de trong.
@@ -216,6 +234,8 @@ class Settings(BaseSettings):
             # Dang nhap nguoi dung, tach khoi khoa API o tren: hai co che
             # khac nhau, co the bat rieng.
             "login_required": self.auth_required,
+        # Giao dien dung co nay de an hay hien o dang ky.
+        "registration_open": self.registration_open,
             # False = khoa ky sinh ngau nhien luc khoi dong, tuc khoi dong
             # lai la moi nguoi mat phien. Bao ra de khong ai phai doan vi sao
             # tu nhien bi dang xuat.
