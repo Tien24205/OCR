@@ -141,6 +141,39 @@ def test_duplicate_requires_explicit_choice_and_update_retains_scans(system, mon
     assert system.client.get(f"/api/contacts/{cid}/duplicates").json()["items"][0]["score"] == 100
 
 
+def test_merge_keeps_old_values_and_only_adds_new_ones(system, monkeypatch):
+    """Gop khac cap nhat: khong bao gio lam mat du lieu cu, khong nhan doi
+    gia tri da co, va ho so gop xong van sua tiep duoc (ma dong khong lap)."""
+    first = ready(system, monkeypatch)
+    cid = save(system, first, note="gặp ở hội chợ").json()["id"]
+    before = detail(system, cid)
+
+    second = ready(system, monkeypatch)
+    body = request_body(second)
+    body["fields"]["emails"].append({"value": "Taro.New@Example.jp"})
+    body["fields"]["phones"] = [{"value": "03 1234 5678"}]          # cung so, khac cach viet
+    body["fields"]["addresses"] = []                                 # o trong KHONG xoa dia chi cu
+    second = system.client.patch(f"/api/scans/{second['id']}/draft", json=body).json()
+
+    response = save(system, second, duplicate_action="merge", target_contact_id=cid,
+                    target_version=1, note="gọi lại tuần sau")
+    assert response.status_code == 201, response.text
+    assert response.json()["id"] == cid
+
+    after = detail(system, cid)
+    f, cu = after["draft"]["fields"], before["draft"]["fields"]
+    assert after["version"] == 2 and len(after["scans"]) == 2
+    assert [x["value"] for x in f["full_names"]] == [x["value"] for x in cu["full_names"]]
+    assert [x["value"] for x in f["emails"]] == ["jane@example.com", "Taro.New@example.jp"]
+    assert len(f["phones"]) == len(cu["phones"])
+    assert f["addresses"] == cu["addresses"]
+    assert after["note"] == "gặp ở hội chợ\n\ngọi lại tuần sau"
+    ids = [x["id"] for field in f.values() for x in field]
+    assert len(ids) == len(set(ids))
+    assert system.client.patch(f"/api/contacts/{cid}", json=edit_body(after)).status_code == 200
+    assert system.client.get("/api/contacts").json()["total"] == 1
+
+
 def test_stale_edit_and_stale_duplicate_update_cannot_overwrite(system, monkeypatch):
     scan = ready(system, monkeypatch)
     cid = save(system, scan).json()["id"]

@@ -147,4 +147,5 @@ def test_mau_icon_trung_voi_mau_theme():
     cau_hinh = tomllib.loads((goc / ".streamlit" / "config.toml").read_text("utf-8"))
 
     assert cau_hinh["theme"]["primaryColor"].lower() == MAU_NHAN.lower()
-    assert cau_hinh["theme"]["backgroundColor"].lower() == MAU_NEN.lower()
+    # Co hai che do sang/toi; icon PWA ve tren nen cua che do TOI.
+    assert cau_hinh["theme"]["dark"]["backgroundColor"].lower() == MAU_NEN.lower()

@@ -28,7 +28,7 @@ def suc_khoe(doi_dang_nhap: bool) -> dict:
 @pytest.fixture(autouse=True)
 def _khong_goi_mang(monkeypatch):
     """Xem ghi chu cung ten trong `test_review_day4.py`."""
-    monkeypatch.setattr(api, "list_scans", lambda limit=12: {"items": []})
+    monkeypatch.setattr(api, "list_scans", lambda **kw: {"items": []})
     monkeypatch.setattr(api, "organization_choices", lambda: {"items": []})
 
     def _chan(method, path, **kwargs):

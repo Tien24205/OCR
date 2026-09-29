@@ -111,8 +111,27 @@ def _dau_xac_thuc(kwargs: dict) -> dict:
     return {**kwargs, "headers": dau}
 
 
+def _nguon_nguoi_dung(kwargs: dict) -> dict:
+    """Chuyen tiep IP va trinh duyet THAT cua nguoi dung cho nhat ky hoat dong.
+
+    Giao dien goi backend tu may chu, nen backend chi thay IP cua may chu
+    Streamlit. Ngoai mot lan chay script (test goi thang) thi bo qua.
+    """
+    try:
+        ip = st.context.ip_address
+        ua = st.context.headers.get("User-Agent")
+    except Exception:
+        return kwargs
+    dau = dict(kwargs.get("headers") or {})
+    if isinstance(ip, str) and ip:
+        dau["X-Client-IP"] = ip
+    if isinstance(ua, str) and ua:
+        dau["X-Client-UA"] = ua[:300]
+    return {**kwargs, "headers": dau}
+
+
 def _request(method: str, path: str, *, raw: bool = False, **kwargs: Any) -> Any:
-    kwargs = _dau_xac_thuc(kwargs)
+    kwargs = _nguon_nguoi_dung(_dau_xac_thuc(kwargs))
     try:
         res = _client().request(method, path, **kwargs)
     except httpx.RequestError as exc:
@@ -216,8 +235,16 @@ def save_draft(scan_id: str, fields: dict, revision: int) -> dict[str, Any]:
     return _request("PATCH", f"/api/scans/{scan_id}/draft", json={"fields": fields, "revision": revision})
 
 
-def start_enrichment(scan_id: str, revision: int) -> dict:
-    return _request("POST", f"/api/scans/{scan_id}/enrich", json={"revision": revision})
+def start_enrichment(scan_id: str, revision: int, company_name: str | None = None,
+                     website: str | None = None) -> dict:
+    """Tra cuu doanh nghiep. Ten/website nguoi dung nhap chi la dau vao tra cuu,
+    khong ghi vao ban nhap."""
+    body: dict[str, Any] = {"revision": revision}
+    if company_name:
+        body["company_name"] = company_name
+    if website:
+        body["website"] = website
+    return _request("POST", f"/api/scans/{scan_id}/enrich", json=body)
 
 
 def get_research(organization_id: str) -> dict:
@@ -256,6 +283,11 @@ def edit_contact(contact_id: str, body: dict) -> dict:
     return _request("PATCH", f"/api/contacts/{contact_id}", json=body)
 
 
+def delete_contact(contact_id: str) -> dict:
+    """Xoa HAN ho so, cac ban quet cua no va anh goc. Khong khoi phuc duoc."""
+    return _request("DELETE", f"/api/contacts/{contact_id}")
+
+
 def organization_choices() -> dict:
     return _request("GET", "/api/organizations")
 
@@ -263,6 +295,14 @@ def organization_choices() -> dict:
 def nhat_ky_xuat(limit: int = 50) -> dict[str, Any]:
     """Nhung lan du lieu da roi khoi he thong (Ngay 30)."""
     return _request("GET", "/api/export/log", params={"limit": limit})
+
+
+def nhat_ky_kiem_toan(limit: int = 500, since: str | None = None) -> dict[str, Any]:
+    """Nhat ky hoat dong: ai lam gi, luc nao. Quan tri thay cua moi nguoi."""
+    params: dict[str, Any] = {"limit": limit}
+    if since:
+        params["since"] = since
+    return _request("GET", "/api/audit", params=params)
 
 
 def export_contacts(format: str) -> bytes:
@@ -284,9 +324,12 @@ def stats() -> dict[str, Any]:
     return _request("GET", "/api/stats")
 
 
-def list_scans(limit: int = 12) -> dict[str, Any]:
-    """Cac ban quet gan day - de trang Kiem tra mo lai mot the cu."""
-    return _request("GET", "/api/scans", params={"limit": limit})
+def list_scans(limit: int = 12, page: int = 1, so: int | None = None) -> dict[str, Any]:
+    """Ban quet, moi nhat truoc, co lat trang; `so` = tim dung so thu tu."""
+    params: dict[str, Any] = {"limit": limit, "page": page}
+    if so is not None:
+        params["so"] = so
+    return _request("GET", "/api/scans", params=params)
 
 
 def scans_status(ids: list[str]) -> dict[str, Any]:

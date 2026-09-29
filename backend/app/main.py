@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from copy import deepcopy
 import re
 
 from fastapi import BackgroundTasks, Depends, FastAPI, UploadFile
@@ -11,11 +12,12 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.requests import Request
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.access import NguoiGoi, doc_duoc, loc_theo_chu, nguoi_goi
 from app.config import Settings, get_settings
 from app.db import SessionLocal, get_db, init_db
@@ -98,6 +100,18 @@ app.include_router(webhook_router)
 from app.user_routes import router as user_router  # noqa: E402
 
 app.include_router(user_router)
+
+app.include_router(audit.router)
+
+
+@app.middleware("http")
+async def _nguon_nhat_ky(request: Request, call_next):
+    """Ghi nho IP/trinh duyet cua yeu cau cho `audit.ghi` doc."""
+    token = audit.dat_nguon(request)
+    try:
+        return await call_next(request)
+    finally:
+        audit.bo_nguon(token)
 
 
 @app.exception_handler(ApiError)
@@ -191,7 +205,7 @@ def create_scan(
     config: Settings = Depends(get_settings),
     session_factory=Depends(get_session_factory),
     nguoi: NguoiGoi = Depends(nguoi_goi),
-) -> dict[str, str]:
+) -> dict:
     """Persist first, then process after the response using a separate session."""
     try:
         # Bounded read: never load the whole upload into application memory.
@@ -206,9 +220,12 @@ def create_scan(
             owner_id=nguoi.user_id,
         )
         db.add(scan)
+        db.flush()
+        audit.ghi(db, nguoi, "quet_the", "ban_quet", scan.id, so_anh=1,
+                  so_thu_tu=[scan.seq], dung_luong_kb=round(len(image.data) / 1024, 1))
         db.commit()
         background_tasks.add_task(run_scan, scan.id, config, session_factory)
-        return {"id": scan.id, "status": scan.status}
+        return {"id": scan.id, "seq": scan.seq, "status": scan.status}
     except ImageInputError as exc:
         raise ApiError(exc.code, exc.message, exc.status) from exc
     except (OSError, SQLAlchemyError) as exc:
@@ -240,7 +257,7 @@ def create_batch_scans(
             "BATCH_TOO_LARGE",
             f"Chỉ hỗ trợ tối đa {config.batch_max_images} ảnh mỗi lần.", 400)
 
-    results, queued = [], []
+    results, queued, so_lo = [], [], []
     for file in files:
         try:
             data = file.file.read(config.max_upload_bytes + 1)
@@ -256,6 +273,7 @@ def create_batch_scans(
             db.add(scan)
             db.commit()
             queued.append(scan.id)
+            so_lo.append(scan.seq)
             results.append({"filename": file.filename, "id": scan.id, "status": scan.status})
         except ImageInputError as exc:
             results.append({"filename": file.filename, "error": exc.message})
@@ -268,13 +286,17 @@ def create_batch_scans(
     # Mot tac vu nen duy nhat cho ca lo: BackgroundTasks chay cac task lan luot,
     # nen xep tung anh thanh mot task se thanh chay tuan tu.
     if queued:
+        audit.ghi(db, nguoi, "quet_the", so_anh=len(queued), hang_loat=True,
+                  so_thu_tu=so_lo, anh_loi=len(files) - len(queued))
+        db.commit()
         background_tasks.add_task(run_batch, queued, config, session_factory)
 
     return {"items": results, "queued": len(queued)}
 
 
 @app.get("/api/scans")
-def list_scans(limit: int = 12, db: Session = Depends(get_db),
+def list_scans(limit: int = 12, page: int = 1, so: int | None = None,
+               db: Session = Depends(get_db),
                nguoi: NguoiGoi = Depends(nguoi_goi)) -> dict:
     """Cac ban quet gan day nhat, de nguoi dung quay lai mot ban quet cu.
 
@@ -287,8 +309,15 @@ def list_scans(limit: int = 12, db: Session = Depends(get_db),
     va `image_ref` de hien anh thu nho.
     """
     limit = max(1, min(limit, MAX_LIST_SCANS))
+    page = max(1, page)
     stmt = loc_theo_chu(select(Scan), Scan.owner_id, nguoi)
-    rows = db.scalars(stmt.order_by(Scan.created_at.desc()).limit(limit)).all()
+    if so is not None:
+        # Tim theo so thu tu ("#42"). Van qua `loc_theo_chu`: go so cua ban
+        # quet nguoi khac thi nhan danh sach rong, khong lo ra no ton tai.
+        stmt = stmt.where(Scan.seq == so)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+    rows = db.scalars(stmt.order_by(Scan.seq.desc(), Scan.created_at.desc())
+                      .offset((page - 1) * limit).limit(limit)).all()
 
     items = []
     for scan in rows:
@@ -301,6 +330,7 @@ def list_scans(limit: int = 12, db: Session = Depends(get_db),
 
         items.append({
             "id": scan.id,
+            "seq": scan.seq,
             "status": scan.status,
             "image_ref": scan.image_ref,
             "created_at": scan.created_at,
@@ -308,7 +338,7 @@ def list_scans(limit: int = 12, db: Session = Depends(get_db),
             "full_name": dau_tien("full_names"),
             "company_name": dau_tien("company_names"),
         })
-    return {"items": items}
+    return {"items": items, "total": total, "page": page, "size": limit}
 
 
 # Phai khai bao TRUOC `/api/scans/{scan_id}` - xem chu thich trong ham do.
@@ -354,7 +384,7 @@ def get_scan(scan_id: str, db: Session = Depends(get_db),
                         EnrichmentJob.draft_revision == grounding.get("draft_revision", 0)))
     draft = current_draft(grounding)
     return {
-        "id": scan.id, "status": scan.status, "contact_id": scan.contact_id, "image_ref": scan.image_ref,
+        "id": scan.id, "seq": scan.seq, "status": scan.status, "contact_id": scan.contact_id, "image_ref": scan.image_ref,
         "raw_text": scan.raw_text, "draft": draft,
         # Phan OCR doc duoc ma khong thuoc truong nao. Tinh luc doc chu khong
         # luu vao DB: no la phep tru tu `raw_text` va ban nhap hien tai, nen
@@ -401,6 +431,8 @@ def save_draft(scan_id: str, body: DraftUpdate, db: Session = Depends(get_db),
         if changed.rowcount != 1:
             db.rollback()
             raise ApiError("DRAFT_CONFLICT", "Bản nháp vừa thay đổi. Tải lại trước khi lưu.", 409)
+        audit.ghi(db, nguoi, "sua_ban_nhap", "ban_quet", scan_id, ban=body.revision + 1,
+                  so_thu_tu=scan.seq, truong_sua=audit.truong_da_doi(draft, edited))
         db.commit()
     except SQLAlchemyError as exc:
         db.rollback()
@@ -480,11 +512,39 @@ def delete_scan_route(scan_id: str, nguoi: NguoiGoi = Depends(nguoi_goi),
     giu lai. Muon xoa ca hai thi goi `DELETE /api/contacts/{id}`.
     """
     scan = lay_ban_quet(db, scan_id, nguoi)
+    audit.ghi(db, nguoi, "xoa_ban_quet", "ban_quet", scan_id, so_thu_tu=scan.seq,
+              trang_thai=scan.status)
     return erasure.delete_scan(db, scan, kho_anh(config))
 
 
 class ResearchRequest(BaseModel):
     revision: int
+    # Nguoi dung tu nhap de tra cuu. Chi la DAU VAO tra cuu: KHONG ghi vao ban
+    # nhap hay du lieu the - ket qua web luon giu rieng voi du lieu tren the.
+    company_name: str | None = Field(default=None, max_length=300)
+    website: str | None = Field(default=None, max_length=500)
+
+
+def _dau_vao_tra_cuu(draft: dict, body: ResearchRequest) -> dict:
+    """Ban sao ban nhap dung lam dau vao tra cuu, voi ten/website nguoi dung nhap.
+
+    Nhap ten moi thi BO website va email cua the: nguoi dung dang noi "tim
+    doanh nghiep nay", va tra cuu theo ten mien email cu se tim nham cong ty.
+    """
+    snapshot = deepcopy(draft)
+    ten = (body.company_name or "").strip()
+    web = (body.website or "").strip()
+    if not ten and not web:
+        return snapshot
+    fields = snapshot["fields"]
+    cu = [x["value"] for x in fields.get("company_names", [])]
+    if ten and ten not in cu[:1]:
+        fields["company_names"] = [{"value": ten}]
+        fields["websites"], fields["emails"] = [], []
+    if web:
+        fields["websites"] = [{"value": web if "://" in web else "https://" + web}]
+    snapshot["research_input"] = {"company_name": ten or None, "website": web or None}
+    return snapshot
 
 
 @app.post("/api/scans/{scan_id}/enrich", status_code=202)
@@ -504,9 +564,31 @@ def research_scan(scan_id: str, body: ResearchRequest, background_tasks: Backgro
     def existing_job():
         return db.scalar(select(EnrichmentJob).where(EnrichmentJob.scan_id == scan_id,
                           EnrichmentJob.draft_revision == body.revision))
+    snapshot = _dau_vao_tra_cuu(draft, body)
     job = existing_job()
     if job:
+        if snapshot == job.snapshot:
+            return job_result(db, job)
+        # Nguoi dung doi ten/website: tra cuu lai TREN CUNG luot, tinh vao
+        # gioi han 3 luot cua moi phien ban ban nhap nhu nut "Thu lai".
+        if job.status in {"pending", "processing"}:
+            raise ApiError("RESEARCH_RUNNING", "Lượt tra cứu trước đang chạy. Chờ xong rồi tra cứu lại.", 409)
+        ten_moi = snapshot["fields"]["company_names"][0]["value"] if snapshot["fields"]["company_names"] else ""
+        changed = db.execute(update(EnrichmentJob).where(
+            EnrichmentJob.id == job.id, EnrichmentJob.status == "done", EnrichmentJob.attempts < 3
+        ).values(status="pending", attempts=EnrichmentJob.attempts + 1, reason=None, snapshot=snapshot,
+                 decisions={}, result_ids=[], pages=[], metadata_json={}, completed_at=None)
+          .execution_options(synchronize_session=False))
+        if changed.rowcount != 1:
+            db.rollback()
+            raise ApiError("RESEARCH_RETRY_LIMIT", "Tối đa 3 lượt tra cứu cho mỗi phiên bản bản nháp.", 409)
+        db.execute(update(Organization).where(Organization.id == job.organization_id)
+                   .values(name_original=ten_moi, name_norm=norm_key(ten_moi)))
+        db.commit()
+        db.refresh(job)
+        background_tasks.add_task(run_enrichment, job.id, config, session_factory)
         return job_result(db, job)
+    draft = snapshot
     names = draft["fields"].get("company_names", [])
     organization = Organization(name_original=names[0]["value"] if names else "",
                                 name_norm=norm_key(names[0]["value"] if names else ""))

@@ -14,6 +14,7 @@ from sqlalchemy import select, update, or_, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.access import NguoiGoi, doc_duoc, loc_theo_chu, nguoi_goi
 from app.config import Settings, get_settings
 from app.db import get_db
@@ -22,7 +23,7 @@ from app.models import (Contact, ContactEmail, ContactPhone, ContactProfile, Exp
                         Organization, Scan, IdempotencyKey, norm_key, new_id)
 from app.services import erasure
 from app.services.storage import kho_anh
-from app.services.drafts import DraftFields, apply_edit, current_draft
+from app.services.drafts import DraftFields, apply_edit, current_draft, merge_drafts
 from app.services.normalize import FIELDS, digits
 from app.services.dedupe import duplicate_candidates
 from app.services.contacts import (require_contact, choose_organization, project_contact,
@@ -48,14 +49,14 @@ class SaveContact(BaseModel):
     scan_id: str = Field(min_length=1, max_length=36)
     revision: int = Field(ge=0)
     organization: OrganizationChoice = Field(default_factory=OrganizationChoice)
-    duplicate_action: Literal["check", "new", "update"] = "check"
+    duplicate_action: Literal["check", "new", "update", "merge"] = "check"
     target_contact_id: str | None = None
     target_version: int | None = Field(default=None, ge=1)
     note: str = Field(default="", max_length=10000)
 
     @model_validator(mode="after")
     def valid_target(self):
-        if self.duplicate_action == "update":
+        if self.duplicate_action in ("update", "merge"):
             if not self.target_contact_id or self.target_version is None:
                 raise ValueError("Cần chọn hồ sơ và phiên bản để cập nhật.")
         elif self.target_contact_id is not None or self.target_version is not None:
@@ -127,12 +128,18 @@ def save_contact(body: SaveContact, db: Session = Depends(get_db),
         candidates = duplicate_candidates(db, draft, scan.image_ref, body.organization.id)
         strong = [x for x in candidates if x["score"] >= 60]
         if strong and body.duplicate_action == "check":
-            raise ApiError("DUPLICATE_REVIEW_REQUIRED", "Có hồ sơ có thể trùng. Chọn cập nhật hoặc tạo mới.", 409)
-        if body.duplicate_action == "update":
+            raise ApiError("DUPLICATE_REVIEW_REQUIRED", "Có hồ sơ có thể trùng. Chọn gộp hồ sơ hoặc lưu mới.", 409)
+        note = body.note
+        if body.duplicate_action in ("update", "merge"):
             if contact_id not in {x["id"] for x in strong}:
                 raise ApiError("DUPLICATE_TARGET_INVALID", "Hồ sơ đích không còn là ứng viên trùng. Kiểm tra lại.", 409)
             contact, profile = require_contact(db, contact_id, nguoi)
             claim_version(db, contact_id, body.target_version)
+            if body.duplicate_action == "merge":
+                # Gop: ho so cu giu nguyen, ban nhap chi bo sung gia tri moi.
+                truoc_gop = profile.draft
+                draft = merge_drafts(profile.draft, draft)
+                note = "\n\n".join(x for x in (contact.note, body.note) if x and x.strip())
         else:
             contact = Contact(id=contact_id, full_name_original="", name_norm="",
                               owner_id=nguoi.user_id)
@@ -141,12 +148,19 @@ def save_contact(body: SaveContact, db: Session = Depends(get_db),
             db.flush()
             db.add(profile)
         organization = choose_organization(db, draft, body.organization, scan)
-        project_contact(db, contact, profile, draft, organization, body.note)
+        project_contact(db, contact, profile, draft, organization, note)
         changed = db.execute(update(Scan).where(Scan.id == scan.id, Scan.status == "ocr_done",
                             Scan.grounding_json == grounding).values(status="committed", contact_id=contact_id)
                             .execution_options(synchronize_session=False))
         if changed.rowcount != 1:
             raise ApiError("DRAFT_CONFLICT", "Bản quét vừa thay đổi. Tải lại trước khi lưu.", 409)
+        audit.ghi(db, nguoi, "luu_ho_so", "ho_so", contact_id,
+                  kieu={"update": "cap_nhat", "merge": "gop"}.get(body.duplicate_action, "moi"),
+                  ban_quet=scan.seq,
+                  so_gia_tri=sum(len(draft["fields"][f]) for f in FIELDS),
+                  truong_bo_sung=(audit.truong_da_doi(truoc_gop, draft)
+                                  if body.duplicate_action == "merge" else None),
+                  co_ghi_chu=bool(body.note.strip()))
         db.commit()
     return {"id": contact_id}
 
@@ -210,6 +224,9 @@ def delete_contact_route(contact_id: str, db: Session = Depends(get_db),
     if contact is None or not doc_duoc(contact.owner_id, nguoi):
         raise ApiError("CONTACT_NOT_FOUND", "Không tìm thấy hồ sơ.", 404)
     with transaction_errors(db):
+        # Ghi TRUOC khi xoa: `delete_contact` commit ca hai trong mot giao dich.
+        so_bq = db.scalar(select(func.count()).select_from(Scan).where(Scan.contact_id == contact_id))
+        audit.ghi(db, nguoi, "xoa_ho_so", "ho_so", contact_id, so_ban_quet_xoa_theo=so_bq)
         return erasure.delete_contact(db, contact, kho_anh(config))
 
 
@@ -241,7 +258,12 @@ def edit_contact(contact_id: str, body: EditContact, db: Session = Depends(get_d
         if not any(draft["fields"][field] for field in FIELDS):
             raise ApiError("EMPTY_CONTACT", "Không thể xóa hết dữ liệu hồ sơ.", 422)
         organization = choose_organization(db, draft, body.organization)
+        doi = audit.truong_da_doi(profile.draft, draft)
+        doi_ghi_chu = (body.note or "") != (contact.note or "")
+        doi_dn = (organization.id if organization else None) != contact.organization_id
         project_contact(db, contact, profile, draft, organization, body.note)
+        audit.ghi(db, nguoi, "sua_ho_so", "ho_so", contact_id, phien_ban=body.version + 1,
+                  truong_sua=doi, sua_ghi_chu=doi_ghi_chu, doi_doanh_nghiep=doi_dn)
         db.commit()
     db.expire_all()
     return contact_result(db, contact_id, nguoi)
@@ -302,26 +324,16 @@ def export_contacts(format: Literal["json", "csv", "vcf"] = "json",
     # GHI NHAT KY TRUOC KHI TRA VE. Du lieu roi khoi he thong o dong duoi,
     # nen dong nay phai nam TRUOC no - khong thi mot loi khi ghi se thanh
     # "da xuat ma khong co dau vet", dung truong hop nhat ky sinh ra de bat.
-    db.add(ExportLog(user_id=nguoi.user_id, actor=_ten_nguoi_goi(db, nguoi),
+    db.add(ExportLog(user_id=nguoi.user_id, actor=audit.ten_nguoi(db, nguoi),
                      format=format, contact_count=len(rows),
                      byte_count=len(content)))
+    audit.ghi(db, nguoi, "xuat_du_lieu", dinh_dang=format, so_ho_so=len(rows),
+              dung_luong_kb=round(len(content) / 1024, 1))
     db.commit()
 
     return Response(content, media_type=media_type,
                     headers={"Content-Disposition": f'attachment; filename="contacts.{format}"',
                              "Cache-Control": "no-store"})
-
-
-def _ten_nguoi_goi(db: Session, nguoi: NguoiGoi) -> str | None:
-    """Email cua nguoi xuat, giu lai KE CA khi tai khoan bi xoa sau nay."""
-    if nguoi.la_he_thong:
-        return "(khóa API)"
-    if not nguoi.user_id:
-        return None
-    from app.models import User
-
-    u = db.get(User, nguoi.user_id)
-    return u.email if u else None
 
 
 @router.get("/export/log")

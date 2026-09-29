@@ -65,6 +65,9 @@ _COT_THEM: tuple[tuple[str, str, str], ...] = (
     # (bang, ten cot, dinh nghia)
     ("scans", "owner_id", "VARCHAR(36) REFERENCES users(id)"),
     ("contacts", "owner_id", "VARCHAR(36) REFERENCES users(id)"),
+    ("scans", "seq", "INTEGER"),
+    ("audit_logs", "ip", "VARCHAR(64)"),
+    ("audit_logs", "thiet_bi", "VARCHAR(300)"),
 )
 
 
@@ -103,6 +106,26 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     if engine.dialect.name == "sqlite":
         _va_cot_thieu()
+    _danh_so_ban_quet_cu()
+
+
+def _danh_so_ban_quet_cu() -> None:
+    """Ban quet tao truoc khi co cot `seq`: danh so theo thu tu tao, noi tiep
+    so lon nhat dang co. Chay duoc nhieu lan - khong con dong NULL thi thoi."""
+    from sqlalchemy import func, select, update
+
+    from app.models import Scan
+
+    with SessionLocal() as db:
+        cu = db.execute(select(Scan.id).where(Scan.seq.is_(None))
+                        .order_by(Scan.created_at, Scan.id)).scalars().all()
+        if not cu:
+            return
+        so = db.scalar(select(func.max(Scan.seq))) or 0
+        for ma in cu:
+            so += 1
+            db.execute(update(Scan).where(Scan.id == ma).values(seq=so))
+        db.commit()
 
 
 def get_db() -> Iterator[Session]:

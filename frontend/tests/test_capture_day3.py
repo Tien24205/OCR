@@ -26,7 +26,10 @@ def test_each_input_sends_bytes_only_when_clicked(monkeypatch, mode, widget):
     destinations = []
     monkeypatch.setattr(st, "switch_page", destinations.append)
     item = upload()
-    monkeypatch.setattr(st, widget, lambda *args, **kwargs: item)
+    # O tai anh len nhan NHIEU tep nen tra ve danh sach; chon mot tep thi di
+    # dung duong xem truoc + gui mot anh nhu camera.
+    tra_ve = [item] if widget == "file_uploader" else item
+    monkeypatch.setattr(st, widget, lambda *args, **kwargs: tra_ve)
     calls = []
     def save(name, data, mime):
         calls.append((name, data, mime))
@@ -65,3 +68,25 @@ def test_upload_api_failure_is_visible(monkeypatch):
     assert not at.exception
     assert at.error[0].value == "Chưa lưu được ảnh."
     assert not at.success
+
+
+def test_chon_nhieu_anh_thi_gui_ca_lo(monkeypatch):
+    """Cung o "Tai anh len": chon tu hai anh tro len thi gui mot lo, moi anh
+    co ket qua rieng."""
+    a, b = upload(), upload()
+    monkeypatch.setattr(st, "file_uploader", lambda *args, **kwargs: [a, b])
+    lo = []
+    monkeypatch.setattr(api, "create_batch", lambda items: lo.append(items) or {
+        "items": [{"filename": "card.png", "id": "scan-a", "status": "pending"},
+                  {"filename": "card.png", "error": "Ảnh hỏng."}], "queued": 1})
+    monkeypatch.setattr(api, "scans_status", lambda ids: {"items": [{"id": i, "status": "pending"} for i in ids]})
+    monkeypatch.setattr(api, "create_scan", lambda *a: pytest.fail("khong duoc gui tung anh"))
+    at = AppTest.from_file(CAPTURE)
+    at.session_state["capture_mode"] = "Tải ảnh lên"
+    at.run()
+
+    next(x for x in at.button if x.label == "Gửi 2 ảnh").click().run()
+
+    assert not at.exception, at.exception
+    assert len(lo) == 1 and len(lo[0]) == 2
+    assert any("Đã nhận 1/2 ảnh" in s.value for s in at.success)

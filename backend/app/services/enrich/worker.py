@@ -7,7 +7,7 @@ from sqlalchemy import select, update
 from app.models import Enrichment, EnrichmentJob, utcnow
 from app.services.enrich.discover import seed_url, identity_matches, candidate_pages
 from app.services.enrich.fetcher import SafeFetcher, FetchError
-from app.services.enrich.summarize import GeminiSummarizer, validate_claims, SummaryError
+from app.services.enrich.summarize import GeminiSummarizer, validate_claims, SummaryError, tim_website
 
 
 def run_enrichment(job_id: str, config, session_factory):
@@ -26,7 +26,15 @@ def run_enrichment(job_id: str, config, session_factory):
     summarizer = None
     try:
         url, source = seed_url(snapshot)
+        names = snapshot["fields"].get("company_names", [])
+        if not url and names and config.enrich_enabled:
+            # Khong co website hay email cong ty: tim website tu TEN doanh
+            # nghiep. Trang tim duoc van phai qua moi phep kiem ben duoi.
+            url = tim_website(names[0]["value"], config)
+            source = "web_search" if url else "website_not_found"
         metadata["discovery_source"] = source
+        if snapshot.get("research_input"):
+            metadata["research_input"] = snapshot["research_input"]
         if not config.enrich_enabled:
             reason = "ENRICH_DISABLED"
         elif not url:

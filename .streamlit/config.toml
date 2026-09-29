@@ -9,16 +9,54 @@ gatherUsageStats = false
 # native cua Streamlit: no ap cho ca hai cach chay (`streamlit_app.py` truc
 # tiep lan `asgi_app.py` trong Docker), va no ngam vao ca nhung thanh phan
 # ve bang canvas (bang du lieu) - thu ma CSS khong voi toi duoc.
+#
+# Thuong hieu CardLens co HAI che do: sang va toi. [theme] giu phan chung
+# (chu, bo goc, mau nhan); mau nen/chu nam rieng trong [theme.light] va
+# [theme.dark]. Nguoi dung doi che do o menu Settings, mac dinh theo may.
 [theme]
 # Xanh thay vi do mac dinh: do la mau canh bao, ma o day no dang to cho
-# NUT CHINH - moi nut luu deu trong nhu mot loi bao loi.
-primaryColor = "#4c8dff"
-backgroundColor = "#0e1117"
-# Nhinh hon nen mot chut de the, khung ben, o nhap tu tach ra duoc ma khong
-# can vien.
-secondaryBackgroundColor = "#161a23"
-textColor = "#e6e9ef"
+# NUT CHINH - moi nut luu deu trong nhu mot loi bao loi. Nut chinh mang chu
+# trang nen mau nhan phai du dam (#3D63F5, tuong phan ~5:1).
+primaryColor = "#3D63F5"
+baseRadius = "0.75rem"
+buttonRadius = "0.6rem"
+font = "'Be Vietnam Pro':https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"
+headingFont = "'Chakra Petch':https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap"
+headingFontWeights = [700, 700, 600, 600, 600, 600]
+
+[theme.light]
+primaryColor = "#3D63F5"
+backgroundColor = "#F5F7FF"
+# Nhinh dam hon nen mot chut de the, khung ben, o nhap tu tach ra duoc ma
+# khong can vien.
+secondaryBackgroundColor = "#E6EBFA"
+textColor = "#0B1438"
+linkColor = "#2E4FE0"
 # Vien mo: du de chia o trong bang, khong du de ve luoi len man hinh.
-borderColor = "#2a3040"
-baseRadius = "0.7rem"
-font = "sans-serif"
+borderColor = "#CDD5F0"
+dataframeHeaderBackgroundColor = "#E6EBFA"
+blueColor = "#2E4FE0"
+orangeColor = "#C2410C"
+greenColor = "#15803D"
+chartCategoricalColors = ["#2E4FE0", "#E07A2E", "#15803D", "#7C3AED", "#0891B2", "#CA8A04", "#64748B"]
+
+[theme.light.sidebar]
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#EEF1FB"
+
+[theme.dark]
+primaryColor = "#3D63F5"
+backgroundColor = "#070C24"
+secondaryBackgroundColor = "#111A3D"
+textColor = "#EEF1FF"
+linkColor = "#8FA8FF"
+borderColor = "#24305E"
+dataframeHeaderBackgroundColor = "#16214D"
+blueColor = "#5B7CFF"
+orangeColor = "#FF9F5A"
+greenColor = "#3DD68C"
+chartCategoricalColors = ["#5B7CFF", "#FF9F5A", "#3DD68C", "#B18CFF", "#4CC9F0", "#FFD166", "#8E9AD0"]
+
+[theme.dark.sidebar]
+backgroundColor = "#0A1233"
+secondaryBackgroundColor = "#16214D"

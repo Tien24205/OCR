@@ -96,28 +96,46 @@ st.caption(
     "Chụp hoặc tải ảnh danh thiếp. Mỗi ảnh chứa một thẻ, một mặt, bố cục ngang."
 )
 
+NGUON = ["Chụp bằng camera", "Tải ảnh lên"]
+# Phien cu con nho che do "Tai hang loat" da bi gop: dua ve "Tai anh len"
+# thay vi de segmented_control nhan mot gia tri khong con trong danh sach.
+if st.session_state.get("capture_mode") not in (None, *NGUON):
+    st.session_state.capture_mode = "Tải ảnh lên"
+
 mode = st.segmented_control(
     "Nguồn ảnh",
-    options=["Chụp bằng camera", "Tải ảnh lên", "Tải hàng loạt"],
+    options=NGUON,
     default="Chụp bằng camera",
     key="capture_mode",
 )
 
-# --- Che do hang loat: xu ly rieng roi dung han o day ---------------------
-if mode == "Tải hàng loạt":
+uploaded = None
+if mode == "Chụp bằng camera":
+    uploaded = st.camera_input("Đưa danh thiếp vào khung hình")
+    st.caption(
+        "Trình duyệt sẽ hỏi quyền dùng camera. Nếu bạn từ chối hoặc máy không "
+        "có camera, chuyển sang **Tải ảnh lên**."
+    )
+else:
     st.caption(
         f"Gửi tối đa {BATCH_MAX} ảnh trong một lần. Ảnh hỏng không làm hỏng "
         "cả lô — mỗi ảnh có kết quả riêng."
     )
     files = st.file_uploader(
-        "Chọn nhiều ảnh JPEG hoặc PNG",
+        "Chọn một hoặc nhiều ảnh JPEG/PNG",
         type=["jpg", "jpeg", "png"],
         accept_multiple_files=True,
-    )
-    # Cac phep kiem duoi day KHONG dung `st.stop()`: dung o day thi lo dang
-    # chay bien mat khoi man hinh dung luc can theo doi no nhat.
-    oversized = [f.name for f in files if len(f.getvalue()) > MAX_BYTES] if files else []
-    if files and len(files) > BATCH_MAX:
+    ) or []
+    # MOT anh: di duong xem truoc + cat vien ben duoi, roi mo trang Kiem tra.
+    # NHIEU anh: gui ca lo va theo doi ngay tai day.
+    if len(files) == 1:
+        uploaded = files[0]
+
+if mode != "Chụp bằng camera" and uploaded is None:
+    # Cac phep kiem duoi day KHONG dung `st.stop()` truoc `render_batch()`:
+    # dung som thi lo dang chay bien mat khoi man hinh dung luc can theo doi.
+    oversized = [f.name for f in files if len(f.getvalue()) > MAX_BYTES]
+    if len(files) > BATCH_MAX:
         st.error(f"Chọn tối đa {BATCH_MAX} ảnh mỗi lần. Đang chọn {len(files)}.")
     if oversized:
         st.error("Vượt quá 8 MB: " + ", ".join(oversized))
@@ -126,7 +144,7 @@ if mode == "Tải hàng loạt":
                    f"{sum(len(f.getvalue()) for f in files) / 1024:,.0f} KB")
 
     gui_duoc = bool(files) and len(files) <= BATCH_MAX and not oversized
-    if gui_duoc and st.button("Gửi cả lô", type="primary", icon=":material/send:"):
+    if gui_duoc and st.button(f"Gửi {len(files)} ảnh", type="primary", icon=":material/send:"):
         try:
             result = api.create_batch([
                 (f.name or "card.jpg", f.getvalue(), f.type or "image/jpeg")
@@ -150,19 +168,6 @@ if mode == "Tải hàng loạt":
 
     render_batch()
     st.stop()
-
-
-uploaded = None
-if mode == "Chụp bằng camera":
-    uploaded = st.camera_input("Đưa danh thiếp vào khung hình")
-    st.caption(
-        "Trình duyệt sẽ hỏi quyền dùng camera. Nếu bạn từ chối hoặc máy không "
-        "có camera, chuyển sang **Tải ảnh lên**."
-    )
-else:
-    uploaded = st.file_uploader(
-        "Chọn ảnh JPEG hoặc PNG", type=["jpg", "jpeg", "png"]
-    )
 
 if uploaded is None:
     st.stop()

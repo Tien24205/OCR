@@ -33,10 +33,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from starlette.routing import Route
 
-TEN_APP = "Quét danh thiếp"
-TEN_NGAN = "Danh thiếp"          # hien duoi icon tren man hinh chinh
-MAU_NEN = "#0e1117"              # trung voi `backgroundColor` trong .streamlit/config.toml
-MAU_NHAN = "#4c8dff"             # trung voi `primaryColor` - icon phai cung mau voi app
+TEN_APP = "CardLens · Danh thiếp thành hồ sơ đối tác"
+TEN_NGAN = "CardLens"          # hien duoi icon tren man hinh chinh
+MAU_NEN = "#070C24"              # trung voi `backgroundColor` trong .streamlit/config.toml
+MAU_NHAN = "#3D63F5"             # trung voi `primaryColor` - icon phai cung mau voi app
 
 # Cac co icon can co. 192 va 512 la hai co Android doi; 180 la co cua
 # `apple-touch-icon` tren iOS.
@@ -87,7 +87,7 @@ def _manifest() -> dict:
     return {
         "name": TEN_APP,
         "short_name": TEN_NGAN,
-        "description": "Quét danh thiếp thành hồ sơ đối tác.",
+        "description": "CardLens: chụp danh thiếp, nhận hồ sơ đối tác tin được.",
         "start_url": "/",
         "scope": "/",
         # `standalone` la thu bien trang web thanh mot thu trong nhu app:
@@ -168,8 +168,8 @@ KIEU_DANG = b"""
   /* So lieu tren trang Tong quan troi tren nen trong, khong ro cai nao di
      voi cai nao. Bo chung vao the cho thanh tung khoi doc duoc. */
   [data-testid="stMetric"] {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: linear-gradient(160deg, rgba(61, 99, 245, 0.16), rgba(61, 99, 245, 0.04));
+    border: 1px solid rgba(143, 168, 255, 0.22);
     border-radius: 0.7rem;
     padding: 0.85rem 1rem;
   }
@@ -183,7 +183,7 @@ KIEU_DANG = b"""
   /* KHONG BO DUOC: vien ngoai khi di chuyen bang phim Tab. Thieu no thi
      nguoi khong dung duoc chuot se khong biet minh dang dung o dau. */
   :focus-visible {
-    outline: 2px solid #4c8dff;
+    outline: 2px solid #8FA8FF;
     outline-offset: 2px;
   }
 
@@ -236,6 +236,51 @@ async def _tra_icon(request):
                     headers={"Cache-Control": "public, max-age=86400"})
 
 
+# --------------------------------------------------------------------------
+# Ghi nho dang nhap: phieu nam trong cookie HttpOnly
+# --------------------------------------------------------------------------
+#
+# `st.session_state` mat khi tai lai trang, nen "ghi nho dang nhap" can mot
+# cho song lau hon phien. Luu PHIEU (co han, thu hoi duoc) chu KHONG luu mat
+# khau, va luu trong cookie HttpOnly: JavaScript tren trang - ke ca mot doan
+# ma doc bi chen vao - khong doc duoc no. Streamlit doc lai bang
+# `st.context.cookies` luc mo trang.
+TEN_COOKIE = "cardlens_phien"
+NHO_TOI_DA_GIAY = 30 * 24 * 3600
+
+
+def _cung_nguon(request) -> bool:
+    """Chan dat cookie tu trang khac (login CSRF: ep nguoi dung vao tai
+    khoan cua ke tan cong de ho nhap du lieu vao do)."""
+    from urllib.parse import urlsplit
+
+    nguon = request.headers.get("origin") or request.headers.get("referer") or ""
+    return bool(nguon) and urlsplit(nguon).netloc == request.headers.get("host")
+
+
+async def _phien(request):
+    if not _cung_nguon(request):
+        return Response(status_code=403)
+    tra_loi = Response(status_code=204, headers={"Cache-Control": "no-store"})
+    if request.method == "DELETE":
+        tra_loi.delete_cookie(TEN_COOKIE, path="/")
+        return tra_loi
+    try:
+        than = await request.json()
+        phieu = str(than["token"])
+        song = int(than.get("max_age") or 0)
+    except (ValueError, KeyError, TypeError):
+        return Response(status_code=400)
+    if not phieu or len(phieu) > 4096 or song <= 0:
+        return Response(status_code=400)
+    # Sau Cloudflare Tunnel, ket noi toi day la http noi bo; trinh duyet thi
+    # dang o https. Doc header cua proxy de cookie van duoc danh dau Secure.
+    https = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+    tra_loi.set_cookie(TEN_COOKIE, phieu, max_age=min(song, NHO_TOI_DA_GIAY), path="/",
+                       httponly=True, samesite="strict", secure=https)
+    return tra_loi
+
+
 class ChenTheVaoHead(BaseHTTPMiddleware):
     """Chen cac the PWA vao `<head>` cua trang Streamlit.
 
@@ -266,6 +311,7 @@ app = st.App(
         Route("/manifest.webmanifest", _tra_manifest),
         Route("/sw.js", _tra_sw),
         Route("/icon-{canh}.png", _tra_icon),
+        Route("/phien", _phien, methods=["POST", "DELETE"]),
     ],
     middleware=[Middleware(ChenTheVaoHead)],
 )

@@ -28,8 +28,11 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    event,
+    func,
+    select,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
 
 # --------------------------------------------------------------------------
@@ -302,6 +305,10 @@ class Scan(Base):
     ms_extract: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[str] = mapped_column(String(40), default=utcnow, nullable=False)
     completed_at: Mapped[str | None] = mapped_column(String(40))
+    # So thu tu de nguoi dung goi va tim lai ban quet ("#42") thay vi UUID.
+    # Cap MOT LAN luc tao (xem `_cap_so_thu_tu`), khong doi, khong tai su
+    # dung khi xoa - xoa #7 thi so 7 bo trong chu khong don so lai.
+    seq: Mapped[int | None] = mapped_column(Integer, index=True)
 
     __table_args__ = (
         CheckConstraint(
@@ -413,6 +420,39 @@ class ExportLog(Base):
     )
 
 
+class AuditLog(Base):
+    """Nhat ky kiem toan: AI lam GI, voi CAI GI, LUC NAO.
+
+    Cung nguyen tac voi `ExportLog`: chi them, khong sua, khong xoa - khong
+    co endpoint nao ghi de hay xoa mot dong o day. Xoa tai khoan thi
+    `user_id` ve NULL nhung `actor` (email luc do) van con.
+
+    `detail` chi giu SO LIEU va NHAN (dinh dang, so ho so, kieu luu), KHONG
+    giu ten, email hay so dien thoai cua doi tac: mot ban sao du lieu ca nhan
+    trong nhat ky la mo rong be mat ro ri, va no se song lau hon ca lenh xoa
+    ho so - trai voi chinh quyen xoa ma `erasure.py` bao dam.
+    """
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    actor: Mapped[str | None] = mapped_column(String(320))
+    action: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    target_type: Mapped[str | None] = mapped_column(String(16))
+    target_id: Mapped[str | None] = mapped_column(String(36))
+    detail: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    # Nguon cua thao tac: IP va trinh duyet cua NGUOI THUC HIEN (khong phai du
+    # lieu doi tac). Giao dien Streamlit goi backend tu may chu, nen no chuyen
+    # tiep IP/trinh duyet that qua header - xem `audit.dat_nguon`.
+    ip: Mapped[str | None] = mapped_column(String(64))
+    thiet_bi: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[str] = mapped_column(String(40), default=utcnow,
+                                            nullable=False, index=True)
+
+
 class IdempotencyKey(Base):
     __tablename__ = "idempotency_keys"
 
@@ -435,3 +475,24 @@ class ContactProfile(Base):
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     names_norm: Mapped[str] = mapped_column(Text, nullable=False)
     companies_norm: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+@event.listens_for(Session, "before_flush")
+def _cap_so_thu_tu(session, flush_context, instances) -> None:
+    """Cap so thu tu cho moi ban quet moi, ngay truoc khi ghi.
+
+    Lam o `before_flush` chu khong o `before_insert`: SQLAlchemy gom nhieu
+    INSERT thanh mot lo, nen `before_insert` cua ca lo chay TRUOC khi dong
+    nao duoc ghi - moi ban quet se doc cung mot MAX va nhan trung so. Nhu the
+    nay thi ca lo duoc danh so lien tiep trong mot lan.
+
+    ponytail: MAX+1 dua vao viec SQLite tuan tu hoa nguoi ghi. Chuyen sang
+    PostgreSQL thi dung SEQUENCE.
+    """
+    moi = [x for x in session.new if isinstance(x, Scan) and x.seq is None]
+    if not moi:
+        return
+    so = session.execute(select(func.max(Scan.seq))).scalar() or 0
+    for scan in sorted(moi, key=lambda x: x.created_at or ""):
+        so += 1
+        scan.seq = so

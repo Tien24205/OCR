@@ -8,6 +8,8 @@ from lib.fields import buffered_draft, edit_fields, FIELD_LABELS
 from lib.enrichment import render_enrichment
 from lib.contacts import render_save_contact
 
+MOI_TRANG = 12
+
 TRANG_THAI_VI = {"pending": "đang chờ", "processing": "đang nhận diện",
                  "ocr_done": "chờ kiểm tra", "committed": "đã lưu hồ sơ",
                  "failed": "lỗi"}
@@ -32,16 +34,29 @@ def chon_ban_quet(dang_mo: str | None) -> None:
     vao, va nhung ban quet da xu ly xong nam lai trong CSDL khong co cach nao
     mo ra - da tung co 9 ban quet `ocr_done` bi ket kieu do.
     """
+    trang = st.session_state.get("scan_trang", 1)
+    tim_so = st.session_state.get("scan_tim_so")
     try:
-        items = api.list_scans(limit=12)["items"]
+        ket_qua = api.list_scans(limit=MOI_TRANG, page=trang, so=tim_so)
     except api.ApiError as exc:
         st.caption(f"Chưa đọc được danh sách bản quét: {exc.message}")
         return
-    if not items:
+    items, tong = ket_qua["items"], ket_qua.get("total", len(ket_qua["items"]))
+    if not items and not tim_so and trang == 1:
         return
+    so_trang = max(1, -(-tong // MOI_TRANG))
 
-    with st.expander(f"Chọn bản quét khác ({len(items)} gần đây)",
+    with st.expander(f"Chọn bản quét khác ({tong} bản quét)",
                      expanded=dang_mo is None):
+        with st.container(horizontal=True, vertical_alignment="bottom"):
+            st.number_input("Tìm theo số thứ tự", min_value=1, step=1, value=None,
+                            key="scan_tim_so", placeholder="vd. 42",
+                            on_change=lambda: st.session_state.update(scan_trang=1))
+            if tim_so:
+                st.button("Bỏ tìm", icon=":material/close:", key="scan_bo_tim",
+                          on_click=lambda: st.session_state.update(scan_tim_so=None))
+        if not items:
+            st.caption(f"Không có bản quét #{tim_so}." if tim_so else "Trang này trống.")
         for hang in range(0, len(items), 4):
             for cot, item in zip(st.columns(4), items[hang:hang + 4]):
                 with cot:
@@ -51,7 +66,9 @@ def chon_ban_quet(dang_mo: str | None) -> None:
                         st.caption("(chưa tải được ảnh)")
                     nhan = (item.get("full_name") or item.get("company_name")
                             or TRANG_THAI_VI.get(item["status"], item["status"]))
-                    st.caption(f"{nhan}\n\n{item['created_at'][11:16]} · "
+                    so = f"**#{item['seq']}** · " if item.get("seq") else ""
+                    ngay = item["created_at"]
+                    st.caption(f"{so}{nhan}\n\n{ngay[8:10]}/{ngay[5:7]} {ngay[11:16]} · "
                                f"{TRANG_THAI_VI.get(item['status'], item['status'])}")
                     if item["id"] == dang_mo:
                         st.caption("**đang mở**")
@@ -60,6 +77,17 @@ def chon_ban_quet(dang_mo: str | None) -> None:
                         st.session_state.pop("scan_result", None)
                         st.session_state.pop("scan_poll", None)
                         st.rerun()
+        if so_trang > 1 and not tim_so:
+            with st.container(horizontal=True, vertical_alignment="center"):
+                if st.button("Mới hơn", icon=":material/chevron_left:", disabled=trang <= 1,
+                             key="scan_moi_hon"):
+                    st.session_state.scan_trang = trang - 1
+                    st.rerun()
+                st.caption(f"Trang {trang}/{so_trang}")
+                if st.button("Cũ hơn", icon=":material/chevron_right:", disabled=trang >= so_trang,
+                             key="scan_cu_hon"):
+                    st.session_state.scan_trang = trang + 1
+                    st.rerun()
 
 
 scan_id = st.session_state.get("current_scan_id")
@@ -69,7 +97,9 @@ if not scan_id:
     chon_ban_quet(None)
     st.stop()
 
-st.caption(f"Bản quét `{scan_id}`")
+_dang_mo = st.session_state.get("scan_result") or {}
+_so_mo = _dang_mo.get("seq") if _dang_mo.get("id") == scan_id else None
+st.caption(f"Bản quét **#{_so_mo}**" if _so_mo else f"Bản quét `{scan_id}`")
 chon_ban_quet(scan_id)
 poll = st.session_state.get("scan_poll")
 if not poll or poll["id"] != scan_id:

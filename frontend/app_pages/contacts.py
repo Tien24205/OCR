@@ -7,6 +7,8 @@ from lib.contacts import render_contact_detail
 
 if st.session_state.pop("contact_saved_notice", False):
     st.success("Đã lưu thay đổi hồ sơ.")
+if thong_bao := st.session_state.pop("contact_deleted_notice", None):
+    st.success(thong_bao, icon=":material/delete:")
 query = st.text_input("Tìm theo tên, công ty, email hoặc số điện thoại",
                       key="contacts_query", placeholder="山田, Example Inc., jane@…", max_chars=500)
 if st.session_state.get("contacts_previous_query") != query:

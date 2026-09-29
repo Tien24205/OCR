@@ -57,7 +57,7 @@ Cần **hai terminal**, cả hai chạy **từ thư mục gốc dự án**:
 .\.venv\Scripts\streamlit.exe run frontend\asgi_app.py
 ```
 
-Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 34 endpoint, bảng mã lỗi và lưu ý khi tích hợp
+Mở http://localhost:8501 · **Tài liệu API**: http://localhost:8000/docs — mô tả đầy đủ 35 endpoint, bảng mã lỗi và lưu ý khi tích hợp
 
 > **Phải chạy từ gốc dự án.** Streamlit đọc `.streamlit/config.toml` theo thư mục đang chạy, không theo vị trí file ứng dụng. Chạy từ chỗ khác thì giới hạn dung lượng tải lên 8 MB sẽ không được áp dụng.
 
@@ -162,6 +162,19 @@ không quét gì thì cũng không nhận thêm ảnh nào. Cần chắc chắn 
 | `csv` | Mở bằng bảng tính; có BOM UTF-8 để Excel không đọc sai chữ Nhật |
 | `vcf` | **vCard 3.0** — mở trên điện thoại là danh bạ tự nhận, không cần map cột |
 
+### Nhật ký hoạt động (audit log)
+
+Trang **Nhật ký hoạt động** (và `GET /api/audit?limit=&action=&since=`) cho biết
+ai làm gì, lúc nào: đăng nhập, đăng nhập thất bại, tạo tài khoản, quét thẻ,
+sửa bản nháp, lưu / sửa / xoá hồ sơ, xoá bản quét, xuất dữ liệu.
+
+- Người dùng thường chỉ thấy hoạt động của mình — kể cả những lần đăng nhập
+  sai **vào** tài khoản của mình. Quản trị thấy toàn hệ thống.
+- Chỉ ghi thêm: không có endpoint nào sửa hay xoá một dòng nhật ký.
+- Không ghi dữ liệu cá nhân của đối tác, chỉ số liệu (định dạng, số hồ sơ,
+  số ảnh), để lệnh xoá hồ sơ không để lại bản sao trong nhật ký.
+- Lọc theo khoảng ngày, loại hoạt động, người thực hiện; tải về CSV.
+
 Giao diện chỉ đọc **một** biến: `API_BASE_URL` (mặc định `http://127.0.0.1:8000`). Nó không giữ khóa nào.
 
 ### Bật OCR thật
@@ -241,7 +254,7 @@ Một lệnh chạy cả backend lẫn giao diện, từ thư mục gốc:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-**738 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
+**767 test, không gọi mạng thật**: backend dùng `OCR_PROVIDER=mock`, giao diện dùng `AppTest` chạy headless với backend giả lập.
 
 ```powershell
 # Quét rò rỉ khóa — trả mã thoát 1 nếu tìm thấy, dùng được trong CI
@@ -350,7 +363,7 @@ thường bỏ qua được.
 ### Kiểm trước khi coi là xong
 
 ```powershell
-python -m pytest -q                              # 738 test
+python -m pytest -q                              # 767 test
 python -m ruff check backend frontend mcp_server conftest.py
 python backend\scripts\check_docs.py            # số liệu tài liệu vs mã nguồn
 python backend\scripts\check_secrets.py         # khoá bị commit nhầm
@@ -879,7 +892,7 @@ công sức lập trình mà chặn ở chỗ khác.
 trích xuất có schema · grounding · điểm tin cậy bốn tín hiệu · điều phối
 agentic có nhánh rẽ thật · tra cứu doanh nghiệp dẫn nguồn, chặn SSRF ·
 lưu/tìm/chống trùng · xuất JSON, CSV, vCard · đa người dùng có phân quyền ·
-34 endpoint · 738 test.
+35 endpoint · 767 test.
 
 Còn thiếu để gọi là v1.0 thật:
 

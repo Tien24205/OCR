@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.access import NguoiGoi, nguoi_goi
 from app.auth import (
     MAT_KHAU_TOI_THIEU,
@@ -182,6 +183,8 @@ def dang_ky(body: DangKy, request: Request, db: Session = Depends(get_db),
     )
     db.add(user)
     try:
+        db.flush()
+        audit.ghi_cho_tai_khoan(db, user, email, "tao_tai_khoan", vai_tro=user.role)
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -215,9 +218,18 @@ def dang_nhap(body: DangNhap, request: Request, db: Session = Depends(get_db),
     dung = mat_khau_dung(body.password, bam_that)
 
     if user is None or not dung or not user.is_active:
+        # Ghi ca lan THAT BAI: nhieu dong lien tiep vao mot tai khoan la dau
+        # hieu do mat khau, va chu tai khoan thay duoc chung trong nhat ky.
+        # Ly do chi nam trong nhat ky (chu tai khoan va quan tri doc), KHONG
+        # tra ra cau tra loi dang nhap - o do van la mot cau cho moi truong hop.
+        ly_do = ("khong_co_tai_khoan" if user is None else
+                 "tai_khoan_bi_khoa" if not user.is_active else "sai_mat_khau")
+        audit.ghi_cho_tai_khoan(db, user, body.email.strip(), "dang_nhap_that_bai", ly_do=ly_do)
+        db.commit()
         raise ApiError("BAD_CREDENTIALS", "Email hoặc mật khẩu không đúng.", 401)
 
     user.last_login_at = utcnow()
+    audit.ghi_cho_tai_khoan(db, user, user.email, "dang_nhap")
     db.commit()
     return _phat_phieu(user, config)
 

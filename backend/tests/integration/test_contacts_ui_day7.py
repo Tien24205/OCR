@@ -67,12 +67,51 @@ def test_duplicate_ui_requires_choice_before_creating_new(system, monkeypatch):
     at.session_state.scan_result = second
     at.switch_page("app_pages/review.py").run()
     assert not at.exception
-    assert at.radio[0].options == ["Xem hồ sơ cũ", "Cập nhật hồ sơ này", "Tạo hồ sơ mới"]
+    assert at.radio[0].options == ["Gộp hồ sơ", "Lưu mới"]
     assert not any(x.label == "Xác nhận lưu hồ sơ" for x in at.button)
-    at.radio[0].set_value("Tạo hồ sơ mới").run()
+    at.radio[0].set_value("new").run()
     at.checkbox[0].check().run()
     button(at, "Xác nhận lưu hồ sơ").click().run()
     assert not at.exception and system.client.get("/api/contacts").json()["total"] == 2
+
+
+def test_duplicate_ui_merge_keeps_one_contact(system, monkeypatch):
+    first = ready(system, monkeypatch)
+    cid = save(system, first).json()["id"]
+    second = ready(system, monkeypatch)
+    monkeypatch.setattr(api, "_client", lambda: system.client)
+    at = AppTest.from_file(APP, default_timeout=15)
+    at.session_state.current_scan_id = second["id"]
+    at.session_state.scan_result = second
+    at.switch_page("app_pages/review.py").run()
+    at.radio[0].set_value("merge").run()
+    at.checkbox[0].check().run()
+    button(at, "Xác nhận lưu hồ sơ").click().run()
+    assert not at.exception
+    assert at.session_state.scan_result["contact_id"] == cid
+    assert system.client.get("/api/contacts").json()["total"] == 1
+
+
+def test_delete_button_needs_confirmation_then_erases_contact(system, monkeypatch):
+    scan = ready(system, monkeypatch)
+    cid = save(system, scan).json()["id"]
+    monkeypatch.setattr(api, "_client", lambda: system.client)
+    at = AppTest.from_file(APP, default_timeout=15)
+    at.session_state.selected_contact_id = cid
+    at.switch_page("app_pages/contacts.py").run()
+
+    button(at, "Xoá hồ sơ").click().run()
+    assert not at.exception
+    assert button(at, "Xoá vĩnh viễn").disabled          # chua xac nhan thi chua xoa
+    assert system.client.get("/api/contacts").json()["total"] == 1
+
+    next(c for c in at.checkbox if c.label == "Tôi hiểu và muốn xoá hẳn").check().run()
+    button(at, "Xoá vĩnh viễn").click().run()
+
+    assert not at.exception
+    assert system.client.get("/api/contacts").json()["total"] == 0
+    assert "selected_contact_id" not in at.session_state
+    assert any("Đã xoá hồ sơ" in s.value for s in at.success)
 
 
 def test_directory_search_export_and_edit_preserve_japanese(system, monkeypatch):

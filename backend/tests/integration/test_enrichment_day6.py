@@ -183,3 +183,88 @@ def test_ui_research_and_review_through_real_api(system, monkeypatch):
     assert not at.exception and any(caption.value == "Đã duyệt" for caption in at.caption)
     next(button for button in at.button if button.label == "Bác bỏ").click().run()
     assert not at.exception and any(caption.value == "Đã bác bỏ" for caption in at.caption)
+
+
+# --- Nguoi dung tu nhap ten / website doanh nghiep de tra cuu ------------
+
+def start_with(system, scan_id, revision=0, **dau_vao):
+    response = system.client.post(f"/api/scans/{scan_id}/enrich", json={"revision": revision, **dau_vao})
+    assert response.status_code == 202, response.text
+    return system.client.get(f"/api/organizations/{response.json()['organization_id']}").json()
+
+
+def test_nhap_ten_thi_tim_website_roi_moi_doi_chieu(system, monkeypatch):
+    """The khong co website: tim tu ten, roi trang tim duoc van phai qua
+    moi phep kiem nhu website in tren the."""
+    scan_id, _ = ready(system, monkeypatch, website=False)
+    fetched, _ = fake_sources(monkeypatch)
+    hoi = []
+    monkeypatch.setattr(worker, "tim_website", lambda ten, config: hoi.append(ten) or "https://found.example/")
+    before = evidence(system, scan_id)
+
+    org = start_with(system, scan_id, company_name="Example Inc.")
+    job = org["research"]
+
+    assert hoi == ["Example Inc."]
+    assert fetched[0] == "https://found.example/"
+    assert job["metadata"]["discovery_source"] == "web_search"
+    assert job["enrichments"] and all(r["status"] == "verified" for r in job["enrichments"] if r["value"])
+    assert org["name_original"] == "Example Inc."
+    assert evidence(system, scan_id) == before           # ten nhap KHONG ghi vao the
+
+
+def test_nhap_website_thi_dung_thang_khong_can_tim(system, monkeypatch):
+    scan_id, _ = ready(system, monkeypatch, website=False)
+    fetched, _ = fake_sources(monkeypatch)
+    monkeypatch.setattr(worker, "tim_website", lambda *a: pytest.fail("khong duoc tim khi da co website"))
+
+    job = start_with(system, scan_id, company_name="Example Inc.", website="example-inc.test")["research"]
+
+    assert fetched[0] == "https://example-inc.test/"
+    assert job["metadata"]["research_input"] == {"company_name": "Example Inc.", "website": "example-inc.test"}
+
+
+def test_doi_ten_sau_khi_tra_cuu_thi_tra_lai_va_tinh_vao_gioi_han(system, monkeypatch):
+    scan_id, _ = ready(system, monkeypatch, website=False)
+    fake_sources(monkeypatch)
+    monkeypatch.setattr(worker, "tim_website", lambda ten, config: "https://found.example/")
+
+    dau = start_with(system, scan_id, company_name="Ten Cu Co.")
+    sau = start_with(system, scan_id, company_name="Example Inc.")
+    lai_y_nguyen = start_with(system, scan_id, company_name="Example Inc.")
+
+    assert sau["id"] == dau["id"] and sau["name_original"] == "Example Inc."
+    assert sau["research"]["attempts"] == 2
+    assert lai_y_nguyen["research"]["attempts"] == 2      # cung dau vao: khong ton them luot
+
+
+def test_khong_tim_thay_website_thi_bao_ro(system, monkeypatch):
+    scan_id, _ = ready(system, monkeypatch, website=False)
+    fetched, _ = fake_sources(monkeypatch)
+    monkeypatch.setattr(worker, "tim_website", lambda ten, config: None)
+
+    job = start_with(system, scan_id, company_name="Khong Ton Tai Co.")["research"]
+
+    assert fetched == []
+    assert job["reason"] == "NO_DOMAIN_ON_CARD"
+    assert job["metadata"]["discovery_source"] == "website_not_found"
+
+
+def test_ui_nhap_ten_doanh_nghiep_de_tra_cuu(system, monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    from lib import api
+    scan_id, _ = ready(system, monkeypatch, website=False)
+    fetched, _ = fake_sources(monkeypatch)
+    monkeypatch.setattr(worker, "tim_website", lambda ten, config: "https://found.example/")
+    monkeypatch.setattr(api, "_client", lambda: system.client)
+    at = AppTest.from_file(str(Path(__file__).resolve().parents[3] / "frontend/streamlit_app.py"), default_timeout=20)
+    at.session_state["current_scan_id"] = scan_id
+    at.session_state["scan_result"] = system.client.get(f"/api/scans/{scan_id}").json()
+    at.switch_page("app_pages/review.py").run()
+
+    next(t for t in at.text_input if t.label == "Tên doanh nghiệp").set_value("Example Inc.")
+    next(b for b in at.button if b.label == "Tra cứu doanh nghiệp").click().run()
+
+    assert not at.exception
+    assert fetched and fetched[0] == "https://found.example/"
+    assert any(text.value == "manufacturing" for text in at.text)

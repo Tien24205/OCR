@@ -3,15 +3,23 @@
 Chay:  streamlit run frontend/streamlit_app.py
 """
 
+from pathlib import Path
+
 import streamlit as st
 
 from lib import api
 
+TEN_SAN_PHAM = "CardLens"
+KHAU_HIEU = "Chụp danh thiếp, nhận hồ sơ đối tác tin được"
+ASSETS = Path(__file__).parent / "assets"
+TEN_COOKIE = "cardlens_phien"        # trung voi asgi_app.TEN_COOKIE
+
 st.set_page_config(
-    page_title="Danh thiếp → Hồ sơ đối tác",
-    page_icon=":material/contact_mail:",
+    page_title=f"{TEN_SAN_PHAM} · {KHAU_HIEU}",
+    page_icon=str(ASSETS / "icon.svg"),
     layout="wide",
 )
+st.logo(str(ASSETS / "logo.svg"), icon_image=str(ASSETS / "icon.svg"), size="large")
 
 # --- Trang thai dung chung giua cac trang: khoi tao o DUNG MOT NOI ---
 st.session_state.setdefault("current_scan_id", None)
@@ -61,6 +69,12 @@ def show_backend_status() -> None:
         return f"{dau} lúc {luc} — {kiem['detail']}"
 
     with st.sidebar:
+        st.markdown(f"**{TEN_SAN_PHAM}**  \n:gray[{KHAU_HIEU}]")
+        st.badge("Đa ngôn ngữ · Anh, Nhật, Hàn, Trung", icon=":material/translate:", color="blue")
+        st.badge("Chống bịa dữ liệu bằng đối chiếu OCR", icon=":material/verified_user:", color="orange")
+    # Chi tiet ky thuat cho nguoi van hanh: gap lai mac dinh de man hinh
+    # chinh nhin nhu mot san pham, khong nhu bang chan doan.
+    with st.sidebar.expander("Trạng thái hệ thống", icon=":material/monitor_heart:"):
         st.success(f"Backend đang chạy ({data['env']})", icon=":material/cloud_done:")
         st.caption("Cấu hình xử lý")
         st.caption("Điều phối agent: " + ("bật" if cfg.get("agent_enabled") else "tắt; dùng luồng hiện tại"))
@@ -117,9 +131,65 @@ def hien_nguoi_dang_dung() -> None:
             for khoa in ("phieu_dang_nhap", "nguoi_dung", "current_scan_id",
                          "pending_image", "scan_result", "scan_poll"):
                 st.session_state.pop(khoa, None)
+            # Xoa ca cookie "ghi nho dang nhap"; va KHONG khoi phuc tu cookie
+            # trong phien nay nua - cookie chi mat o lan chay SAU, nen khong
+            # chan thi dang xuat xong lai tu dang nhap lai ngay.
+            st.session_state.da_dang_xuat = True
+            st.session_state.can_xoa_phien = True
             st.rerun()
 
 
+def khoi_phuc_phien() -> None:
+    """Mo lai trang ma con cookie "ghi nho dang nhap" thi vao thang.
+
+    Hoi backend `/api/auth/me` bang phieu trong cookie: phieu het han, bi thu
+    hoi hay tai khoan bi khoa thi backend tu choi, va cookie bi xoa - khong
+    tin mot cookie chi vi no con nam trong trinh duyet.
+    """
+    ss = st.session_state
+    if ss.get("phieu_dang_nhap") or ss.get("da_dang_xuat") or ss.get("phien_nho_hong"):
+        return
+    try:
+        phieu = st.context.cookies.get(TEN_COOKIE)
+    except Exception:
+        return
+    if not isinstance(phieu, str) or not phieu:
+        return
+    ss.phieu_dang_nhap = phieu
+    try:
+        toi = api.toi_la_ai()
+    except api.ApiError:
+        toi = {}
+    if not toi.get("user"):
+        ss.phieu_dang_nhap = None
+        ss.phien_nho_hong = True        # thu MOT lan moi phien, khong lap lai
+        ss.can_xoa_phien = True
+        return
+    ss.nguoi_dung = toi["user"]
+
+
+def dong_bo_cookie() -> None:
+    """Dat / xoa cookie qua route `/phien` cua `asgi_app.py`.
+
+    Phai do trinh duyet goi: cookie HttpOnly chi dat duoc bang mot cau tra
+    loi HTTP gui ve CHINH trinh duyet do, ma Streamlit noi chuyen qua
+    WebSocket. Chay thang `streamlit_app.py` (khong qua asgi_app) thi route
+    khong ton tai - loi goi that bai im lang, chi mat phan ghi nho.
+    """
+    import json
+
+    if nho := st.session_state.pop("can_nho_phien", None):
+        st.html("<script>fetch('/phien',{method:'POST',credentials:'same-origin',"
+                "headers:{'Content-Type':'application/json'},body:"
+                + json.dumps(json.dumps(nho)) + "})</script>",
+                unsafe_allow_javascript=True)
+    if st.session_state.pop("can_xoa_phien", False):
+        st.html("<script>fetch('/phien',{method:'DELETE',credentials:'same-origin'})</script>",
+                unsafe_allow_javascript=True)
+
+
+khoi_phuc_phien()
+dong_bo_cookie()
 show_backend_status()
 
 # CONG DANG NHAP.
@@ -157,8 +227,8 @@ else:
                 icon=":material/hub:"
             ),
             st.Page(
-                "app_pages/dashboard.py", title="Tổng quan",
-                icon=":material/insights:"
+                "app_pages/audit.py", title="Nhật ký hoạt động",
+                icon=":material/history:"
             ),
         ],
         position="top",

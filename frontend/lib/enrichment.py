@@ -8,7 +8,7 @@ LABELS = {"industry": "Lĩnh vực", "company_size": "Quy mô", "products_servic
 STATUSES = {"verified": "Đã đối chiếu nguồn", "unverified": "Chưa xác minh đầy đủ",
             "conflicting": "Nguồn mâu thuẫn", "not_found": "Chưa tìm thấy"}
 REASONS = {
-    "NO_DOMAIN_ON_CARD": "Chưa có website hoặc email công ty để tra cứu.",
+    "NO_DOMAIN_ON_CARD": "Không tìm được website của doanh nghiệp. Kiểm tra lại tên, hoặc nhập website nếu bạn biết.",
     "SUMMARIZER_NOT_CONFIGURED": "Chưa cấu hình Gemini để trích xuất thông tin từ các trang đã tải.",
     "SUMMARY_FAILED": "Chưa trích xuất được thông tin từ website. Kiểm tra model, quyền và quota Gemini.",
     "IDENTITY_UNVERIFIED": "Chưa đối chiếu được danh tính doanh nghiệp với danh thiếp.",
@@ -37,25 +37,46 @@ def poll_research(key: str):
     st.status("Đang tải và đối chiếu nguồn doanh nghiệp…", state="running")
 
 
+def _o_nhap(scan: dict, key: str, nhan_nut: str) -> None:
+    """O nhap ten / website doanh nghiep, dien san tu the."""
+    fields = (scan.get("draft") or {}).get("fields") or {}
+    ten_the = ((fields.get("company_names") or [{}])[0]).get("value", "")
+    web_the = ((fields.get("websites") or [{}])[0]).get("value", "")
+    with st.form(f"form:{key}:{nhan_nut}", border=False, enter_to_submit=True):
+        with st.container(horizontal=True):
+            ten = st.text_input("Tên doanh nghiệp", value=ten_the, max_chars=300,
+                                placeholder="vd. Công ty TNHH ABC Logistics")
+            web = st.text_input("Website (không bắt buộc)", value=web_the, max_chars=500,
+                                placeholder="vd. abclogistics.vn")
+        gui = st.form_submit_button(nhan_nut, type="primary", icon=":material/travel_explore:")
+    st.caption("Không có website thì hệ thống tự tìm website chính thức theo tên. Mọi thông tin tìm được "
+               "đều kèm nguồn và đoạn trích nguyên văn. Tên nhập ở đây chỉ dùng để tra cứu, không sửa dữ liệu trên thẻ.")
+    if not gui:
+        return
+    if not ten.strip() and not web.strip():
+        st.error("Nhập tên doanh nghiệp hoặc website để tra cứu.", icon=":material/error:")
+        return
+    try:
+        job = api.start_enrichment(scan["id"], scan.get("draft_revision", 0), ten.strip(), web.strip())
+    except api.ApiError as exc:
+        st.error(exc.message, icon=":material/error:")
+        return
+    st.session_state[key] = {"job": job, "started": time.monotonic(), "poll_error": None}
+    st.rerun()
+
+
 def render_enrichment(scan: dict):
     if scan.get("status") not in {"ocr_done", "committed"}:
         return
     st.subheader("Thông tin doanh nghiệp từ website")
-    st.caption("Tra cứu dùng bản nháp đã lưu. Hãy lưu thay đổi trong form trước khi tra cứu. Kết quả web được giữ riêng với dữ liệu trên thẻ.")
+    st.caption("Kết quả web được giữ riêng với dữ liệu trên thẻ.")
     revision = scan.get("draft_revision", 0)
     key = f"research:{scan['id']}:{revision}"
     if key not in st.session_state and scan.get("enrichment"):
         st.session_state[key] = {"job": scan["enrichment"], "started": time.monotonic(), "poll_error": None}
     state = st.session_state.get(key)
     if not state:
-        if st.button("Tra cứu doanh nghiệp", key=f"start:{key}"):
-            try:
-                job = api.start_enrichment(scan["id"], revision)
-            except api.ApiError as exc:
-                st.error(exc.message)
-            else:
-                st.session_state[key] = {"job": job, "started": time.monotonic(), "poll_error": None}
-                st.rerun()
+        _o_nhap(scan, key, "Tra cứu doanh nghiệp")
         return
     job = state["job"]
     if job["status"] != "done":
@@ -112,6 +133,9 @@ def render_enrichment(scan: dict):
         else:
             state.update(started=time.monotonic(), poll_error=None)
             st.rerun()
+    if job.get("attempts", 1) < 3:
+        with st.expander("Tra cứu với tên hoặc website khác", icon=":material/edit:"):
+            _o_nhap(scan, key, "Tra cứu lại")
     with st.expander("Chi tiết lượt tra cứu"):
         st.caption(f"Lượt {job.get('attempts', 1)}/3 · Phiên bản bản nháp {job['draft_revision']}")
         st.json({"reason": job.get("reason"), "pages": job.get("pages", []), "metadata": job.get("metadata", {})})

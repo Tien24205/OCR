@@ -75,6 +75,48 @@ def with_confidence(draft: dict, grounding: dict) -> dict:
     return draft
 
 
+def _khoa_gop(field: str, item: dict) -> str:
+    """Hai dong la MOT gia tri khi khoa nay trung nhau.
+
+    Dien thoai so theo chu so (+ may le): "090 123 4567" va "+84901234567"
+    la mot so. Con lai so theo dang chuan hoa bo dau/hoa thuong.
+    """
+    from app.models import norm_key
+
+    if field == "phones":
+        return (item.get("value_digits") or "") + "#" + (item.get("extension") or "")
+    return norm_key(item.get("value") or "")
+
+
+def merge_drafts(old: dict, new: dict) -> dict:
+    """Gop ban nhap moi VAO ho so cu: giu nguyen moi thu da co, chi THEM
+    nhung gia tri chua co.
+
+    Khac han "cap nhat" (thay toan bo, ke ca o trong): gop KHONG BAO GIO lam
+    mat du lieu cu. Gia tri cu dung truoc, nen ten va cong ty chinh cua ho so
+    khong doi; the moi chi bo sung email, so dien thoai, dia chi... moi.
+
+    Ma dong dang `phones:0` trung nhau giua hai ban nhap, nen dong them vao
+    ma trung ma thi duoc cap ma moi - khong thi lan sua sau se bao "dong bi lap".
+    """
+    merged = deepcopy(old)
+    for field in FIELDS:
+        rows = merged["fields"].setdefault(field, [])
+        seen = {_khoa_gop(field, x) for x in rows}
+        ids = {x.get("id") for x in rows}
+        for item in new["fields"].get(field) or []:
+            key = _khoa_gop(field, item)
+            if not key.strip("#") or key in seen:
+                continue
+            item = deepcopy(item)
+            if item.get("id") in ids:
+                item["id"] = str(uuid4())
+            rows.append(item)
+            seen.add(key)
+            ids.add(item["id"])
+    return merged
+
+
 def apply_edit(current: dict, fields: DraftFields) -> dict:
     edited = deepcopy(current)
     for field in FIELDS:
